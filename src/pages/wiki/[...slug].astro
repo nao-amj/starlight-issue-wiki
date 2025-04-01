@@ -1,0 +1,42 @@
+---
+import { getIssues } from '../../lib/github';
+import { marked } from 'marked';
+import { gfmHeadingId } from 'marked-gfm-heading-id';
+import WikiContent from '../../components/WikiContent.astro';
+import Layout from '@astrojs/starlight/components/Layout.astro';
+
+export async function getStaticPaths() {
+  const issues = await getIssues();
+  
+  // issueからパスを生成
+  return issues.map(issue => {
+    // スラッグを生成（スペースをダッシュに変換、小文字に変換）
+    const slug = issue.title.toLowerCase()
+      .replace(/[^\w\s-]/g, '') // 特殊文字を削除
+      .replace(/\s+/g, '-') // スペースをダッシュに変換
+      .replace(/^-+|-+$/g, ''); // 先頭と末尾のダッシュを削除
+    
+    return {
+      params: { slug },
+      props: { issue },
+    };
+  });
+}
+
+const { issue } = Astro.props;
+
+// markedのセットアップ
+marked.use(gfmHeadingId());
+
+// issueの内容をHTMLに変換
+const content = marked.parse(issue.body || '');
+
+const frontmatter = {
+  title: issue.title,
+  description: `${issue.title} - Starlight Issue Wiki`,
+};
+---
+
+<Layout frontmatter={frontmatter}>
+  <WikiContent content={content} issueUrl={issue.html_url} />
+</Layout>
