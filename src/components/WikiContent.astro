@@ -1,0 +1,52 @@
+---
+export interface Props {
+  content: string;
+  issueUrl: string;
+}
+
+const { content, issueUrl } = Astro.props;
+---
+
+<div class="wiki-content">
+  <div class="content" set:html={content} />
+  
+  <div class="edit-links">
+    <a href={issueUrl} target="_blank" rel="noopener noreferrer">
+      GitHubでこのページを編集する
+    </a>
+  </div>
+</div>
+
+<style>
+  .wiki-content {
+    width: 100%;
+  }
+  
+  .content :global(img) {
+    max-width: 100%;
+    height: auto;
+  }
+  
+  .content :global(pre) {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    background-color: var(--sl-color-gray-6);
+    overflow-x: auto;
+  }
+  
+  .edit-links {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--sl-color-gray-5);
+    font-size: 0.9rem;
+  }
+  
+  .edit-links a {
+    color: var(--sl-color-text-accent);
+    text-decoration: none;
+  }
+  
+  .edit-links a:hover {
+    text-decoration: underline;
+  }
+</style>
