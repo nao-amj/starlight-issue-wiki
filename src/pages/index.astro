@@ -1,0 +1,61 @@
+---
+import { getCollection } from 'astro:content';
+import { getIssues } from '../lib/github';
+import { marked } from 'marked';
+import { gfmHeadingId } from 'marked-gfm-heading-id';
+import Layout from '@astrojs/starlight/components/Layout.astro';
+import ContentPanel from '@astrojs/starlight/components/ContentPanel.astro';
+
+// GitHubからissueを取得
+const issues = await getIssues();
+const welcomeIssue = issues.find(issue => issue.number === 1) || issues[0];
+
+// markedのセットアップ
+marked.use(gfmHeadingId());
+
+// issueの内容をHTMLに変換
+const content = welcomeIssue ? marked.parse(welcomeIssue.body || '') : '';
+
+const frontmatter = {
+  title: welcomeIssue?.title || 'Starlight Issue Wiki',
+  description: 'GitHubのissueを使ったWikiサイト',
+  template: 'splash',
+  hero: {
+    tagline: 'GitHubのissueを使って管理するWikiサイト',
+    actions: [
+      {
+        text: 'Wikiを見る',
+        link: '/wiki/welcome',
+        icon: 'right-arrow',
+        variant: 'primary',
+      },
+      {
+        text: 'GitHub',
+        link: 'https://github.com/nao-amj/starlight-issue-wiki',
+        icon: 'github',
+      },
+    ],
+  },
+};
+---
+
+<Layout frontmatter={frontmatter}>
+  <ContentPanel>
+    <div class="wiki-content" set:html={content} />
+  </ContentPanel>
+  
+  <style>
+    .wiki-content {
+      padding: 1rem;
+    }
+    .wiki-content :global(h1) {
+      margin-top: 0;
+    }
+    .wiki-content :global(pre) {
+      padding: 1rem;
+      border-radius: 0.5rem;
+      background-color: var(--sl-color-gray-6);
+      overflow-x: auto;
+    }
+  </style>
+</Layout>
