@@ -84,7 +84,7 @@ function generateSlug(title) {
           <a href={BASE_PATH + "/"} class="active">ホーム</a>
           <a href={`${BASE_PATH}/wiki/1`}>はじめに</a>
           <a href={`${BASE_PATH}/wiki`}>ページ一覧</a>
-          <a href={REPO_URL} target="_blank">GitHub</a>
+          <a href={REPO_URL} target="_blank" class="external-link">GitHub</a>
         </nav>
       </div>
     </div>
@@ -96,7 +96,7 @@ function generateSlug(title) {
       <p>{SITE_DESCRIPTION}</p>
       <div class="actions">
         <a href={`${BASE_PATH}/wiki/1`} class="button primary">はじめに</a>
-        <a href={REPO_URL + "/issues/new"} class="button accent" target="_blank">新規ページ作成</a>
+        <a href={REPO_URL + "/issues/new"} target="_blank" class="button accent external-link">新規ページ作成</a>
       </div>
     </div>
   </div>
@@ -131,7 +131,7 @@ function generateSlug(title) {
         
         <h3>使い方</h3>
         <ol>
-          <li>GitHubで<a href={`${REPO_URL}/issues/new`} target="_blank">新しいIssueを作成</a>する</li>
+          <li>GitHubで<a href={`${REPO_URL}/issues/new`} target="_blank" class="external-link">新しいIssueを作成</a>する</li>
           <li>ラベルでカテゴリを設定する</li>
           <li>自動的にWikiに反映される</li>
         </ol>
@@ -156,7 +156,7 @@ function generateSlug(title) {
                 ))}
               </div>
               <div class="issue-excerpt">
-                {issue.body.length > 100 ? `${issue.body.substring(0, 100)}...` : issue.body}
+                {issue.body && (issue.body.length > 100 ? `${issue.body.substring(0, 100)}...` : issue.body)}
               </div>
             </a>
           ))}
@@ -190,8 +190,12 @@ function generateSlug(title) {
         <div class="card">
           <h2>GitHub連携</h2>
           <div class="github-actions">
-            <a href={REPO_URL + "/issues"} class="button secondary" style="width: 100%; margin-bottom: 0.5rem;" target="_blank">Issue一覧を見る</a>
-            <a href={REPO_URL + "/issues/new"} class="button accent" style="width: 100%;" target="_blank">新規ページを作成</a>
+            <a href={REPO_URL + "/issues"} class="button secondary" style="width: 100%; margin-bottom: 0.5rem;" target="_blank">
+              <span class="button-icon">🗒️</span> Issue一覧を見る
+            </a>
+            <a href={REPO_URL + "/issues/new"} class="button accent" style="width: 100%;" target="_blank">
+              <span class="button-icon">✏️</span> 新規ページを作成
+            </a>
           </div>
           
           <div class="mt-3">
@@ -224,7 +228,7 @@ function generateSlug(title) {
           <ul class="quick-links">
             <li><a href={`${BASE_PATH}/wiki`}>全ページ一覧</a></li>
             <li><a href={`${BASE_PATH}/wiki/1`}>使い方ガイド</a></li>
-            <li><a href={REPO_URL} target="_blank">GitHubリポジトリ</a></li>
+            <li><a href={REPO_URL} target="_blank" class="external-link">GitHubリポジトリ</a></li>
           </ul>
         </div>
       </div>
@@ -234,6 +238,27 @@ function generateSlug(title) {
   <CustomFooter />
 
   <style>
+    /* 外部リンク設定 */
+    .external-link {
+      position: relative;
+      padding-right: 1.2em;
+    }
+    
+    .external-link::after {
+      content: '\2197';
+      position: absolute;
+      font-size: 0.8em;
+      right: 0;
+      top: 0.2em;
+      opacity: 0.7;
+      transition: transform 0.2s, opacity 0.2s;
+    }
+    
+    .external-link:hover::after {
+      transform: translateX(2px) translateY(-2px);
+      opacity: 1;
+    }
+    
     /* ページ特有のスタイル */
     .hero {
       background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
@@ -241,17 +266,27 @@ function generateSlug(title) {
       padding: 3rem 0;
       text-align: center;
       margin-bottom: 2rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
     
     .hero h1 {
       margin: 0;
-      font-size: 2.5rem;
+      font-size: 2.8rem;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      background: linear-gradient(90deg, #ffffff, #f0f4ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.02em;
     }
     
     .hero p {
-      font-size: 1.2rem;
-      opacity: 0.9;
+      font-size: 1.25rem;
+      opacity: 0.95;
       margin: 1rem 0 2rem;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
     }
     
     .actions {
@@ -376,6 +411,11 @@ function generateSlug(title) {
       flex-grow: 1;
       white-space: pre-line;
     }
+    
+    /* ボタンアイコン */
+    .button-icon {
+      margin-right: 0.4rem;
+    }
 
     /* クイックリンク */
     .quick-links {
@@ -398,7 +438,7 @@ function generateSlug(title) {
     }
 
     .quick-links a:before {
-      content: '→';
+      content: '\2192';
       margin-right: 0.5rem;
       color: var(--color-primary);
     }
@@ -407,6 +447,7 @@ function generateSlug(title) {
     .recent-updates {
       list-style: none;
       padding: 0;
+      margin: 0;
     }
 
     .recent-updates li {

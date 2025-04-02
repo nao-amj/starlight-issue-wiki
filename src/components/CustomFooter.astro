@@ -1,5 +1,5 @@
 ---
-import { REPO_URL, SITE_TITLE } from '../config';
+import { REPO_URL, SITE_TITLE, BASE_PATH } from '../config';
 
 const currentYear = new Date().getFullYear();
 ---
@@ -15,24 +15,150 @@ const currentYear = new Date().getFullYear();
       <div class="footer-section">
         <h3>リンク</h3>
         <ul class="footer-links">
-          <li><a href="/">ホーム</a></li>
-          <li><a href="/wiki/1">はじめに</a></li>
-          <li><a href="/pages">すべてのページ</a></li>
+          <li><a href={BASE_PATH}>ホーム</a></li>
+          <li><a href={`${BASE_PATH}/wiki/1`}>はじめに</a></li>
+          <li><a href={`${BASE_PATH}/wiki`}>すべてのページ</a></li>
         </ul>
       </div>
       
       <div class="footer-section">
         <h3>リソース</h3>
         <ul class="footer-links">
-          <li><a href={REPO_URL} target="_blank">GitHubリポジトリ</a></li>
-          <li><a href={`${REPO_URL}/issues`} target="_blank">Issue一覧</a></li>
-          <li><a href={`${REPO_URL}/issues/new`} target="_blank">新規Issue作成</a></li>
+          <li><a href={REPO_URL} target="_blank" class="external-link">GitHubリポジトリ</a></li>
+          <li><a href={`${REPO_URL}/issues`} target="_blank" class="external-link">Issue一覧</a></li>
+          <li><a href={`${REPO_URL}/issues/new`} target="_blank" class="external-link">新規Issue作成</a></li>
         </ul>
       </div>
     </div>
     
     <div class="copyright">
-      <p>&copy; {currentYear} {SITE_TITLE} | Powered by <a href="https://astro.build" target="_blank">Astro</a></p>
+      <p>&copy; {currentYear} {SITE_TITLE} | Powered by <a href="https://astro.build" target="_blank" class="external-link">Astro</a></p>
     </div>
   </div>
 </footer>
+
+<style>
+  footer {
+    background: linear-gradient(135deg, var(--color-primary-dark), var(--color-primary));
+    color: white;
+    padding: var(--space-xl) 0;
+    margin-top: var(--space-xxl);
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  }
+
+  .footer-content {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-lg);
+  }
+
+  .footer-section {
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .footer-section h3 {
+    color: white;
+    margin-top: 0;
+    font-size: 1.2rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    padding-bottom: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .footer-section p {
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.5;
+    font-size: 0.95rem;
+  }
+
+  .footer-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .footer-links li {
+    margin-bottom: 0.7rem;
+  }
+
+  .footer-links a {
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    transition: all 0.2s;
+    display: inline-block;
+    position: relative;
+    padding: 0.25rem 0;
+  }
+
+  .footer-links a:hover {
+    color: white;
+    transform: translateX(4px);
+  }
+  
+  .footer-links a::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: 0;
+    left: 0;
+    background-color: white;
+    transition: width 0.3s;
+  }
+  
+  .footer-links a:hover::after {
+    width: 100%;
+  }
+
+  /* 外部リンクを示すスタイル */
+  .external-link {
+    padding-right: 1.3em;
+    position: relative;
+  }
+  
+  .external-link::after {
+    content: '\2197'; /* 外部リンクアイコン */
+    position: absolute;
+    right: 0;
+    font-size: 0.85em;
+    opacity: 0.7;
+    top: 0.2em;
+    transition: transform 0.2s, opacity 0.2s;
+  }
+  
+  .external-link:hover::after {
+    transform: translateX(2px) translateY(-2px);
+    opacity: 1;
+  }
+
+  .copyright {
+    text-align: center;
+    padding-top: var(--space-md);
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+  }
+  
+  .copyright a {
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: none;
+  }
+  
+  .copyright a:hover {
+    text-decoration: underline;
+  }
+
+  @media (max-width: 768px) {
+    .footer-content {
+      flex-direction: column;
+      gap: var(--space-md);
+    }
+
+    .footer-section {
+      margin-bottom: var(--space-md);
+    }
+  }
+</style>
