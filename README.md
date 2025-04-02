@@ -2,6 +2,8 @@
 
 GitHubのissueを動的に取得してWikiとして表示するStarlightサイト。
 
+https://nao-amj.github.io/starlight-issue-wiki/
+
 ## 特徴
 
 - Astro + Starlightを使用したモダンな静的サイト
