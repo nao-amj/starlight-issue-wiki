@@ -1,7 +1,7 @@
 ---
 import CategoryList from '../../components/CategoryList.astro';
-import Layout from '@astrojs/starlight/components/Layout.astro';
-import ContentPanel from '@astrojs/starlight/components/ContentPanel.astro';
+import Layout from '../../layouts/Layout.astro';
+import { BASE_PATH } from '../../config';
 
 export async function getStaticPaths() {
   // モックカテゴリーデータ
@@ -64,7 +64,7 @@ const pageTitle = `カテゴリー: ${category.name}`;
 ---
 
 <Layout title={pageTitle}>
-  <ContentPanel>
+  <div class="content-panel">
     <div class="category-header">
       <h1>{category.name}</h1>
       
@@ -83,13 +83,21 @@ const pageTitle = `カテゴリー: ${category.name}`;
       category={category.id}
       showViewAll={false}
     />
-  </ContentPanel>
+  </div>
 </Layout>
 
 <style>
+  .content-panel {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    margin: 2rem 0;
+  }
+
   .category-header {
     margin-bottom: 2rem;
-    border-bottom: 1px solid var(--sl-color-gray-5);
+    border-bottom: 1px solid #eee;
     padding-bottom: 1rem;
   }
   
@@ -106,6 +114,6 @@ const pageTitle = `カテゴリー: ${category.name}`;
     font-size: 1.1rem;
     line-height: 1.6;
     margin-top: 1rem;
-    color: var(--sl-color-gray-2);
+    color: #666;
   }
 </style>
