@@ -34,9 +34,11 @@ jobs:
       - name: Build with Astro
         run: npm run build
         env:
+          # GitHub Actionsのデフォルトトークンを使用
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO_OWNER: nao-amj
-          REPO_NAME: starlight-issue-wiki
+          # リポジトリ情報を明示的に設定
+          REPO_OWNER: "nao-amj"
+          REPO_NAME: "starlight-issue-wiki"
 
       # ビルド結果の詳細確認（階層も含めて）
       - name: Debug - Show directory structure
