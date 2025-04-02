@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
+  <!-- 背景 -->
+  <rect width="240" height="240" fill="#f8f9fa" rx="8" ry="8" />
+  
+  <!-- ドキュメントアイコン -->
+  <g transform="translate(30, 30)">
+    <!-- ドキュメント1 -->
+    <rect x="10" y="15" width="80" height="100" fill="#6366f1" rx="4" ry="4" opacity="0.9" />
+    <rect x="20" y="30" width="60" height="6" fill="white" rx="2" ry="2" />
+    <rect x="20" y="45" width="40" height="6" fill="white" rx="2" ry="2" />
+    <rect x="20" y="60" width="50" height="6" fill="white" rx="2" ry="2" />
+    <rect x="20" y="75" width="30" height="6" fill="white" rx="2" ry="2" />
+    
+    <!-- ドキュメント2 (ずれて表示) -->
+    <rect x="40" y="35" width="80" height="100" fill="#8b5cf6" rx="4" ry="4" opacity="0.9" />
+    <rect x="50" y="50" width="60" height="6" fill="white" rx="2" ry="2" />
+    <rect x="50" y="65" width="40" height="6" fill="white" rx="2" ry="2" />
+    <rect x="50" y="80" width="50" height="6" fill="white" rx="2" ry="2" />
+    <rect x="50" y="95" width="30" height="6" fill="white" rx="2" ry="2" />
+    
+    <!-- ドキュメント3 (さらにずれて表示) -->
+    <rect x="70" y="55" width="80" height="100" fill="#ec4899" rx="4" ry="4" opacity="0.9" />
+    <rect x="80" y="70" width="60" height="6" fill="white" rx="2" ry="2" />
+    <rect x="80" y="85" width="40" height="6" fill="white" rx="2" ry="2" />
+    <rect x="80" y="100" width="50" height="6" fill="white" rx="2" ry="2" />
+    <rect x="80" y="115" width="30" height="6" fill="white" rx="2" ry="2" />
+  </g>
+  
+  <!-- GitHubロゴ風のマーク -->
+  <g transform="translate(140, 50)">
+    <circle cx="30" cy="30" r="30" fill="#24292e" />
+    <path d="M30 15C21.7 15 15 21.7 15 30C15 36.7 19.4 42.4 25.5 44.5C26.3 44.7 26.6 44.2 26.6 43.8C26.6 43.4 26.6 42.4 26.6 41C22.1 42 21.2 39 21.2 39C20.5 37 19.4 36.5 19.4 36.5C18 35.5 19.5 35.5 19.5 35.5C21 35.6 22 37 22 37C23.5 39.6 26 39 26.7 38.7C26.9 37.7 27.3 37 27.7 36.7C24.2 36.4 20.5 35 20.5 29C20.5 27.2 21.2 25.7 22.1 24.5C21.9 24.1 21.3 22.3 22.3 20C22.3 20 23.7 19.6 26.6 21.5C27.7 21.1 28.8 21 30 21C31.2 21 32.3 21.1 33.4 21.5C36.3 19.6 37.7 20 37.7 20C38.7 22.3 38.1 24.1 37.9 24.5C38.8 25.7 39.5 27.2 39.5 29C39.5 35 35.8 36.4 32.3 36.7C32.8 37.1 33.3 37.9 33.3 39.1C33.3 40.9 33.3 43.2 33.3 43.8C33.3 44.2 33.6 44.7 34.4 44.5C40.6 42.4 45 36.7 45 30C45 21.7 38.3 15 30 15Z" fill="white" />
+  </g>
+  
+  <!-- 星アイコン -->
+  <g transform="translate(30, 170)">
+    <polygon points="10,0 13,7 20,7 15,12 17,20 10,15 3,20 5,12 0,7 7,7" fill="#fbbf24" />
+  </g>
+  
+  <g transform="translate(190, 60)">
+    <polygon points="6,0 8,4 12,4 9,7 10,12 6,9 2,12 3,7 0,4 4,4" fill="#fbbf24" />
+  </g>
+  
+  <g transform="translate(180, 190)">
+    <polygon points="8,0 10,6 16,6 12,10 14,16 8,12 2,16 4,10 0,6 6,6" fill="#fbbf24" />
+  </g>
+  
+  <!-- 装飾ライン -->
+  <path d="M10,120 C40,100 80,140 120,120 S200,90 230,110" stroke="#d1d5db" stroke-width="2" fill="none" />
+  <path d="M10,170 C60,150 100,190 150,170 S200,150 230,170" stroke="#d1d5db" stroke-width="2" fill="none" />
+</svg>
