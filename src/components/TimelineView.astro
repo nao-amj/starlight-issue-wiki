@@ -8,10 +8,11 @@ import { BASE_PATH } from '../config';
 interface Props {
   issues: any[];
   limit?: number;
+  titleOnly?: boolean; // タイトルのみ表示するかどうか
 }
 
 // propsを受け取る
-const { issues, limit = 10 } = Astro.props;
+const { issues, limit = 10, titleOnly = false } = Astro.props;
 
 // issueを日付でソート
 const sortedIssues = [...issues]
@@ -47,9 +48,11 @@ const sortedIssues = [...issues]
               </div>
             )}
           </div>
-          <div class="timeline-excerpt">
-            {issue.body && issue.body.length > 150 ? `${issue.body.substring(0, 150)}...` : issue.body}
-          </div>
+          {!titleOnly && issue.body && (
+            <div class="timeline-excerpt">
+              {issue.body.length > 150 ? `${issue.body.substring(0, 150)}...` : issue.body}
+            </div>
+          )}
         </div>
       </div>
     );

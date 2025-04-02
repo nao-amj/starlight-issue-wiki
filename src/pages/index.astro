@@ -84,7 +84,7 @@ function generateSlug(title) {
           <a href={BASE_PATH + "/"} class="active">ホーム</a>
           <a href={`${BASE_PATH}/wiki/1`}>はじめに</a>
           <a href={`${BASE_PATH}/wiki`}>ページ一覧</a>
-          <a href={REPO_URL} target="_blank" class="external-link">GitHub</a>
+          <a href={REPO_URL} target="_blank">GitHub</a>
         </nav>
       </div>
     </div>
@@ -96,7 +96,7 @@ function generateSlug(title) {
       <p>{SITE_DESCRIPTION}</p>
       <div class="actions">
         <a href={`${BASE_PATH}/wiki/1`} class="button primary">はじめに</a>
-        <a href={REPO_URL + "/issues/new"} target="_blank" class="button accent external-link">新規ページ作成</a>
+        <a href={REPO_URL + "/issues/new"} class="button accent" target="_blank">新規ページ作成</a>
       </div>
     </div>
   </div>
@@ -111,7 +111,7 @@ function generateSlug(title) {
         </div>
 
         <h2>最近の更新</h2>
-        <TimelineView issues={issues} limit={5} />
+        <TimelineView issues={issues} limit={5} titleOnly={true} />
         
         <h2>GitWiki Hubについて</h2>
         <p>
@@ -131,7 +131,7 @@ function generateSlug(title) {
         
         <h3>使い方</h3>
         <ol>
-          <li>GitHubで<a href={`${REPO_URL}/issues/new`} target="_blank" class="external-link">新しいIssueを作成</a>する</li>
+          <li>GitHubで<a href={`${REPO_URL}/issues/new`} target="_blank">新しいIssueを作成</a>する</li>
           <li>ラベルでカテゴリを設定する</li>
           <li>自動的にWikiに反映される</li>
         </ol>
@@ -156,7 +156,7 @@ function generateSlug(title) {
                 ))}
               </div>
               <div class="issue-excerpt">
-                {issue.body && (issue.body.length > 100 ? `${issue.body.substring(0, 100)}...` : issue.body)}
+                {issue.body && issue.body.length > 100 ? `${issue.body.substring(0, 100)}...` : issue.body}
               </div>
             </a>
           ))}
@@ -164,6 +164,62 @@ function generateSlug(title) {
 
         <div class="text-center mt-4">
           <a href={`${BASE_PATH}/wiki`} class="button">すべてのページを見る</a>
+        </div>
+
+        <div class="export-feature">
+          <h2>Noteに記事を投稿</h2>
+          <p>好きなページを選択して、Noteに投稿することができます。</p>
+          
+          <div class="export-form">
+            <div class="select-wrapper">
+              <label for="export-select">エクスポートするページを選択:</label>
+              <select id="export-select" class="export-select">
+                <option value="">選択してください</option>
+                {issues.map(issue => (
+                  <option value={issue.number}>{issue.title}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div class="export-options">
+              <label class="checkbox-wrapper">
+                <input type="checkbox" id="include-meta" checked />
+                メタデータを含める（タイトル、日付、カテゴリー）
+              </label>
+              
+              <label class="checkbox-wrapper">
+                <input type="checkbox" id="format-markdown" checked />
+                Markdown形式を保持する
+              </label>
+              
+              <label class="checkbox-wrapper">
+                <input type="checkbox" id="auto-adjust" checked />
+                Note形式に最適化する
+              </label>
+            </div>
+            
+            <div class="export-buttons">
+              <button id="preview-export" class="button secondary">プレビュー</button>
+              <button id="export-to-note" class="button accent">エクスポート</button>
+            </div>
+          </div>
+          
+          <!-- プレビューモーダル -->
+          <div id="preview-modal" class="modal">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h3>エクスポートプレビュー</h3>
+                <button class="close-button">&times;</button>
+              </div>
+              <div class="modal-body">
+                <div id="preview-content" class="preview-content"></div>
+              </div>
+              <div class="modal-footer">
+                <button class="button secondary close-modal">閉じる</button>
+                <button id="confirm-export" class="button accent">Noteにエクスポート</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       
@@ -190,12 +246,8 @@ function generateSlug(title) {
         <div class="card">
           <h2>GitHub連携</h2>
           <div class="github-actions">
-            <a href={REPO_URL + "/issues"} class="button secondary" style="width: 100%; margin-bottom: 0.5rem;" target="_blank">
-              <span class="button-icon">🗒️</span> Issue一覧を見る
-            </a>
-            <a href={REPO_URL + "/issues/new"} class="button accent" style="width: 100%;" target="_blank">
-              <span class="button-icon">✏️</span> 新規ページを作成
-            </a>
+            <a href={REPO_URL + "/issues"} class="button secondary" style="width: 100%; margin-bottom: 0.5rem;" target="_blank">Issue一覧を見る</a>
+            <a href={REPO_URL + "/issues/new"} class="button accent" style="width: 100%;" target="_blank">新規ページを作成</a>
           </div>
           
           <div class="mt-3">
@@ -228,7 +280,7 @@ function generateSlug(title) {
           <ul class="quick-links">
             <li><a href={`${BASE_PATH}/wiki`}>全ページ一覧</a></li>
             <li><a href={`${BASE_PATH}/wiki/1`}>使い方ガイド</a></li>
-            <li><a href={REPO_URL} target="_blank" class="external-link">GitHubリポジトリ</a></li>
+            <li><a href={REPO_URL} target="_blank">GitHubリポジトリ</a></li>
           </ul>
         </div>
       </div>
@@ -238,27 +290,6 @@ function generateSlug(title) {
   <CustomFooter />
 
   <style>
-    /* 外部リンク設定 */
-    .external-link {
-      position: relative;
-      padding-right: 1.2em;
-    }
-    
-    .external-link::after {
-      content: '\2197';
-      position: absolute;
-      font-size: 0.8em;
-      right: 0;
-      top: 0.2em;
-      opacity: 0.7;
-      transition: transform 0.2s, opacity 0.2s;
-    }
-    
-    .external-link:hover::after {
-      transform: translateX(2px) translateY(-2px);
-      opacity: 1;
-    }
-    
     /* ページ特有のスタイル */
     .hero {
       background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
@@ -266,27 +297,17 @@ function generateSlug(title) {
       padding: 3rem 0;
       text-align: center;
       margin-bottom: 2rem;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
     
     .hero h1 {
       margin: 0;
-      font-size: 2.8rem;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-      background: linear-gradient(90deg, #ffffff, #f0f4ff);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      letter-spacing: -0.02em;
+      font-size: 2.5rem;
     }
     
     .hero p {
-      font-size: 1.25rem;
-      opacity: 0.95;
+      font-size: 1.2rem;
+      opacity: 0.9;
       margin: 1rem 0 2rem;
-      max-width: 800px;
-      margin-left: auto;
-      margin-right: auto;
     }
     
     .actions {
@@ -411,11 +432,6 @@ function generateSlug(title) {
       flex-grow: 1;
       white-space: pre-line;
     }
-    
-    /* ボタンアイコン */
-    .button-icon {
-      margin-right: 0.4rem;
-    }
 
     /* クイックリンク */
     .quick-links {
@@ -438,7 +454,7 @@ function generateSlug(title) {
     }
 
     .quick-links a:before {
-      content: '\2192';
+      content: '→';
       margin-right: 0.5rem;
       color: var(--color-primary);
     }
@@ -447,7 +463,6 @@ function generateSlug(title) {
     .recent-updates {
       list-style: none;
       padding: 0;
-      margin: 0;
     }
 
     .recent-updates li {
@@ -470,7 +485,133 @@ function generateSlug(title) {
       background-color: rgba(37, 99, 235, 0.08);
       transform: translateX(3px);
     }
-
+    
+    /* Noteエクスポート機能のスタイル */
+    .export-feature {
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--color-border);
+    }
+    
+    .export-form {
+      background-color: var(--color-background);
+      padding: 1.5rem;
+      border-radius: var(--border-radius-md);
+      border: 1px solid var(--color-border);
+      margin-top: 1.5rem;
+    }
+    
+    .select-wrapper {
+      margin-bottom: 1.5rem;
+    }
+    
+    .export-select {
+      display: block;
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--color-border);
+      border-radius: var(--border-radius-sm);
+      background-color: var(--color-background-panel);
+      margin-top: 0.5rem;
+      font-family: var(--font-family);
+      font-size: var(--font-size-md);
+    }
+    
+    .export-select:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+    }
+    
+    .export-options {
+      margin-bottom: 1.5rem;
+    }
+    
+    .checkbox-wrapper {
+      display: block;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+    }
+    
+    .checkbox-wrapper input {
+      margin-right: 0.75rem;
+    }
+    
+    .export-buttons {
+      display: flex;
+      gap: 1rem;
+    }
+    
+    /* モーダルスタイル */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      overflow-y: auto;
+    }
+    
+    .modal-content {
+      background-color: var(--color-background-panel);
+      margin: 2rem auto;
+      width: 90%;
+      max-width: 800px;
+      border-radius: var(--border-radius-md);
+      box-shadow: var(--box-shadow-lg);
+      overflow: hidden;
+    }
+    
+    .modal-header {
+      padding: 1.5rem;
+      background-color: var(--color-primary);
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .modal-header h3 {
+      margin: 0;
+      color: white;
+    }
+    
+    .close-button {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+    }
+    
+    .modal-body {
+      padding: 1.5rem;
+      max-height: 60vh;
+      overflow-y: auto;
+    }
+    
+    .preview-content {
+      background-color: white;
+      padding: 1.5rem;
+      border-radius: var(--border-radius-sm);
+      border: 1px solid var(--color-border);
+    }
+    
+    .modal-footer {
+      padding: 1.5rem;
+      border-top: 1px solid var(--color-border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 1rem;
+    }
+    
     /* レスポンシブデザイン */
     @media (max-width: 768px) {
       .content-grid {
@@ -494,6 +635,10 @@ function generateSlug(title) {
       .issue-grid {
         grid-template-columns: 1fr;
       }
+      
+      .export-buttons {
+        flex-direction: column;
+      }
     }
   </style>
 
@@ -510,6 +655,172 @@ function generateSlug(title) {
       } else if (prefersDark) {
         document.documentElement.classList.add('dark-theme');
       }
+      
+      // Noteエクスポート機能
+      const exportSelect = document.getElementById('export-select');
+      const previewBtn = document.getElementById('preview-export');
+      const exportBtn = document.getElementById('export-to-note');
+      const previewModal = document.getElementById('preview-modal');
+      const previewContent = document.getElementById('preview-content');
+      const confirmExportBtn = document.getElementById('confirm-export');
+      const closeButtons = document.querySelectorAll('.close-button, .close-modal');
+      
+      // モーダルを閉じる
+      closeButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          previewModal.style.display = 'none';
+        });
+      });
+      
+      // モーダル外をクリックして閉じる
+      window.addEventListener('click', (e) => {
+        if (e.target === previewModal) {
+          previewModal.style.display = 'none';
+        }
+      });
+      
+      // プレビューボタン
+      previewBtn.addEventListener('click', () => {
+        const selectedIssueId = exportSelect.value;
+        if (!selectedIssueId) {
+          alert('エクスポートするページを選択してください。');
+          return;
+        }
+        
+        // 選択されたIssueを取得
+        fetch(`https://api.github.com/repos/nao-amj/starlight-issue-wiki/issues/${selectedIssueId}`)
+          .then(response => response.json())
+          .then(issue => {
+            const includeMeta = document.getElementById('include-meta').checked;
+            const formatMarkdown = document.getElementById('format-markdown').checked;
+            const autoAdjust = document.getElementById('auto-adjust').checked;
+            
+            // Note用にフォーマットする
+            let noteContent = '';
+            
+            if (includeMeta) {
+              noteContent += `<h1>${issue.title}</h1>\n\n`;
+              noteContent += `<p><small>投稿日: ${new Date(issue.created_at).toLocaleDateString('ja-JP')}</small></p>\n\n`;
+              
+              if (issue.labels && issue.labels.length > 0) {
+                noteContent += '<p>';
+                issue.labels.forEach(label => {
+                  noteContent += `<span style="display: inline-block; padding: 0.2em 0.5em; background-color: #${label.color}20; color: #${label.color}; border: 1px solid #${label.color}40; border-radius: 0.25rem; margin-right: 0.5rem;">${label.name}</span>`;
+                });
+                noteContent += '</p>\n\n';
+              }
+              
+              noteContent += '<hr>\n\n';
+            }
+            
+            let bodyContent = issue.body || '';
+            
+            if (autoAdjust) {
+              // 画像リンクの最適化
+              bodyContent = bodyContent.replace(/!\[(.*?)\]\((.*?)\)/g, '<img src="$2" alt="$1" style="max-width: 100%; height: auto;">');
+              
+              // 見出しの最適化
+              bodyContent = bodyContent.replace(/^##\s+(.*)$/gm, '<h2 style="font-size: 1.5rem; margin-top: 2rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #e5e7eb;">$1</h2>');
+              bodyContent = bodyContent.replace(/^###\s+(.*)$/gm, '<h3 style="font-size: 1.25rem; margin-top: 1.5rem; margin-bottom: 0.75rem;">$1</h3>');
+              
+              // リストの最適化
+              bodyContent = bodyContent.replace(/^\s*[-*+]\s+(.*)$/gm, '<li style="margin-bottom: 0.5rem;">$1</li>');
+              bodyContent = bodyContent.replace(/(<li[^>]*>.*<\/li>\n)+/gs, '<ul style="padding-left: 1.5rem; margin-bottom: 1.5rem;">$&</ul>');
+              
+              // 引用の最適化
+              bodyContent = bodyContent.replace(/^>\s+(.*)$/gm, '<blockquote style="border-left: 4px solid #60a5fa; padding: 0.5rem 1rem; background-color: #f3f4f6; margin: 1.5rem 0;">$1</blockquote>');
+            } else if (!formatMarkdown) {
+              // Markdownをプレーンテキストに変換
+              bodyContent = bodyContent
+                .replace(/^#+\s+(.*)$/gm, '$1')
+                .replace(/\*\*(.*)\*\*/g, '$1')
+                .replace(/\*(.*)\*/g, '$1')
+                .replace(/!\[(.*?)\]\((.*?)\)/g, '[$1]')
+                .replace(/\[(.*?)\]\((.*?)\)/g, '$1 ($2)');
+            }
+            
+            noteContent += bodyContent;
+            
+            // プレビュー表示
+            previewContent.innerHTML = noteContent;
+            previewModal.style.display = 'block';
+          })
+          .catch(error => {
+            console.error('Error fetching issue:', error);
+            alert('エラーが発生しました。もう一度お試しください。');
+          });
+      });
+      
+      // エクスポートボタン
+      exportBtn.addEventListener('click', () => {
+        const selectedIssueId = exportSelect.value;
+        if (!selectedIssueId) {
+          alert('エクスポートするページを選択してください。');
+          return;
+        }
+        
+        // プレビューをスキップしてエクスポートする
+        previewBtn.click();
+      });
+      
+      // エクスポート確認ボタン
+      confirmExportBtn.addEventListener('click', () => {
+        const content = previewContent.innerHTML;
+        const title = document.querySelector('#export-select option:checked').text;
+        
+        // Noteエクスポート用のHTMLを生成
+        const exportHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${title} - Noteエクスポート</title>
+  <style>
+    body { font-family: sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 2rem; }
+    img { max-width: 100%; height: auto; }
+    pre { background: #f5f5f5; padding: 1rem; overflow-x: auto; border-radius: 0.25rem; }
+    blockquote { border-left: 4px solid #ddd; margin-left: 0; padding-left: 1rem; color: #666; }
+    h1, h2, h3 { font-weight: 600; line-height: 1.3; }
+    .note-header { margin-bottom: 2rem; text-align: center; }
+    .note-footer { margin-top: 3rem; text-align: center; font-size: 0.9rem; color: #666; border-top: 1px solid #eee; padding-top: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="note-header">
+    <h1>${title}</h1>
+    <p>エクスポート日時: ${new Date().toLocaleString('ja-JP')}</p>
+  </div>
+  
+  <div class="note-content">
+    ${content}
+  </div>
+  
+  <div class="note-footer">
+    <p>GitWiki Hubからエクスポートされました</p>
+  </div>
+</body>
+</html>
+        `;
+        
+        // ダウンロード用のテキストファイル生成
+        const blob = new Blob([exportHtml], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${title.replace(/[\s\:\/\?\*\|\<\>\"]/g, '_')}_note.html`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        // Noteのエディタを開く構成
+        setTimeout(() => {
+          if (confirm('Noteのエディタを開きますか？')) {
+            window.open('https://note.com/new', '_blank');
+          }
+          previewModal.style.display = 'none';
+        }, 1000);
+      });
     });
   </script>
 </body>

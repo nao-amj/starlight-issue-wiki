@@ -52,21 +52,67 @@ import { BASE_PATH } from '../config';
       if (matches.length === 0) {
         searchResults.innerHTML = '<div class="no-results">検索結果がありません</div>';
       } else {
-        searchResults.innerHTML = matches.slice(0, 5).map(issue => `
-          <a href="${BASE_PATH}/wiki/${issue.number}" class="search-result-item">
-            <div class="search-result-title">${issue.title}</div>
-            <div class="search-result-preview">
-              ${issue.body ? (issue.body.length > 120 ? issue.body.substring(0, 120) + '...' : issue.body) : ''}
-            </div>
-            <div class="search-result-meta">
-              <span class="search-result-number">#${issue.number}</span>
-              <span class="search-result-date">更新: ${new Date(issue.updated_at).toLocaleDateString('ja-JP')}</span>
-            </div>
-          </a>
-        `).join('');
+        searchResults.innerHTML = matches.slice(0, 5).map(issue => {
+          // タイトル内のキーワードをハイライト
+          const highlightedTitle = highlightText(issue.title, lowerQuery);
+          
+          // 本文の関連箇所を抽出してハイライト
+          let excerptHtml = '';
+          if (issue.body) {
+            const matchIndex = issue.body.toLowerCase().indexOf(lowerQuery);
+            if (matchIndex >= 0) {
+              // キーワードの前後のテキストを取得
+              const startPos = Math.max(0, matchIndex - 50);
+              const endPos = Math.min(issue.body.length, matchIndex + lowerQuery.length + 50);
+              let excerpt = issue.body.substring(startPos, endPos);
+              
+              // 前後が切れている場合は省略記号を追加
+              if (startPos > 0) excerpt = '...' + excerpt;
+              if (endPos < issue.body.length) excerpt = excerpt + '...';
+              
+              // キーワードをハイライト
+              excerptHtml = highlightText(excerpt, lowerQuery);
+            } else {
+              // 本文にキーワードが含まれない場合は先頭を表示
+              excerptHtml = issue.body.substring(0, 100) + (issue.body.length > 100 ? '...' : '');
+            }
+          }
+          
+          return `
+            <a href="${BASE_PATH}/wiki/${issue.number}" class="search-result-item">
+              <div class="search-result-title">${highlightedTitle}</div>
+              <div class="search-result-meta">
+                <span class="search-result-number">#${issue.number}</span>
+                <span class="search-result-date">更新: ${new Date(issue.updated_at).toLocaleDateString('ja-JP')}</span>
+              </div>
+              ${excerptHtml ? `<div class="search-result-excerpt">${excerptHtml}</div>` : ''}
+              ${issue.labels && issue.labels.length > 0 ? `
+                <div class="search-result-labels">
+                  ${issue.labels.map(label => `
+                    <span class="search-tag" style="background-color: #${label.color}20; color: #${label.color}; border: 1px solid #${label.color}40;">
+                      ${label.name}
+                    </span>
+                  `).join('')}
+                </div>
+              ` : ''}
+            </a>
+          `;
+        }).join('');
       }
 
       searchResults.style.display = 'block';
+    }
+    
+    // テキスト内の検索キーワードをハイライトする関数
+    function highlightText(text, query) {
+      if (!text) return '';
+      const regex = new RegExp(`(${escapeRegExp(query)})`, 'gi');
+      return text.replace(regex, '<mark class="search-highlight">$1</mark>');
+    }
+    
+    // 正規表現用に文字列をエスケープする関数
+    function escapeRegExp(string) {
+      return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
     // イベントリスナー
@@ -105,34 +151,27 @@ import { BASE_PATH } from '../config';
 
   .search-input {
     width: 100%;
-    padding: 0.8rem 1rem 0.8rem 2.5rem;
-    border: 2px solid var(--color-border);
+    padding: var(--space-sm) var(--space-md);
+    padding-left: 2.5rem;
+    border: 1px solid var(--color-border);
     border-radius: var(--border-radius-md);
     font-size: var(--font-size-md);
     background-color: var(--color-background-panel);
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    transition: all var(--transition-speed);
   }
 
   .search-input:focus {
     outline: none;
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2), 0 2px 8px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
   }
 
   .search-icon {
     position: absolute;
-    left: 0.85rem;
+    left: 0.75rem;
     top: 50%;
     transform: translateY(-50%);
     opacity: 0.6;
-    font-size: 1.1rem;
-    pointer-events: none;
-    transition: all 0.3s ease;
-  }
-  
-  .search-input:focus + .search-icon {
-    opacity: 1;
   }
 
   .search-results {
@@ -142,32 +181,24 @@ import { BASE_PATH } from '../config';
     right: 0;
     z-index: 10;
     width: 100%;
-    max-height: 400px;
+    max-height: 500px;
     overflow-y: auto;
     background: var(--color-background-panel);
     border-radius: 0 0 var(--border-radius-md) var(--border-radius-md);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12), 0 3px 6px rgba(0, 0, 0, 0.08);
-    border: 2px solid var(--color-primary);
+    box-shadow: var(--box-shadow-lg);
+    border: 1px solid var(--color-border);
     border-top: none;
     display: none;
     margin-top: -2px;
-    animation: searchResultsFadeIn 0.2s ease-out;
-  }
-  
-  @keyframes searchResultsFadeIn {
-    from { opacity: 0; transform: translateY(-8px); }
-    to { opacity: 1; transform: translateY(0); }
   }
 
   .search-result-item {
     display: block;
-    padding: 1rem;
+    padding: var(--space-md);
     border-bottom: 1px solid var(--color-border);
     text-decoration: none;
     color: var(--color-text);
-    transition: all 0.2s;
-    position: relative;
-    overflow: hidden;
+    transition: all var(--transition-speed);
   }
 
   .search-result-item:last-child {
@@ -176,41 +207,15 @@ import { BASE_PATH } from '../config';
 
   .search-result-item:hover {
     background-color: rgba(37, 99, 235, 0.05);
-    padding-left: 1.25rem;
     text-decoration: none;
-  }
-  
-  .search-result-item::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 0;
-    background-color: var(--color-primary);
-    transition: all 0.2s;
-  }
-  
-  .search-result-item:hover::before {
-    width: 4px;
+    transform: translateY(-2px);
   }
 
   .search-result-title {
-    font-weight: 600;
+    font-weight: 500;
     margin-bottom: 0.5rem;
     color: var(--color-primary);
-    font-size: 1.05rem;
-  }
-  
-  .search-result-preview {
-    font-size: 0.9rem;
-    color: var(--color-text-light);
-    margin-bottom: 0.5rem;
-    line-height: 1.4;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+    font-size: 1.1rem;
   }
 
   .search-result-meta {
@@ -218,44 +223,54 @@ import { BASE_PATH } from '../config';
     justify-content: space-between;
     font-size: var(--font-size-sm);
     color: var(--color-text-light);
-    border-top: 1px dashed rgba(0, 0, 0, 0.06);
-    padding-top: 0.5rem;
-    margin-top: 0.25rem;
+    margin-bottom: 0.75rem;
   }
   
   .search-result-number {
     font-weight: 500;
-    color: var(--color-primary);
-    background-color: rgba(37, 99, 235, 0.1);
-    padding: 0.15rem 0.5rem;
-    border-radius: 12px;
+    opacity: 0.7;
   }
   
   .search-result-date {
-    opacity: 0.8;
     font-style: italic;
+  }
+  
+  .search-result-excerpt {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 0.75rem;
+    border-left: 3px solid var(--color-primary-light);
+    padding-left: 0.75rem;
+    color: var(--color-text);
+  }
+  
+  .search-result-labels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+  
+  .search-tag {
+    display: inline-block;
+    padding: 0.2em 0.5em;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    line-height: 1.2;
+  }
+  
+  .search-highlight {
+    background-color: rgba(255, 213, 79, 0.4);
+    padding: 0.1em 0.2em;
+    border-radius: 0.2em;
+    font-weight: bold;
   }
 
   .no-results {
-    padding: 1.5rem;
+    padding: var(--space-md);
     text-align: center;
     color: var(--color-text-light);
     font-style: italic;
-    background-color: rgba(0, 0, 0, 0.02);
-  }
-  
-  /* ダークモード対応 */
-  @media (prefers-color-scheme: dark) {
-    .search-results {
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25), 0 3px 6px rgba(0, 0, 0, 0.2);
-    }
-    
-    .search-result-item:hover {
-      background-color: rgba(37, 99, 235, 0.1);
-    }
-    
-    .search-result-meta {
-      border-top: 1px dashed rgba(255, 255, 255, 0.1);
-    }
   }
 </style>
