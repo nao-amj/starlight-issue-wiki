@@ -17,124 +17,101 @@ import { BASE_PATH } from '../config';
   <div id="search-results" class="search-results"></div>
 </div>
 
+<script src="../lib/search.js"></script>
+
 <script define:vars={{ BASE_PATH }}>
   // クライアントサイド検索機能
   document.addEventListener('DOMContentLoaded', () => {
-    const searchInput = document.getElementById('search-input');
-    const searchResults = document.getElementById('search-results');
-    let issues = [];
+    // 検索ユーティリティをロード
+    import('../lib/search.js').then(module => {
+      const { filterIssuesByQuery, highlightText, extractContext, escapeRegExp } = module;
+      
+      const searchInput = document.getElementById('search-input');
+      const searchResults = document.getElementById('search-results');
+      let issues = [];
 
-    // GitHub APIからissueデータを取得
-    async function fetchIssues() {
-      try {
-        const response = await fetch('https://api.github.com/repos/nao-amj/starlight-issue-wiki/issues?state=all&per_page=100');
-        if (!response.ok) throw new Error('GitHub API error');
-        issues = await response.json();
-      } catch (error) {
-        console.error('Error fetching issues:', error);
-      }
-    }
-
-    // 検索機能
-    function performSearch(query) {
-      if (!query || query.length < 2) {
-        searchResults.innerHTML = '';
-        searchResults.style.display = 'none';
-        return;
-      }
-
-      const lowerQuery = query.toLowerCase();
-      const matches = issues.filter(issue => 
-        issue.title.toLowerCase().includes(lowerQuery) || 
-        (issue.body && issue.body.toLowerCase().includes(lowerQuery))
-      );
-
-      if (matches.length === 0) {
-        searchResults.innerHTML = '<div class="no-results">検索結果がありません</div>';
-      } else {
-        searchResults.innerHTML = matches.slice(0, 5).map(issue => {
-          // タイトル内のキーワードをハイライト
-          const highlightedTitle = highlightText(issue.title, lowerQuery);
-          
-          // 本文の関連箇所を抽出してハイライト
-          let excerptHtml = '';
-          if (issue.body) {
-            const matchIndex = issue.body.toLowerCase().indexOf(lowerQuery);
-            if (matchIndex >= 0) {
-              // キーワードの前後のテキストを取得
-              const startPos = Math.max(0, matchIndex - 50);
-              const endPos = Math.min(issue.body.length, matchIndex + lowerQuery.length + 50);
-              let excerpt = issue.body.substring(startPos, endPos);
-              
-              // 前後が切れている場合は省略記号を追加
-              if (startPos > 0) excerpt = '...' + excerpt;
-              if (endPos < issue.body.length) excerpt = excerpt + '...';
-              
-              // キーワードをハイライト
-              excerptHtml = highlightText(excerpt, lowerQuery);
-            } else {
-              // 本文にキーワードが含まれない場合は先頭を表示
-              excerptHtml = issue.body.substring(0, 100) + (issue.body.length > 100 ? '...' : '');
-            }
-          }
-          
-          return `
-            <a href="${BASE_PATH}/wiki/${issue.number}" class="search-result-item">
-              <div class="search-result-title">${highlightedTitle}</div>
-              <div class="search-result-meta">
-                <span class="search-result-number">#${issue.number}</span>
-                <span class="search-result-date">更新: ${new Date(issue.updated_at).toLocaleDateString('ja-JP')}</span>
-              </div>
-              ${excerptHtml ? `<div class="search-result-excerpt">${excerptHtml}</div>` : ''}
-              ${issue.labels && issue.labels.length > 0 ? `
-                <div class="search-result-labels">
-                  ${issue.labels.map(label => `
-                    <span class="search-tag" style="background-color: #${label.color}20; color: #${label.color}; border: 1px solid #${label.color}40;">
-                      ${label.name}
-                    </span>
-                  `).join('')}
-                </div>
-              ` : ''}
-            </a>
-          `;
-        }).join('');
-      }
-
-      searchResults.style.display = 'block';
-    }
-    
-    // テキスト内の検索キーワードをハイライトする関数
-    function highlightText(text, query) {
-      if (!text) return '';
-      const regex = new RegExp(`(${escapeRegExp(query)})`, 'gi');
-      return text.replace(regex, '<mark class="search-highlight">$1</mark>');
-    }
-    
-    // 正規表現用に文字列をエスケープする関数
-    function escapeRegExp(string) {
-      return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    }
-
-    // イベントリスナー
-    if (searchInput) {
-      searchInput.addEventListener('input', (e) => {
-        performSearch(e.target.value.trim());
-      });
-
-      searchInput.addEventListener('focus', () => {
-        if (issues.length === 0) fetchIssues();
-      });
-
-      // クリック以外の場所をクリックしたら結果を非表示
-      document.addEventListener('click', (e) => {
-        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
-          searchResults.style.display = 'none';
+      // GitHub APIからissueデータを取得
+      async function fetchIssues() {
+        try {
+          const response = await fetch('https://api.github.com/repos/nao-amj/starlight-issue-wiki/issues?state=all&per_page=100');
+          if (!response.ok) throw new Error('GitHub API error');
+          issues = await response.json();
+        } catch (error) {
+          console.error('Error fetching issues:', error);
         }
-      });
-    }
+      }
 
-    // 初期ロード
-    fetchIssues();
+      // 検索機能
+      function performSearch(query) {
+        if (!query || query.length < 2) {
+          searchResults.innerHTML = '';
+          searchResults.style.display = 'none';
+          return;
+        }
+
+        const lowerQuery = query.toLowerCase();
+        const matches = filterIssuesByQuery(issues, query);
+
+        if (matches.length === 0) {
+          searchResults.innerHTML = '<div class="no-results">検索結果がありません</div>';
+        } else {
+          searchResults.innerHTML = matches.slice(0, 5).map(issue => {
+            // タイトル内のキーワードをハイライト
+            const highlightedTitle = highlightText(issue.title, lowerQuery);
+            
+            // 本文の関連箇所を抽出してハイライト
+            let excerptHtml = '';
+            if (issue.body) {
+              const excerpt = extractContext(issue.body, lowerQuery);
+              excerptHtml = highlightText(excerpt, lowerQuery);
+            }
+            
+            return `
+              <a href="${BASE_PATH}/wiki/${issue.number}" class="search-result-item">
+                <div class="search-result-title">${highlightedTitle}</div>
+                <div class="search-result-meta">
+                  <span class="search-result-number">#${issue.number}</span>
+                  <span class="search-result-date">更新: ${new Date(issue.updated_at).toLocaleDateString('ja-JP')}</span>
+                </div>
+                ${excerptHtml ? `<div class="search-result-excerpt">${excerptHtml}</div>` : ''}
+                ${issue.labels && issue.labels.length > 0 ? `
+                  <div class="search-result-labels">
+                    ${issue.labels.map(label => `
+                      <span class="search-tag" style="background-color: #${label.color}20; color: #${label.color}; border: 1px solid #${label.color}40;">
+                        ${label.name}
+                      </span>
+                    `).join('')}
+                  </div>
+                ` : ''}
+              </a>
+            `;
+          }).join('');
+        }
+
+        searchResults.style.display = 'block';
+      }
+
+      // イベントリスナー
+      if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+          performSearch(e.target.value.trim());
+        });
+
+        searchInput.addEventListener('focus', () => {
+          if (issues.length === 0) fetchIssues();
+        });
+
+        // クリック以外の場所をクリックしたら結果を非表示
+        document.addEventListener('click', (e) => {
+          if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+            searchResults.style.display = 'none';
+          }
+        });
+      }
+
+      // 初期ロード
+      fetchIssues();
+    });
   });
 </script>
 
