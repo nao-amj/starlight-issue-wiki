@@ -36,11 +36,26 @@ export async function getStaticPaths() {
     }
   };
   
+  // ページ一覧用の特別なパスを追加
+  const indexPath = {
+    params: { slug: 'index' },
+    props: { 
+      issue: {
+        title: 'Wikiページ一覧',
+        body: '## すべてのWikiページ\n\nこのWikiに含まれるすべてのページの一覧です。',
+        html_url: 'https://github.com/nao-amj/starlight-issue-wiki/issues',
+        number: -1, // 特別な番号を割り当てて識別
+        labels: []
+      },
+      isIndex: true
+    }
+  };
+  
   // すべてのパスを結合
-  return [...issuePaths, welcomePath];
+  return [...issuePaths, welcomePath, indexPath];
 }
 
-const { issue } = Astro.props;
+const { issue, isIndex = false } = Astro.props;
 
 // markedのセットアップ
 marked.use(gfmHeadingId());
@@ -56,6 +71,9 @@ const basePath = '/starlight-issue-wiki';
 
 // ナビゲーション用のIssue一覧を取得
 const issues = await getIssues();
+
+// 現在のパスがindex（一覧ページ）かどうかを判定
+const isListPage = isIndex;
 ---
 
 <!DOCTYPE html>
@@ -74,7 +92,8 @@ const issues = await getIssues();
         <h1><a href={basePath + "/"}>Starlight Issue Wiki</a></h1>
         <nav>
           <a href={basePath + "/"}>ホーム</a>
-          <a href={`${basePath}/wiki/welcome`}>Wiki</a>
+          <a href={`${basePath}/wiki/index`} class={isListPage ? 'active' : ''}>ページ一覧</a>
+          <a href={`${basePath}/wiki/welcome`} class={issue.number === 1 ? 'active' : ''}>はじめに</a>
           <a href="https://github.com/nao-amj/starlight-issue-wiki">GitHub</a>
         </nav>
       </div>
@@ -86,7 +105,19 @@ const issues = await getIssues();
       <aside class="sidebar">
         <h2>Wiki Pages</h2>
         <ul>
+          <li>
+            <a href={`${basePath}/wiki/index`} class={isListPage ? 'active' : ''}>
+              すべてのページ
+            </a>
+          </li>
+          <li>
+            <a href={`${basePath}/wiki/welcome`} class={issue.number === 1 ? 'active' : ''}>
+              はじめに
+            </a>
+          </li>
           {issues.map(item => {
+            if (item.number === 1) return null; // welcomeページは上で表示済み
+            
             // スラッグを生成
             const slug = item.title.toLowerCase()
               .replace(/[^\w\s-]/g, '')
@@ -120,11 +151,44 @@ const issues = await getIssues();
         
         <div class="wiki-content" set:html={content}></div>
         
-        <div class="edit-links">
-          <a href={issue.html_url} target="_blank" rel="noopener noreferrer">
-            GitHubでこのページを編集する
-          </a>
-        </div>
+        {isListPage ? (
+          <div class="page-list">
+            <h2>すべてのWikiページ</h2>
+            <ul class="grid-list">
+              {issues.map(item => {
+                // スラッグを生成
+                const slug = item.title.toLowerCase()
+                  .replace(/[^\w\s-]/g, '')
+                  .replace(/\s+/g, '-')
+                  .replace(/^-+|-+$/g, '');
+                
+                return (
+                  <li class="card">
+                    <a href={`${basePath}/wiki/${slug}`}>
+                      <h3>{item.title}</h3>
+                      <p>{item.body?.slice(0, 100)}...</p>
+                      {item.labels && item.labels.length > 0 && (
+                        <div class="card-labels">
+                          {item.labels.map(label => (
+                            <span class="card-label" style={`background-color: #${label.color || 'ededed'}`}>
+                              {label.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ) : (
+          <div class="edit-links">
+            <a href={issue.html_url} target="_blank" rel="noopener noreferrer">
+              GitHubでこのページを編集する
+            </a>
+          </div>
+        )}
       </div>
     </div>
   </main>
@@ -153,6 +217,7 @@ const issues = await getIssues();
       background-color: #4d1a9e;
       color: white;
       padding: 1rem 0;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
     .header-content {
       display: flex;
@@ -175,10 +240,17 @@ const issues = await getIssues();
       color: white;
       text-decoration: none;
       opacity: 0.9;
+      padding: 0.5rem;
+      border-radius: 4px;
+      transition: all 0.2s;
     }
     nav a:hover {
       opacity: 1;
-      text-decoration: underline;
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    nav a.active {
+      background-color: rgba(255, 255, 255, 0.2);
+      font-weight: 500;
     }
     main {
       padding: 2rem 0;
@@ -274,6 +346,56 @@ const issues = await getIssues();
     .edit-links a:hover {
       text-decoration: underline;
     }
+    .page-list {
+      margin-top: 2rem;
+    }
+    .grid-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .card {
+      border-radius: 8px;
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card a {
+      display: block;
+      padding: 1.5rem;
+      text-decoration: none;
+      color: inherit;
+      background-color: #f9f9f9;
+      height: 100%;
+      box-sizing: border-box;
+      border: 1px solid #eee;
+      border-radius: 8px;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    .card h3 {
+      margin-top: 0;
+      color: #4d1a9e;
+    }
+    .card p {
+      margin: 0.5rem 0;
+      color: #666;
+      font-size: 0.9rem;
+    }
+    .card-labels {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+      margin-top: 0.5rem;
+    }
+    .card-label {
+      font-size: 0.7rem;
+      padding: 0.1rem 0.5rem;
+      border-radius: 20px;
+      color: #333;
+    }
     footer {
       border-top: 1px solid #eee;
       padding: 2rem 0;
@@ -283,11 +405,22 @@ const issues = await getIssues();
     
     /* レスポンシブデザイン */
     @media (max-width: 768px) {
+      .header-content {
+        flex-direction: column;
+        gap: 1rem;
+      }
+      nav {
+        width: 100%;
+        justify-content: space-between;
+      }
       .layout {
         grid-template-columns: 1fr;
       }
       .sidebar {
-        margin-bottom: 1rem;
+        order: -1;
+      }
+      .grid-list {
+        grid-template-columns: 1fr;
       }
     }
   </style>
