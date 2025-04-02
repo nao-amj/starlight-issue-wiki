@@ -1,14 +1,5 @@
 /**
- * GitHub IssueのラベルのType定義
- */
-export interface LabelData {
-  name: string;
-  color: string;
-  description: string | null;
-}
-
-/**
- * GitHub IssueのType定義
+ * GitHub APIから取得するIssueデータの型定義
  */
 export interface IssueData {
   number: number;
@@ -17,24 +8,30 @@ export interface IssueData {
   html_url: string;
   created_at: string;
   updated_at: string;
-  labels: LabelData[];
+  labels: Label[];
+  user?: {
+    login: string;
+    avatar_url: string;
+    html_url: string;
+  };
 }
 
 /**
- * カテゴリー情報のType定義
+ * GitHub APIから取得するLabelデータの型定義
  */
-export interface CategoryInfo {
+export interface Label {
+  name: string;
+  color: string;
+  description?: string;
+}
+
+/**
+ * カテゴリーデータの型定義
+ */
+export interface Category {
   id: string;
   name: string;
-  description?: string;
   count: number;
-  color?: string;
-}
-
-/**
- * 静的JSONからのIssue読み込み用関数の返り値型
- */
-export interface IssueDataResult {
-  issues: IssueData[];
-  categories: CategoryInfo[];
+  color: string;
+  description?: string;
 }
