@@ -82,27 +82,41 @@ export function findIssueBySlug(issues: GitHubIssue[], slug: string): GitHubIssu
   });
 }
 
-// スラッグを生成する関数（日本語対応版）
+// スラッグを生成する関数（改良版）
 export function generateSlug(title: string): string {
-  // 日本語を含むタイトルの場合の処理
-  if (/[\u3000-\u303f\u3040-\u309f\u30a0-\u30ff\uff00-\uff9f\u4e00-\u9faf\u3400-\u4dbf]/.test(title)) {
-    // Issueの番号を特定
-    const issue = (staticIssues as GitHubIssue[]).find(i => i.title === title);
-    if (issue) {
-      // Issueの番号がわかる場合は、それを含めたスラッグを生成
-      const baseSlug = title
-        .toLowerCase()
-        .replace(/[^\w\s\u3000-\u303f\u3040-\u309f\u30a0-\u30ff\uff00-\uff9f\u4e00-\u9faf\u3400-\u4dbf-]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/^-+|-+$/g, '');
+  // このタイトルを持つIssueを検索
+  const matchingIssue = (staticIssues as GitHubIssue[]).find(issue => issue.title === title);
+  const issueNumber = matchingIssue?.number;
+  
+  // タイトルに日本語が含まれるか、または空のスラッグになる場合
+  if (/[\u3000-\u303f\u3040-\u309f\u30a0-\u30ff\uff00-\uff9f\u4e00-\u9faf\u3400-\u4dbf]/.test(title) || 
+      title.replace(/[^\w\s-]/g, '').trim() === '') {
+    // 基本スラッグを生成（日本語文字を保持）
+    let baseSlug = title
+      .toLowerCase()
+      .replace(/[^\w\s\u3000-\u303f\u3040-\u309f\u30a0-\u30ff\uff00-\uff9f\u4e00-\u9faf\u3400-\u4dbf-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/^-+|-+$/g, '');
       
-      return `${baseSlug}-${issue.number}`;
+    // 空のスラッグになる場合は、"issue"という文字を追加
+    if (baseSlug === '') {
+      baseSlug = 'issue';
     }
+    
+    // issueの番号がわかる場合は、それを含めたスラッグを生成
+    return issueNumber ? `${baseSlug}-${issueNumber}` : baseSlug;
   }
   
   // 英数字のみのタイトルの場合は従来の処理
-  return title.toLowerCase()
+  const standardSlug = title.toLowerCase()
     .replace(/[^\w\s-]/g, '')
     .replace(/\s+/g, '-')
     .replace(/^-+|-+$/g, '');
+  
+  // issueの番号がわかる場合は、それを含めたスラッグを生成（ただし元のスラッグが十分に一意な場合は不要）
+  if (issueNumber && standardSlug.length < 5) {
+    return `${standardSlug}-${issueNumber}`;
+  }
+  
+  return standardSlug;
 }
