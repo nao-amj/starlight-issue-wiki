@@ -7,7 +7,8 @@ export default defineConfig({
   // 出力ディレクトリを明示的に指定
   outDir: './dist',
   // サイトのベースURLを設定
-  site: 'https://nao-amj.github.io/starlight-issue-wiki/',
+  site: 'https://nao-amj.github.io',
+  base: '/starlight-issue-wiki',
   // サイト情報
   build: {
     // ビルド時の詳細ログを有効化
