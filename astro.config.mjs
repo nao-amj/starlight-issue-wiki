@@ -64,10 +64,56 @@ export default defineConfig({
         './src/styles/custom.css',
       ],
       
-      // Enable search functionality
+      // コンポーネントのカスタマイズ - 新しい方式に修正
+      head: ({ id }) => [
+        // CustomHead.astroの内容を直接ここに展開
+        {
+          tag: 'link',
+          attrs: {
+            rel: 'preconnect',
+            href: 'https://fonts.googleapis.com',
+          },
+        },
+        {
+          tag: 'link',
+          attrs: {
+            rel: 'preconnect',
+            href: 'https://fonts.gstatic.com',
+            crossorigin: true,
+          },
+        },
+        {
+          tag: 'link',
+          attrs: {
+            href: 'https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap',
+            rel: 'stylesheet',
+          },
+        },
+        {
+          tag: 'meta',
+          attrs: {
+            property: 'og:title',
+            content: SITE_TITLE,
+          },
+        },
+        {
+          tag: 'meta',
+          attrs: {
+            property: 'og:type',
+            content: 'website',
+          },
+        },
+        {
+          tag: 'meta',
+          attrs: {
+            name: 'twitter:card',
+            content: 'summary_large_image',
+          },
+        },
+      ],
+      
+      // Footerのカスタムコンポーネントは残しますが、componentsオブジェクトの構造を修正
       components: {
-        // ヘッダーとフッターのカスタムコンポーネントをオーバーライド
-        Head: './src/components/CustomHead.astro',
         Footer: './src/components/CustomFooter.astro',
       },
     }),
