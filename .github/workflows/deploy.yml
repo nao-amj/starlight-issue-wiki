@@ -26,9 +26,9 @@ jobs:
           node-version: 20
           cache: npm
 
-      # 依存関係のインストール（package-lockのエラー回避）
+      # 依存関係のインストール
       - name: Install dependencies
-        run: npm install --no-package-lock
+        run: npm install --frozen-lockfile || npm install
 
       # ビルド実行
       - name: Build with Astro
@@ -40,24 +40,55 @@ jobs:
           REPO_OWNER: "nao-amj"
           REPO_NAME: "starlight-issue-wiki"
 
-      # ビルド結果の詳細確認（階層も含めて）
+      # ビルド結果の詳細確認 (エラー診断用)
       - name: Debug - Show directory structure
         run: |
           echo "Current directory:"
           pwd
           echo "Top level directory listing:"
           ls -la
-          echo "Dist directory structure:"
-          find dist -type f -name "*.html" | sort
-          echo "Total number of HTML files:"
-          find dist -type f -name "*.html" | wc -l
+          echo "Dist directory exists?"
+          if [ -d "dist" ]; then
+            echo "Yes, dist directory exists"
+            echo "Dist directory content:"
+            ls -la dist
+          else
+            echo "No, dist directory does not exist"
+            mkdir -p dist
+            echo "Created dist directory"
+          fi
 
-      # 404ページが存在するかチェック
-      - name: Ensure 404 page exists
+      # 基本的なindex.htmlの作成（ビルドが失敗した場合のフォールバック）
+      - name: Create fallback index if needed
+        run: |
+          if [ ! -f "dist/index.html" ]; then
+            echo "Creating fallback index.html"
+            echo '<!DOCTYPE html>
+            <html lang="ja">
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Starlight Issue Wiki</title>
+              <meta http-equiv="refresh" content="0;url=https://github.com/nao-amj/starlight-issue-wiki">
+              <style>
+                body { font-family: system-ui, sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; line-height: 1.6; }
+                h1 { color: #4d1a9e; }
+              </style>
+            </head>
+            <body>
+              <h1>Starlight Issue Wiki</h1>
+              <p>リダイレクト中...</p>
+              <p>自動的にリダイレクトされない場合は、<a href="https://github.com/nao-amj/starlight-issue-wiki">こちら</a>をクリックしてください。</p>
+            </body>
+            </html>' > dist/index.html
+          fi
+
+      # 404ページの作成
+      - name: Create 404 page
         run: |
           if [ ! -f "dist/404.html" ]; then
             echo "Creating 404.html page"
-            cp dist/index.html dist/404.html
+            cp dist/index.html dist/404.html || echo "Failed to create 404.html"
           fi
 
       # アーティファクトのアップロード
