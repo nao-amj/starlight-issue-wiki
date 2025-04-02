@@ -64,9 +64,8 @@ export default defineConfig({
         './src/styles/custom.css',
       ],
       
-      // コンポーネントのカスタマイズ - 正しい方法に修正
+      // カスタムヘッドの内容をheadとして配列で設定
       head: [
-        // CustomHead.astroの内容を直接ここに展開
         {
           tag: 'link',
           attrs: {
@@ -111,11 +110,6 @@ export default defineConfig({
           },
         },
       ],
-      
-      // Footerのカスタムコンポーネントは残しますが、componentsオブジェクトの構造を修正
-      components: {
-        Footer: './src/components/CustomFooter.astro',
-      },
     }),
   ],
 });
