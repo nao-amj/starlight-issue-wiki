@@ -1,5 +1,20 @@
 ---
-import type { IssueData } from '../types/github';
+import { BASE_PATH } from '../config';
+
+// IssueDataの簡易的な型定義
+interface IssueData {
+  number: number;
+  title: string;
+  body: string;
+  html_url: string;
+  created_at: string;
+  updated_at: string;
+  labels: {
+    name: string;
+    color: string;
+    description?: string;
+  }[];
+}
 
 interface Props {
   issues: IssueData[];
@@ -24,7 +39,9 @@ const filteredIssues = category
 const displayIssues = filteredIssues.slice(0, limit);
 
 // カテゴリーページへのリンク
-const categoryLink = category ? `/category/${category.toLowerCase()}` : '/pages';
+const categoryLink = category 
+  ? `${BASE_PATH}/category/${category.toLowerCase()}` 
+  : `${BASE_PATH}/pages`;
 ---
 
 <div class="category-list">
@@ -40,7 +57,7 @@ const categoryLink = category ? `/category/${category.toLowerCase()}` : '/pages'
       {displayIssues.map(issue => (
         <div class="issue-card">
           <h3>
-            <a href={`/wiki/${issue.number}`}>{issue.title}</a>
+            <a href={`${BASE_PATH}/wiki/${issue.number}`}>{issue.title}</a>
           </h3>
           <div class="issue-labels">
             {issue.labels.map(label => (
@@ -80,7 +97,7 @@ const categoryLink = category ? `/category/${category.toLowerCase()}` : '/pages'
   
   .view-all {
     font-size: 0.9rem;
-    color: var(--sl-color-text-accent);
+    color: var(--color-primary);
     text-decoration: none;
   }
   
@@ -93,11 +110,51 @@ const categoryLink = category ? `/category/${category.toLowerCase()}` : '/pages'
     gap: 1rem;
   }
   
+  .issue-card {
+    background-color: #f9f9f9;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid #eee;
+    transition: box-shadow 0.2s;
+  }
+  
+  .issue-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .issue-card h3 {
+    margin: 0;
+    font-size: 1.1rem;
+  }
+  
+  .issue-card h3 a {
+    color: #333;
+    text-decoration: none;
+  }
+  
+  .issue-card h3 a:hover {
+    color: var(--color-primary);
+  }
+  
   .issue-labels {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
     margin: 0.5rem 0;
+  }
+  
+  .issue-card-meta {
+    font-size: 0.8rem;
+    color: #666;
+    margin-top: 0.5rem;
+  }
+  
+  .tag {
+    display: inline-block;
+    padding: 0.2em 0.5em;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    font-weight: 500;
   }
   
   @media (min-width: 50rem) {
