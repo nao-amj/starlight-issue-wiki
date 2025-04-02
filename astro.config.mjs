@@ -1,27 +1,17 @@
 import { defineConfig } from 'astro/config';
-import starlight from '@astrojs/starlight';
-import vercel from '@astrojs/vercel/static';
 
 // https://astro.build/config
 export default defineConfig({
-  integrations: [
-    starlight({
-      title: 'Starlight Issue Wiki',
-      social: {
-        github: 'https://github.com/nao-amj/starlight-issue-wiki',
-      },
-      sidebar: [
-        {
-          label: 'ホーム',
-          link: '/'
-        },
-        {
-          label: 'Wiki',
-          autogenerate: { directory: 'wiki' }
-        }
-      ],
-    }),
-  ],
+  // 静的サイトとして出力
   output: 'static',
-  adapter: vercel(),
+  // 出力ディレクトリを明示的に指定
+  outDir: './dist',
+  // サイトのベースURLを設定
+  site: 'https://nao-amj.github.io/starlight-issue-wiki/',
+  // サイト情報
+  build: {
+    // ビルド時の詳細ログを有効化
+    format: 'directory',
+    assets: '_assets'
+  },
 });
