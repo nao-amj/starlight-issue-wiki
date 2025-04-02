@@ -1,0 +1,155 @@
+---
+import { getIssuesData, getIssueByNumber } from '../../../utils/issues';
+import { marked } from 'marked';
+import Layout from '@astrojs/starlight/components/Layout.astro';
+import ContentPanel from '@astrojs/starlight/components/ContentPanel.astro';
+
+export async function getStaticPaths() {
+  const { issues } = await getIssuesData();
+  
+  return issues.map(issue => {
+    return {
+      params: { id: issue.number.toString() },
+      props: { issue }
+    };
+  });
+}
+
+const { issue } = Astro.props;
+const { title, body, created_at, updated_at, html_url, labels } = issue;
+
+// Markdownをパース
+const htmlContent = marked.parse(body);
+
+// メタデータ
+const createdDate = new Date(created_at).toLocaleDateString('ja-JP', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric'
+});
+
+const updatedDate = new Date(updated_at).toLocaleDateString('ja-JP', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric'
+});
+
+// ページタイトル
+const pageTitle = `${title} (#${issue.number})`;
+---
+
+<Layout title={pageTitle}>
+  <ContentPanel>
+    <div class="wiki-header">
+      <h1>{title}</h1>
+      
+      <div class="issue-labels">
+        {labels.map(label => (
+          <a href={`/category/${label.name.toLowerCase()}`} class="tag" 
+             style={`background-color: #${label.color}20; color: #${label.color}; border: 1px solid #${label.color}40;`}>
+            {label.name}
+          </a>
+        ))}
+      </div>
+      
+      <div class="issue-meta">
+        <span>作成日: {createdDate}</span>
+        {created_at !== updated_at && (
+          <span>更新日: {updatedDate}</span>
+        )}
+        <a href={html_url} target="_blank" rel="noopener noreferrer" class="issue-link">
+          GitHubで表示
+        </a>
+      </div>
+    </div>
+    
+    <div class="wiki-content">
+      <div set:html={htmlContent} />
+    </div>
+  </ContentPanel>
+</Layout>
+
+<style>
+  .wiki-header {
+    margin-bottom: 2rem;
+    border-bottom: 1px solid var(--sl-color-gray-5);
+    padding-bottom: 1rem;
+  }
+  
+  .issue-labels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 1rem 0;
+  }
+  
+  .tag {
+    display: inline-block;
+    padding: 0.2em 0.5em;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-decoration: none;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  
+  .issue-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    font-size: 0.9rem;
+    color: var(--sl-color-gray-3);
+  }
+  
+  .issue-link {
+    color: var(--sl-color-text-accent);
+    text-decoration: none;
+  }
+  
+  .issue-link:hover {
+    text-decoration: underline;
+  }
+  
+  .wiki-content {
+    line-height: 1.6;
+  }
+  
+  .wiki-content :global(h2) {
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--sl-color-gray-5);
+  }
+  
+  .wiki-content :global(h3) {
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .wiki-content :global(ul),
+  .wiki-content :global(ol) {
+    padding-left: 1.5rem;
+  }
+  
+  .wiki-content :global(pre) {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+  }
+  
+  .wiki-content :global(img) {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+  }
+  
+  .wiki-content :global(a) {
+    color: var(--sl-color-text-accent);
+    text-decoration: none;
+  }
+  
+  .wiki-content :global(a:hover) {
+    text-decoration: underline;
+  }
+</style>
