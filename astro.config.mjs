@@ -1,4 +1,6 @@
 import { defineConfig } from 'astro/config';
+import starlight from '@astrojs/starlight';
+import starlightConfig from './src/starlight.config';
 
 // https://astro.build/config
 export default defineConfig({
@@ -16,5 +18,10 @@ export default defineConfig({
   build: {
     format: 'directory',
     assets: '_assets'
-  }
+  },
+  
+  // Starlightインテグレーションを追加
+  integrations: [
+    starlight(starlightConfig),
+  ],
 });

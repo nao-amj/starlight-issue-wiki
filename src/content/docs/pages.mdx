@@ -1,0 +1,39 @@
+---
+title: すべてのページ
+description: すべてのWikiページの一覧
+---
+
+import { getIssuesData } from '../../../utils/issues';
+import CategoryList from '../../../components/CategoryList.astro';
+
+export async function getStaticProps() {
+  const { issues, categories } = await getIssuesData();
+  return { props: { issues, categories } };
+}
+
+このページにはすべてのWikiコンテンツが一覧表示されています。記事の内容に興味がある場合はタイトルをクリックして詳細を確認してください。
+
+<CategoryList 
+  issues={frontmatter.getStaticProps.issues} 
+  title="すべてのページ" 
+  showViewAll={false}
+/>
+
+## カテゴリー別
+
+以下では、カテゴリー別にコンテンツを整理しています。
+
+{frontmatter.getStaticProps.categories.map(category => (
+  <section key={category.id}>
+    <h3 id={category.id}>
+      {category.name} ({category.count})
+    </h3>
+    <p>{category.description}</p>
+    <CategoryList 
+      issues={frontmatter.getStaticProps.issues} 
+      title="" 
+      category={category.id}
+      showViewAll={false}
+    />
+  </section>
+))}
