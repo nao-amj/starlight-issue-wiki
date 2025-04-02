@@ -1,0 +1,88 @@
+/* カスタムスタイル */
+
+/* 基本フォント設定 */
+:root {
+  --sl-font: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+  --sl-content-width: 55rem;
+  --sl-navbar-height: 4rem;
+}
+
+/* リンクスタイル */
+a {
+  transition: color 0.2s ease-in-out;
+}
+
+/* ヘッダーカスタマイズ */
+.sl-nav-link[aria-current="page"] {
+  font-weight: 600;
+}
+
+/* サイドバーカスタマイズ */
+.sl-sidebar {
+  border-right: 1px solid var(--sl-color-gray-5);
+}
+
+/* アクセントカラーのカスタマイズ */
+:root {
+  --sl-hue-accent: 255;  /* 紫色 */
+  --sl-color-accent-high: hsl(var(--sl-hue-accent), 80%, 40%);
+  --sl-color-accent: hsl(var(--sl-hue-accent), 70%, 50%);
+  --sl-color-accent-low: hsl(var(--sl-hue-accent), 60%, 85%);
+}
+
+/* タグスタイル */
+.tag {
+  display: inline-block;
+  padding: 0.2em 0.5em;
+  border-radius: 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.2;
+  margin-right: 0.5rem;
+  margin-bottom: 0.5rem;
+  white-space: nowrap;
+}
+
+/* Issue一覧カード */
+.issue-card {
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.issue-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.issue-card h3 {
+  margin-top: 0;
+}
+
+.issue-card-meta {
+  font-size: 0.8rem;
+  color: var(--sl-color-gray-3);
+  margin-top: 0.5rem;
+}
+
+/* モバイル対応 */
+@media (max-width: 50rem) {
+  .issue-card {
+    padding: 0.75rem;
+  }
+  
+  .sl-container {
+    padding: 0 1rem;
+  }
+}
+
+/* ダークモード対応 */
+:root[data-theme="dark"] .issue-card {
+  border-color: var(--sl-color-gray-6);
+}
+
+:root[data-theme="dark"] .issue-card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
