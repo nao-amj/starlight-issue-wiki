@@ -2,23 +2,23 @@
 import Layout from '../../layouts/Layout.astro';
 import { BASE_PATH } from '../../config';
 
-// GitHub API からIssueを取得する関数
-async function fetchIssues() {
-  try {
-    // GitHub APIを使用してissueを取得
-    const response = await fetch('https://api.github.com/repos/nao-amj/starlight-issue-wiki/issues');
-    if (!response.ok) {
-      throw new Error(`GitHub API error: ${response.status}`);
-    }
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching issues:', error);
-    return [];
-  }
-}
-
 // カテゴリ一覧を取得（全てのIssueからラベルを収集）
 export async function getStaticPaths() {
+  // GitHub API からIssueを取得する関数
+  async function fetchIssues() {
+    try {
+      // GitHub APIを使用してissueを取得
+      const response = await fetch('https://api.github.com/repos/nao-amj/starlight-issue-wiki/issues');
+      if (!response.ok) {
+        throw new Error(`GitHub API error: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching issues:', error);
+      return [];
+    }
+  }
+
   const issues = await fetchIssues();
   
   // 全てのカテゴリー（ラベル）を収集
