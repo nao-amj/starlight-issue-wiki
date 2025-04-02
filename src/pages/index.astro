@@ -18,6 +18,24 @@ const description = 'GitHubのissueを使ったWikiサイト';
 
 // サイトのベースパスを設定
 const basePath = '/starlight-issue-wiki';
+
+// issueをカテゴリー別にグループ化
+const categories = {};
+issues.forEach(issue => {
+  if (issue.labels && issue.labels.length > 0) {
+    issue.labels.forEach(label => {
+      if (!categories[label.name]) {
+        categories[label.name] = [];
+      }
+      categories[label.name].push(issue);
+    });
+  } else {
+    if (!categories['未分類']) {
+      categories['未分類'] = [];
+    }
+    categories['未分類'].push(issue);
+  }
+});
 ---
 
 <!DOCTYPE html>
@@ -42,7 +60,70 @@ const basePath = '/starlight-issue-wiki';
   </header>
 
   <main class="container">
-    <div class="wiki-content" set:html={content}></div>
+    <div class="content-grid">
+      <div class="main-content">
+        <div class="wiki-content" set:html={content}></div>
+      </div>
+      
+      <div class="sidebar">
+        <div class="card">
+          <h2>Wiki Pages</h2>
+          
+          {Object.keys(categories).map(category => (
+            <div class="category">
+              <h3>{category}</h3>
+              <ul>
+                {categories[category].map(issue => {
+                  // スラッグを生成
+                  const slug = issue.title.toLowerCase()
+                    .replace(/[^\w\s-]/g, '')
+                    .replace(/\s+/g, '-')
+                    .replace(/^-+|-+$/g, '');
+                  
+                  return (
+                    <li>
+                      <a href={`${basePath}/wiki/${slug}`}>
+                        {issue.title}
+                      </a>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
+        
+        <div class="card">
+          <h2>最近の更新</h2>
+          <ul>
+            {issues.slice(0, 5).map(issue => {
+              // スラッグを生成
+              const slug = issue.title.toLowerCase()
+                .replace(/[^\w\s-]/g, '')
+                .replace(/\s+/g, '-')
+                .replace(/^-+|-+$/g, '');
+              
+              // 日付をフォーマット
+              const date = new Date(issue.updated_at);
+              const formattedDate = new Intl.DateTimeFormat('ja-JP', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+              }).format(date);
+              
+              return (
+                <li>
+                  <a href={`${basePath}/wiki/${slug}`}>
+                    <span class="title">{issue.title}</span>
+                    <span class="date">{formattedDate}</span>
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </div>
+    </div>
   </main>
 
   <footer>
@@ -105,11 +186,19 @@ const basePath = '/starlight-issue-wiki';
     main {
       padding: 3rem 0;
     }
-    .wiki-content {
+    .content-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 2rem;
+    }
+    .main-content {
       background-color: white;
       padding: 2rem;
       border-radius: 8px;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+    .wiki-content {
+      max-width: 100%;
     }
     .wiki-content :global(h1) {
       margin-top: 0;
@@ -120,11 +209,77 @@ const basePath = '/starlight-issue-wiki';
       background-color: #f3f3f3;
       overflow-x: auto;
     }
+    .wiki-content :global(img) {
+      max-width: 100%;
+      height: auto;
+    }
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+    .card {
+      background-color: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    .card h2 {
+      margin-top: 0;
+      font-size: 1.2rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid #eee;
+    }
+    .category h3 {
+      font-size: 1rem;
+      color: #666;
+      margin: 1.5rem 0 0.5rem;
+    }
+    .category:first-child h3 {
+      margin-top: 0;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    li {
+      margin-bottom: 0.5rem;
+    }
+    li a {
+      display: block;
+      padding: 0.5rem;
+      text-decoration: none;
+      color: #333;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+    li a:hover {
+      background-color: #f5f5f5;
+    }
+    .title {
+      display: block;
+    }
+    .date {
+      display: block;
+      font-size: 0.8rem;
+      color: #666;
+    }
     footer {
       border-top: 1px solid #eee;
       padding: 2rem 0;
       text-align: center;
       color: #666;
+    }
+    
+    /* レスポンシブデザイン */
+    @media (max-width: 768px) {
+      .content-grid {
+        grid-template-columns: 1fr;
+      }
+      .sidebar {
+        order: -1;
+      }
     }
   </style>
 </body>
