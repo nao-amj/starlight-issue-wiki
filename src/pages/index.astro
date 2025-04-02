@@ -83,7 +83,7 @@ function generateSlug(title) {
         <nav>
           <a href={BASE_PATH + "/"} class="active">ホーム</a>
           <a href={`${BASE_PATH}/wiki/1`}>はじめに</a>
-          <a href={`${BASE_PATH}/pages`}>ページ一覧</a>
+          <a href={`${BASE_PATH}/wiki`}>ページ一覧</a>
           <a href={REPO_URL} target="_blank">GitHub</a>
         </nav>
       </div>
@@ -163,7 +163,7 @@ function generateSlug(title) {
         </div>
 
         <div class="text-center mt-4">
-          <a href={`${BASE_PATH}/pages`} class="button">すべてのページを見る</a>
+          <a href={`${BASE_PATH}/wiki`} class="button">すべてのページを見る</a>
         </div>
       </div>
       
@@ -222,7 +222,7 @@ function generateSlug(title) {
         <div class="card">
           <h2>クイックリンク</h2>
           <ul class="quick-links">
-            <li><a href={`${BASE_PATH}/pages`}>全ページ一覧</a></li>
+            <li><a href={`${BASE_PATH}/wiki`}>全ページ一覧</a></li>
             <li><a href={`${BASE_PATH}/wiki/1`}>使い方ガイド</a></li>
             <li><a href={REPO_URL} target="_blank">GitHubリポジトリ</a></li>
           </ul>
@@ -418,9 +418,16 @@ function generateSlug(title) {
     }
 
     .recent-updates a {
-      padding: 0.5rem;
+      display: block;
+      padding: 0.75rem;
       background-color: rgba(37, 99, 235, 0.03);
       border-left: 3px solid var(--color-primary-light);
+      border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0;
+    }
+
+    .recent-updates a:hover {
+      background-color: rgba(37, 99, 235, 0.08);
+      transform: translateX(3px);
     }
 
     /* レスポンシブデザイン */

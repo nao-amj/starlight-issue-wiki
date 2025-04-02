@@ -2,21 +2,22 @@
 // 検索バーコンポーネント
 ---
 
-<div class="search-form">
-  <span class="search-icon">🔍</span>
-  <input 
-    type="text" 
-    id="search-input" 
-    class="search-input" 
-    placeholder="Wikiページを検索..."
-    aria-label="検索"
-  />
+<div class="search-container">
+  <div class="search-form">
+    <span class="search-icon">🔍</span>
+    <input 
+      type="text" 
+      id="search-input" 
+      class="search-input" 
+      placeholder="Wikiページを検索..."
+      aria-label="検索"
+    />
+  </div>
+  <div id="search-results" class="search-results"></div>
 </div>
 
-<div id="search-results" class="search-results"></div>
-
 <script>
-  // クライアントサイト検索機能
+  // クライアントサイド検索機能
   document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('search-input');
     const searchResults = document.getElementById('search-results');
@@ -88,9 +89,14 @@
 </script>
 
 <style>
-  .search-form {
+  .search-container {
     position: relative;
     margin: var(--space-md) 0;
+    z-index: 100;
+  }
+
+  .search-form {
+    position: relative;
   }
 
   .search-input {
@@ -120,15 +126,20 @@
 
   .search-results {
     position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
     z-index: 10;
     width: 100%;
     max-height: 400px;
     overflow-y: auto;
     background: var(--color-background-panel);
-    border-radius: var(--border-radius-md);
+    border-radius: 0 0 var(--border-radius-md) var(--border-radius-md);
     box-shadow: var(--box-shadow-md);
     border: 1px solid var(--color-border);
+    border-top: none;
     display: none;
+    margin-top: -2px;
   }
 
   .search-result-item {
@@ -152,6 +163,7 @@
   .search-result-title {
     font-weight: 500;
     margin-bottom: 0.25rem;
+    color: var(--color-primary);
   }
 
   .search-result-meta {
