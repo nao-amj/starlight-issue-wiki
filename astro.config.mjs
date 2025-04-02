@@ -64,8 +64,8 @@ export default defineConfig({
         './src/styles/custom.css',
       ],
       
-      // コンポーネントのカスタマイズ - 新しい方式に修正
-      head: ({ id }) => [
+      // コンポーネントのカスタマイズ - 正しい方法に修正
+      head: [
         // CustomHead.astroの内容を直接ここに展開
         {
           tag: 'link',
