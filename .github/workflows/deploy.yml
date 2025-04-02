@@ -37,86 +37,15 @@ jobs:
           # 新規インストール
           npm install
 
-      # ビルド実行 (エラーを無視)
-      - name: Try to build with Astro
-        run: npm run build || echo "Build failed, but we will continue with a basic page"
+      # ビルド実行
+      - name: Build with Astro
+        run: npm run build
         env:
           # GitHub Actionsのデフォルトトークンを使用
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # リポジトリ情報を明示的に設定
           REPO_OWNER: "nao-amj"
           REPO_NAME: "starlight-issue-wiki"
-
-      # どのような場合も確実にdistディレクトリを作成
-      - name: Ensure dist directory exists
-        run: mkdir -p dist
-
-      # 基本的なindex.htmlの作成（ビルドが失敗した場合のフォールバック）
-      - name: Create basic index.html
-        run: |
-          cat > dist/index.html << EOF
-          <!DOCTYPE html>
-          <html lang="ja">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Starlight Issue Wiki</title>
-            <style>
-              body {
-                font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-                max-width: 800px;
-                margin: 0 auto;
-                padding: 2rem;
-                line-height: 1.6;
-                color: #333;
-              }
-              h1 { color: #4d1a9e; }
-              .container {
-                background-color: white;
-                padding: 2rem;
-                border-radius: 8px;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-              }
-              a {
-                color: #4d1a9e;
-                text-decoration: none;
-              }
-              a:hover {
-                text-decoration: underline;
-              }
-              .button {
-                display: inline-block;
-                margin-top: 1rem;
-                padding: 0.5rem 1rem;
-                background-color: #4d1a9e;
-                color: white;
-                border-radius: 4px;
-                text-decoration: none;
-                font-weight: bold;
-              }
-              .button:hover {
-                background-color: #3b1475;
-                text-decoration: none;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <h1>Starlight Issue Wiki</h1>
-              <p>GitHubのIssueを使って管理するWikiサイトです。</p>
-              <p>このページはメンテナンス中です。GitHubでIssueを直接確認することができます。</p>
-              
-              <p>
-                <a href="https://github.com/nao-amj/starlight-issue-wiki/issues" class="button">GitHub Issuesを見る</a>
-              </p>
-            </div>
-          </body>
-          </html>
-          EOF
-
-      # 404ページの作成
-      - name: Create 404 page
-        run: cp dist/index.html dist/404.html
 
       # アーティファクトのアップロード
       - name: Upload artifact
