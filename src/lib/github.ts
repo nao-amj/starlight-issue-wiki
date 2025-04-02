@@ -2,13 +2,15 @@ import { Octokit } from '@octokit/rest';
 
 // GitHub APIから認証情報を取得
 const getOctokit = () => {
-  const token = import.meta.env.GITHUB_TOKEN || process.env.GITHUB_TOKEN;
+  // 環境変数からトークンを取得
+  // Astroのimport.meta.envは、ビルド時のみ利用可能なのでprocess.envも確認
+  const token = process.env.GITHUB_TOKEN;
   return new Octokit({ auth: token });
 };
 
 // リポジトリの情報
-const owner = import.meta.env.REPO_OWNER || process.env.REPO_OWNER || 'nao-amj';
-const repo = import.meta.env.REPO_NAME || process.env.REPO_NAME || 'starlight-issue-wiki';
+const owner = process.env.REPO_OWNER || 'nao-amj';
+const repo = process.env.REPO_NAME || 'starlight-issue-wiki';
 
 // issueを取得する関数
 export async function getIssues() {
