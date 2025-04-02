@@ -54,13 +54,20 @@ npm run build
 
 ビルドプロセスが失敗した場合に備えて、基本的なフォールバック用のindex.htmlを用意しています。これにより、常にサイトがアクセス可能な状態を維持します。
 
-## 環境変数
+## 設定とセキュリティ
 
-- `GITHUB_TOKEN`: GitHub APIのアクセストークン（GitHub Actionsで自動設定）
-- `REPO_OWNER`: リポジトリのオーナー名 (デフォルト: "nao-amj")
-- `REPO_NAME`: リポジトリ名 (デフォルト: "starlight-issue-wiki")
+リポジトリの情報は `src/config.ts` ファイルに定義されており、ビルド時に静的に組み込まれます：
 
-これらの環境変数は、GitHub Actionsのシークレットとして設定することも、`.env`ファイルに記述することもできます。
+```typescript
+// GitHub リポジトリの情報
+export const REPO_OWNER = 'nao-amj';
+export const REPO_NAME = 'starlight-issue-wiki';
+export const REPO_URL = `https://github.com/${REPO_OWNER}/${REPO_NAME}`;
+```
+
+GitHub Actionsで実行される場合、`GITHUB_TOKEN` は自動的に提供され、クライアントサイドではなくワークフローの中でのみ使用されます。このアプローチにより、トークンがクライアントに公開されるリスクを排除しています。
+
+ビルド時に生成される静的JSONファイルを使用することで、クライアント側でGitHub APIにアクセスする必要がなく、よりセキュアな実装になっています。
 
 ## GitHub Pagesでのデプロイ
 
