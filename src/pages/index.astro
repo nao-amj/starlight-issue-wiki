@@ -1,7 +1,7 @@
 ---
 import { BASE_PATH, SITE_TITLE, SITE_DESCRIPTION, REPO_URL } from '../config';
 
-// GitHub API からIssueを取得する関数
+// Issueデータを取得
 async function fetchIssues() {
   try {
     // GitHub APIを使用してissueを取得
@@ -16,7 +16,6 @@ async function fetchIssues() {
   }
 }
 
-// Issueデータを取得
 const issues = await fetchIssues();
 
 // カテゴリー別グループ化
