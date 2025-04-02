@@ -3,7 +3,7 @@ import { getIssues } from '../../lib/github';
 import { marked } from 'marked';
 import { gfmHeadingId } from 'marked-gfm-heading-id';
 import WikiContent from '../../components/WikiContent.astro';
-import Layout from '@astrojs/starlight/components/Layout.astro';
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 
 export async function getStaticPaths() {
   const issues = await getIssues();
@@ -28,15 +28,31 @@ const { issue } = Astro.props;
 // markedのセットアップ
 marked.use(gfmHeadingId());
 
-// issueの内容をHTMLに変換
-const content = marked.parse(issue.body || '');
+// issueの内容をHTMLに変換（非同期処理ではなく同期的に変換）
+const content = issue.body ? marked.parse(issue.body) : '';
 
+// frontmatterの設定
 const frontmatter = {
   title: issue.title,
   description: `${issue.title} - Starlight Issue Wiki`,
 };
+
+// Starlightページ用のデータを準備
+const starlightProps = {
+  frontmatter,
+  headings: [],
+  hasSidebar: true,
+  dir: 'ltr',
+  isFallback: false,
+  lang: 'ja',
+  lastUpdated: new Date(),
+  pagination: { prev: undefined, next: undefined },
+  sidebar: [],
+  toc: { items: [] },
+  entry: {},
+};
 ---
 
-<Layout frontmatter={frontmatter}>
-  <WikiContent content={content} issueUrl={issue.html_url} />
-</Layout>
+<StarlightPage {...starlightProps}>
+  <WikiContent slot="content" content={content} issueUrl={issue.html_url} />
+</StarlightPage>
