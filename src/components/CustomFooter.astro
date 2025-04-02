@@ -1,66 +1,38 @@
 ---
-import { REPO_URL } from '../config';
-import type { Props } from '@astrojs/starlight/props';
+import { REPO_URL, SITE_TITLE } from '../config';
 
-const today = new Date();
+const currentYear = new Date().getFullYear();
 ---
 
 <footer>
-  <div class="footer-content">
-    <div class="links">
-      <a href={REPO_URL} target="_blank" rel="noopener noreferrer">GitHub</a>
-      <a href={`${REPO_URL}/issues`} target="_blank" rel="noopener noreferrer">Issues</a>
-      <a href={`${REPO_URL}/issues/new`} target="_blank" rel="noopener noreferrer">新しいIssueを作成</a>
+  <div class="container">
+    <div class="footer-content">
+      <div class="footer-section">
+        <h3>GitWiki Hub</h3>
+        <p>GitHubのissueを使って管理するスマートなWikiプラットフォーム。Markdownでコンテンツを簡単に作成・管理できます。</p>
+      </div>
+      
+      <div class="footer-section">
+        <h3>リンク</h3>
+        <ul class="footer-links">
+          <li><a href="/">ホーム</a></li>
+          <li><a href="/wiki/1">はじめに</a></li>
+          <li><a href="/pages">すべてのページ</a></li>
+        </ul>
+      </div>
+      
+      <div class="footer-section">
+        <h3>リソース</h3>
+        <ul class="footer-links">
+          <li><a href={REPO_URL} target="_blank">GitHubリポジトリ</a></li>
+          <li><a href={`${REPO_URL}/issues`} target="_blank">Issue一覧</a></li>
+          <li><a href={`${REPO_URL}/issues/new`} target="_blank">新規Issue作成</a></li>
+        </ul>
+      </div>
     </div>
-    <p class="copyright">
-      &copy; {today.getFullYear()} Starlight Issue Wiki
-    </p>
+    
+    <div class="copyright">
+      <p>&copy; {currentYear} {SITE_TITLE} | Powered by <a href="https://astro.build" target="_blank">Astro</a></p>
+    </div>
   </div>
 </footer>
-
-<style>
-  footer {
-    margin-top: 2rem;
-    padding: 1.5rem;
-    background-color: var(--sl-color-bg-nav);
-    color: var(--sl-color-text);
-  }
-
-  .footer-content {
-    max-width: var(--sl-content-width);
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1.5rem;
-    font-size: 0.9rem;
-  }
-
-  .links a {
-    color: var(--sl-color-text-accent);
-    text-decoration: none;
-  }
-
-  .links a:hover {
-    text-decoration: underline;
-  }
-
-  .copyright {
-    margin: 0;
-    font-size: 0.8rem;
-    opacity: 0.8;
-  }
-
-  @media (min-width: 50rem) {
-    .footer-content {
-      flex-direction: row;
-      justify-content: space-between;
-      align-items: center;
-    }
-  }
-</style>

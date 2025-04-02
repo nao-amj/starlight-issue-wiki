@@ -1,23 +1,27 @@
-# Starlight Issue Wiki
+# GitWiki Hub
 
-GitHubのissueを動的に取得してWikiとして表示するStarlightサイト。
+GitHubのissueを動的に取得してWikiとして表示するモダンなWebアプリケーション。
 
 https://nao-amj.github.io/starlight-issue-wiki/
 
 ## 特徴
 
-- Astro + Starlightを使用したモダンな静的サイト
+- Astroを使用したモダンな静的サイト
 - GitHubのissueからコンテンツを動的に取得
 - GitHub Actionsによる自動デプロイ
 - カテゴリー別のページ一覧表示
 - ラベルによるカテゴリー分類
+- レスポンシブデザイン
+- 検索機能
+- タイムラインビュー
+- ダークモード対応
 
 ## 実装の詳細
 
 ### データフロー
 
-1. GitHub Actionsのワークフロー (`update-issues.yml`) が定期的に実行され、issueの内容を `src/data/issues.json` として保存
-2. ビルド時に静的JSONファイルからissueデータを読み込み、Wikiページを生成
+1. GitHub Actionsのワークフロー (`update-issues.yml`) が定期的に実行され、issueの内容を取得
+2. ビルド時にGitHub APIからissueデータを読み込み、Wikiページを生成
 3. ラベルをカテゴリーとして利用し、カテゴリー別にissueを整理
 
 ### ページ構成
@@ -25,12 +29,15 @@ https://nao-amj.github.io/starlight-issue-wiki/
 - **トップページ**: 概要とカテゴリー別のissue一覧を表示
 - **Wikiページ**: 各issueの内容をMarkdownからHTMLに変換して表示
 - **ページ一覧**: すべてのissueをカテゴリーごとに整理して表示
+- **検索機能**: コンテンツ全文を検索して関連ページを素早く見つける
 
 ### 技術スタック
 
 - **Astro**: 静的サイトジェネレーターとして利用
 - **marked**: MarkdownをHTMLに変換するために使用
 - **GitHub Actions**: 自動デプロイとデータ更新
+- **date-fns**: 日付フォーマット用ライブラリ
+- **shiki**: コードハイライト
 
 ## 開発方法
 
@@ -65,11 +72,13 @@ npm run build
 export const REPO_OWNER = 'nao-amj';
 export const REPO_NAME = 'starlight-issue-wiki';
 export const REPO_URL = `https://github.com/${REPO_OWNER}/${REPO_NAME}`;
+
+// サイト情報
+export const SITE_TITLE = 'GitWiki Hub';
+export const SITE_DESCRIPTION = 'GitHubのissueを使って管理するスマートなWikiプラットフォーム';
 ```
 
 GitHub Actionsで実行される場合、`GITHUB_TOKEN` は自動的に提供され、クライアントサイドではなくワークフローの中でのみ使用されます。このアプローチにより、トークンがクライアントに公開されるリスクを排除しています。
-
-ビルド時に生成される静的JSONファイルを使用することで、クライアント側でGitHub APIにアクセスする必要がなく、よりセキュアな実装になっています。
 
 ## GitHub Pagesでのデプロイ
 

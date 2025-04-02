@@ -16,5 +16,5 @@ export const REPO_NAME = 'starlight-issue-wiki';
 export const REPO_URL = `https://github.com/${REPO_OWNER}/${REPO_NAME}`;
 
 // サイト情報
-export const SITE_TITLE = 'Starlight Issue Wiki';
-export const SITE_DESCRIPTION = 'GitHubのissueを使って管理するWikiサイト';
+export const SITE_TITLE = 'GitWiki Hub';
+export const SITE_DESCRIPTION = 'GitHubのissueを使って管理するスマートなWikiプラットフォーム';
