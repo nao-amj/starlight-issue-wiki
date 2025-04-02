@@ -15,6 +15,9 @@ const content = welcomeIssue ? marked.parse(welcomeIssue.body || '') : '';
 
 const title = welcomeIssue?.title || 'Starlight Issue Wiki';
 const description = 'GitHubのissueを使ったWikiサイト';
+
+// サイトのベースパスを設定
+const basePath = '/starlight-issue-wiki';
 ---
 
 <!DOCTYPE html>
@@ -24,7 +27,8 @@ const description = 'GitHubのissueを使ったWikiサイト';
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{title}</title>
   <meta name="description" content={description}>
-  <link rel="stylesheet" href="/styles/global.css">
+  <link rel="stylesheet" href={`${basePath}/styles/global.css`}>
+  <base href={basePath}>
 </head>
 <body>
   <header>
@@ -32,7 +36,7 @@ const description = 'GitHubのissueを使ったWikiサイト';
       <h1>{title}</h1>
       <p>GitHubのissueを使って管理するWikiサイト</p>
       <div class="actions">
-        <a href="/wiki/welcome" class="button primary">Wikiを見る</a>
+        <a href={`${basePath}/wiki/welcome`} class="button primary">Wikiを見る</a>
         <a href="https://github.com/nao-amj/starlight-issue-wiki" class="button">GitHub</a>
       </div>
     </div>
