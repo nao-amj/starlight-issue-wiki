@@ -1,5 +1,6 @@
 ---
 // 検索バーコンポーネント
+import { BASE_PATH } from '../config';
 ---
 
 <div class="search-container">
@@ -16,7 +17,7 @@
   <div id="search-results" class="search-results"></div>
 </div>
 
-<script>
+<script define:vars={{ BASE_PATH }}>
   // クライアントサイド検索機能
   document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('search-input');
@@ -45,14 +46,14 @@
       const lowerQuery = query.toLowerCase();
       const matches = issues.filter(issue => 
         issue.title.toLowerCase().includes(lowerQuery) || 
-        issue.body.toLowerCase().includes(lowerQuery)
+        (issue.body && issue.body.toLowerCase().includes(lowerQuery))
       );
 
       if (matches.length === 0) {
         searchResults.innerHTML = '<div class="no-results">検索結果がありません</div>';
       } else {
         searchResults.innerHTML = matches.slice(0, 5).map(issue => `
-          <a href="/starlight-issue-wiki/wiki/${issue.number}" class="search-result-item">
+          <a href="${BASE_PATH}/wiki/${issue.number}" class="search-result-item">
             <div class="search-result-title">${issue.title}</div>
             <div class="search-result-meta">
               <span>#${issue.number}</span>

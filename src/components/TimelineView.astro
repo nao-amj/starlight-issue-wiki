@@ -2,6 +2,7 @@
 // タイムラインビューコンポーネント
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
+import { BASE_PATH } from '../config';
 
 // propsの型定義
 interface Props {
@@ -27,7 +28,7 @@ const sortedIssues = [...issues]
           {format(date, 'yyyy年MM月dd日 HH:mm', { locale: ja })}
         </div>
         <div class="timeline-content">
-          <a href={`/starlight-issue-wiki/wiki/${issue.number}`} class="timeline-title">
+          <a href={`${BASE_PATH}/wiki/${issue.number}`} class="timeline-title">
             <h3>{issue.title}</h3>
           </a>
           <div class="timeline-meta">
@@ -36,7 +37,7 @@ const sortedIssues = [...issues]
               <div class="timeline-labels">
                 {issue.labels.map((label) => (
                   <a 
-                    href={`/starlight-issue-wiki/category/${label.name.toLowerCase()}`}
+                    href={`${BASE_PATH}/category/${label.name.toLowerCase()}`}
                     class="tag"
                     style={`background-color: #${label.color}20; color: #${label.color}; border: 1px solid #${label.color}40;`}
                   >
@@ -47,7 +48,7 @@ const sortedIssues = [...issues]
             )}
           </div>
           <div class="timeline-excerpt">
-            {issue.body.length > 150 ? `${issue.body.substring(0, 150)}...` : issue.body}
+            {issue.body && issue.body.length > 150 ? `${issue.body.substring(0, 150)}...` : issue.body}
           </div>
         </div>
       </div>
