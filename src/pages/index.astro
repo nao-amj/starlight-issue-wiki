@@ -1,7 +1,8 @@
 ---
-import { getIssues } from '../lib/github';
+import { getIssues, generateSlug } from '../lib/github';
 import { marked } from 'marked';
 import { gfmHeadingId } from 'marked-gfm-heading-id';
+import { BASE_PATH, SITE_TITLE, SITE_DESCRIPTION, REPO_URL } from '../config';
 
 // GitHubからissueを取得
 const issues = await getIssues();
@@ -13,11 +14,8 @@ marked.use(gfmHeadingId());
 // issueの内容をHTMLに変換
 const content = welcomeIssue ? marked.parse(welcomeIssue.body || '') : '';
 
-const title = welcomeIssue?.title || 'Starlight Issue Wiki';
-const description = 'GitHubのissueを使ったWikiサイト';
-
-// サイトのベースパスを設定
-const basePath = '/starlight-issue-wiki';
+const title = welcomeIssue?.title || SITE_TITLE;
+const description = SITE_DESCRIPTION;
 
 // issueをカテゴリー別にグループ化
 const categories = {};
@@ -45,18 +43,18 @@ issues.forEach(issue => {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{title}</title>
   <meta name="description" content={description}>
-  <link rel="stylesheet" href={`${basePath}/styles/global.css`}>
+  <link rel="stylesheet" href={`${BASE_PATH}/styles/global.css`}>
 </head>
 <body>
   <header>
     <div class="container">
       <div class="header-content">
-        <h1><a href={basePath + "/"}>Starlight Issue Wiki</a></h1>
+        <h1><a href={BASE_PATH + "/"}>Starlight Issue Wiki</a></h1>
         <nav>
-          <a href={basePath + "/"} class="active">ホーム</a>
-          <a href={`${basePath}/wiki`}>ページ一覧</a>
-          <a href={`${basePath}/wiki/welcome`}>はじめに</a>
-          <a href="https://github.com/nao-amj/starlight-issue-wiki">GitHub</a>
+          <a href={BASE_PATH + "/"} class="active">ホーム</a>
+          <a href={`${BASE_PATH}/wiki/index`}>ページ一覧</a>
+          <a href={`${BASE_PATH}/wiki/welcome`}>はじめに</a>
+          <a href={REPO_URL}>GitHub</a>
         </nav>
       </div>
     </div>
@@ -67,9 +65,9 @@ issues.forEach(issue => {
       <h1>{title}</h1>
       <p>GitHubのissueを使って管理するWikiサイト</p>
       <div class="actions">
-        <a href={`${basePath}/wiki/welcome`} class="button primary">はじめに</a>
-        <a href={`${basePath}/wiki`} class="button">ページ一覧</a>
-        <a href="https://github.com/nao-amj/starlight-issue-wiki/issues" class="button">GitHub Issues</a>
+        <a href={`${BASE_PATH}/wiki/welcome`} class="button primary">はじめに</a>
+        <a href={`${BASE_PATH}/wiki/index`} class="button">ページ一覧</a>
+        <a href={`${REPO_URL}/issues`} class="button">GitHub Issues</a>
       </div>
     </div>
   </div>
@@ -90,14 +88,11 @@ issues.forEach(issue => {
               <ul>
                 {categories[category].map(issue => {
                   // スラッグを生成
-                  const slug = issue.title.toLowerCase()
-                    .replace(/[^\w\s-]/g, '')
-                    .replace(/\s+/g, '-')
-                    .replace(/^-+|-+$/g, '');
+                  const slug = generateSlug(issue.title);
                   
                   return (
                     <li>
-                      <a href={`${basePath}/wiki/${slug}`}>
+                      <a href={`${BASE_PATH}/wiki/${slug}`}>
                         {issue.title}
                       </a>
                     </li>
@@ -113,10 +108,7 @@ issues.forEach(issue => {
           <ul>
             {issues.slice(0, 5).map(issue => {
               // スラッグを生成
-              const slug = issue.title.toLowerCase()
-                .replace(/[^\w\s-]/g, '')
-                .replace(/\s+/g, '-')
-                .replace(/^-+|-+$/g, '');
+              const slug = generateSlug(issue.title);
               
               // 日付をフォーマット
               const date = new Date(issue.updated_at);
@@ -128,7 +120,7 @@ issues.forEach(issue => {
               
               return (
                 <li>
-                  <a href={`${basePath}/wiki/${slug}`}>
+                  <a href={`${BASE_PATH}/wiki/${slug}`}>
                     <span class="title">{issue.title}</span>
                     <span class="date">{formattedDate}</span>
                   </a>
