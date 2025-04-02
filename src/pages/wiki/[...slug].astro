@@ -1,18 +1,16 @@
 ---
-import { getIssues } from '../../lib/github';
+import { getIssues, generateSlug } from '../../lib/github';
 import { marked } from 'marked';
 import { gfmHeadingId } from 'marked-gfm-heading-id';
+import { BASE_PATH, SITE_TITLE, SITE_DESCRIPTION, REPO_URL } from '../../config';
 
 export async function getStaticPaths() {
   const issues = await getIssues();
   
   // issueからパスを生成
   const issuePaths = issues.map(issue => {
-    // スラッグを生成（スペースをダッシュに変換、小文字に変換）
-    const slug = issue.title.toLowerCase()
-      .replace(/[^\w\s-]/g, '') // 特殊文字を削除
-      .replace(/\s+/g, '-') // スペースをダッシュに変換
-      .replace(/^-+|-+$/g, ''); // 先頭と末尾のダッシュを削除
+    // スラッグを生成
+    const slug = generateSlug(issue.title);
     
     return {
       params: { slug },
@@ -31,7 +29,9 @@ export async function getStaticPaths() {
       issue: welcomeIssue || issues[0] || {
         title: 'ようこそ',
         body: 'Wikiへようこそ！このページはissueが見つからなかった場合のフォールバックページです。',
-        html_url: 'https://github.com/nao-amj/starlight-issue-wiki/issues'
+        html_url: REPO_URL + '/issues',
+        number: -2,
+        labels: []
       }
     }
   };
@@ -43,7 +43,7 @@ export async function getStaticPaths() {
       issue: {
         title: 'Wikiページ一覧',
         body: '## すべてのWikiページ\n\nこのWikiに含まれるすべてのページの一覧です。',
-        html_url: 'https://github.com/nao-amj/starlight-issue-wiki/issues',
+        html_url: REPO_URL + '/issues',
         number: -1, // 特別な番号を割り当てて識別
         labels: []
       },
@@ -64,10 +64,7 @@ marked.use(gfmHeadingId());
 const content = issue.body ? marked.parse(issue.body) : '';
 
 const title = issue.title;
-const description = `${issue.title} - Starlight Issue Wiki`;
-
-// サイトのベースパスを設定
-const basePath = '/starlight-issue-wiki';
+const description = `${issue.title} - ${SITE_TITLE}`;
 
 // ナビゲーション用のIssue一覧を取得
 const issues = await getIssues();
@@ -81,20 +78,20 @@ const isListPage = isIndex;
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{title} - Starlight Issue Wiki</title>
+  <title>{title} - {SITE_TITLE}</title>
   <meta name="description" content={description}>
-  <link rel="stylesheet" href={`${basePath}/styles/global.css`}>
+  <link rel="stylesheet" href={`${BASE_PATH}/styles/global.css`}>
 </head>
 <body>
   <header>
     <div class="container">
       <div class="header-content">
-        <h1><a href={basePath + "/"}>Starlight Issue Wiki</a></h1>
+        <h1><a href={BASE_PATH + "/"}>Starlight Issue Wiki</a></h1>
         <nav>
-          <a href={basePath + "/"}>ホーム</a>
-          <a href={`${basePath}/wiki/index`} class={isListPage ? 'active' : ''}>ページ一覧</a>
-          <a href={`${basePath}/wiki/welcome`} class={issue.number === 1 ? 'active' : ''}>はじめに</a>
-          <a href="https://github.com/nao-amj/starlight-issue-wiki">GitHub</a>
+          <a href={BASE_PATH + "/"}>ホーム</a>
+          <a href={`${BASE_PATH}/wiki/index`} class={isListPage ? 'active' : ''}>ページ一覧</a>
+          <a href={`${BASE_PATH}/wiki/welcome`} class={issue.number === 1 ? 'active' : ''}>はじめに</a>
+          <a href={REPO_URL}>GitHub</a>
         </nav>
       </div>
     </div>
@@ -106,12 +103,12 @@ const isListPage = isIndex;
         <h2>Wiki Pages</h2>
         <ul>
           <li>
-            <a href={`${basePath}/wiki/index`} class={isListPage ? 'active' : ''}>
+            <a href={`${BASE_PATH}/wiki/index`} class={isListPage ? 'active' : ''}>
               すべてのページ
             </a>
           </li>
           <li>
-            <a href={`${basePath}/wiki/welcome`} class={issue.number === 1 ? 'active' : ''}>
+            <a href={`${BASE_PATH}/wiki/welcome`} class={issue.number === 1 ? 'active' : ''}>
               はじめに
             </a>
           </li>
@@ -119,14 +116,11 @@ const isListPage = isIndex;
             if (item.number === 1) return null; // welcomeページは上で表示済み
             
             // スラッグを生成
-            const slug = item.title.toLowerCase()
-              .replace(/[^\w\s-]/g, '')
-              .replace(/\s+/g, '-')
-              .replace(/^-+|-+$/g, '');
+            const slug = generateSlug(item.title);
             
             return (
               <li>
-                <a href={`${basePath}/wiki/${slug}`} class={item.number === issue.number ? 'active' : ''}>
+                <a href={`${BASE_PATH}/wiki/${slug}`} class={item.number === issue.number ? 'active' : ''}>
                   {item.title}
                 </a>
               </li>
@@ -157,14 +151,11 @@ const isListPage = isIndex;
             <ul class="grid-list">
               {issues.map(item => {
                 // スラッグを生成
-                const slug = item.title.toLowerCase()
-                  .replace(/[^\w\s-]/g, '')
-                  .replace(/\s+/g, '-')
-                  .replace(/^-+|-+$/g, '');
+                const slug = generateSlug(item.title);
                 
                 return (
                   <li class="card">
-                    <a href={`${basePath}/wiki/${slug}`}>
+                    <a href={`${BASE_PATH}/wiki/${slug}`}>
                       <h3>{item.title}</h3>
                       <p>{item.body?.slice(0, 100)}...</p>
                       {item.labels && item.labels.length > 0 && (
