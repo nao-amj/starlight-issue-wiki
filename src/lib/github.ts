@@ -1,4 +1,5 @@
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL, BASE_PATH } from '../config';
+import staticIssues from '../data/issues.json';
 
 // GitHubのIssue情報を型定義
 export interface GitHubIssue {
@@ -37,20 +38,9 @@ export async function getIssues(): Promise<GitHubIssue[]> {
       return cache.issues;
     }
 
-    console.log(`Fetching issues from ${API_BASE_URL}/issues`);
-    
-    // サーバーサイドのAPIを呼び出す
-    const response = await fetch(`${API_BASE_URL}/issues`);
-    
-    if (!response.ok) {
-      console.error(`API error: ${response.status} ${response.statusText}`);
-      const errorText = await response.text();
-      console.error('Error details:', errorText);
-      throw new Error(`API error: ${response.status}`);
-    }
-    
-    const issues = await response.json();
-    console.log(`Fetched ${issues.length} issues successfully`);
+    console.log('Using static JSON data for issues');
+    // 静的JSONファイルから読み込む
+    const issues = staticIssues as GitHubIssue[];
     
     // キャッシュを更新
     cache.issues = issues;
@@ -59,13 +49,8 @@ export async function getIssues(): Promise<GitHubIssue[]> {
     return issues;
   } catch (error) {
     console.error('Error fetching issues:', error);
-    // キャッシュがある場合は古いキャッシュを返す
-    if (cache.issues) {
-      console.log('Returning stale cache data');
-      return cache.issues;
-    }
-    // エラーが発生した場合は空の配列を返す
-    return [];
+    // 静的データにフォールバック
+    return staticIssues as GitHubIssue[];
   }
 }
 
@@ -78,24 +63,14 @@ export async function getIssue(issueNumber: number): Promise<GitHubIssue | null>
       return cachedIssue.issue;
     }
     
-    console.log(`Fetching issue #${issueNumber}`);
+    console.log(`Fetching issue #${issueNumber} from static data`);
     
-    // キャッシュがない場合はAPIを呼び出す
-    const response = await fetch(`${API_BASE_URL}/issues`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ issueNumber }),
-    });
+    // 静的JSONから該当するissueを検索
+    const issue = (staticIssues as GitHubIssue[]).find(i => i.number === issueNumber);
     
-    if (!response.ok) {
-      console.error(`API error when fetching issue #${issueNumber}: ${response.status} ${response.statusText}`);
-      throw new Error(`API error: ${response.status}`);
+    if (!issue) {
+      throw new Error(`Issue #${issueNumber} not found in static data`);
     }
-    
-    const issue = await response.json();
-    console.log(`Successfully fetched issue #${issueNumber}`);
     
     // キャッシュを更新
     cache.singleIssues[issueNumber] = {
@@ -106,13 +81,9 @@ export async function getIssue(issueNumber: number): Promise<GitHubIssue | null>
     return issue;
   } catch (error) {
     console.error(`Error fetching issue #${issueNumber}:`, error);
-    // キャッシュがある場合は古いキャッシュを返す
-    const cachedIssue = cache.singleIssues[issueNumber];
-    if (cachedIssue) {
-      console.log('Returning stale cache data for issue');
-      return cachedIssue.issue;
-    }
-    return null;
+    // 静的データから再検索
+    const staticIssue = (staticIssues as GitHubIssue[]).find(i => i.number === issueNumber);
+    return staticIssue || null;
   }
 }
 
