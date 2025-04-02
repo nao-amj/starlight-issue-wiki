@@ -1,3 +1,5 @@
+import { API_BASE_URL } from '../config';
+
 // GitHubのIssue情報を型定義
 export interface GitHubIssue {
   number: number;
@@ -35,7 +37,7 @@ export async function getIssues(): Promise<GitHubIssue[]> {
     }
 
     // サーバーサイドのAPIを呼び出す
-    const response = await fetch('/starlight-issue-wiki/api/issues');
+    const response = await fetch(`${API_BASE_URL}/issues`);
     
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
@@ -65,7 +67,7 @@ export async function getIssue(issueNumber: number): Promise<GitHubIssue | null>
     }
     
     // キャッシュがない場合はAPIを呼び出す
-    const response = await fetch('/starlight-issue-wiki/api/issues', {
+    const response = await fetch(`${API_BASE_URL}/issues`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -102,4 +104,12 @@ export function findIssueBySlug(issues: GitHubIssue[], slug: string): GitHubIssu
     
     return issueSlug === slug;
   });
+}
+
+// スラッグを生成する関数
+export function generateSlug(title: string): string {
+  return title.toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
