@@ -6,6 +6,20 @@ import { gfmHeadingId } from 'marked-gfm-heading-id';
 export async function getStaticPaths() {
   const issues = await getIssues();
   
+  // 基本的なパスを追加 (welcomeページ用)
+  const paths = [
+    {
+      params: { slug: 'welcome' },
+      props: { 
+        issue: issues.find(issue => issue.number === 1) || issues[0] || {
+          title: 'ようこそ',
+          body: 'Wikiへようこそ！このページはissueが見つからなかった場合のフォールバックページです。',
+          html_url: 'https://github.com/nao-amj/starlight-issue-wiki/issues'
+        }
+      }
+    }
+  ];
+  
   // issueからパスを生成
   return issues.map(issue => {
     // スラッグを生成（スペースをダッシュに変換、小文字に変換）
@@ -18,7 +32,7 @@ export async function getStaticPaths() {
       params: { slug },
       props: { issue },
     };
-  });
+  }).concat(paths);
 }
 
 const { issue } = Astro.props;
@@ -44,15 +58,14 @@ const basePath = '/starlight-issue-wiki';
   <title>{title} - Starlight Issue Wiki</title>
   <meta name="description" content={description}>
   <link rel="stylesheet" href={`${basePath}/styles/global.css`}>
-  <base href={basePath}>
 </head>
 <body>
   <header>
     <div class="container">
       <div class="header-content">
-        <h1><a href={basePath}>Starlight Issue Wiki</a></h1>
+        <h1><a href={basePath + "/"}>Starlight Issue Wiki</a></h1>
         <nav>
-          <a href={basePath}>ホーム</a>
+          <a href={basePath + "/"}>ホーム</a>
           <a href={`${basePath}/wiki/welcome`}>Wiki</a>
           <a href="https://github.com/nao-amj/starlight-issue-wiki">GitHub</a>
         </nav>
