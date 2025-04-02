@@ -1,0 +1,64 @@
+---
+title: Starlight Issue Wiki
+description: GitHubのissueからコンテンツを動的に取得するWikiサイト
+template: splash
+hero:
+  tagline: GitHubのissueを使って管理するモダンなWikiサイト
+  image:
+    file: ../../assets/hero.svg
+  actions:
+    - text: ドキュメントを見る
+      link: /wiki/1
+      icon: right-arrow
+      variant: primary
+    - text: GitHubを見る
+      link: https://github.com/nao-amj/starlight-issue-wiki
+      icon: external
+---
+
+import { getIssuesData } from '../../utils/issues';
+import CategoryList from '../../components/CategoryList.astro';
+
+export async function getStaticProps() {
+  const { issues, categories } = await getIssuesData();
+  return { props: { issues, categories } };
+}
+
+<CategoryList 
+  issues={frontmatter.getStaticProps.issues} 
+  title="最新のドキュメント" 
+  category="documentation"
+  limit={3}
+/>
+
+<CategoryList 
+  issues={frontmatter.getStaticProps.issues} 
+  title="チュートリアル" 
+  category="tutorial"
+  limit={3}
+/>
+
+<CategoryList 
+  issues={frontmatter.getStaticProps.issues} 
+  title="Wiki記事" 
+  category="wiki"
+  limit={3}
+/>
+
+## Starlight Issue Wikiの特徴
+
+Starlight Issue Wikiは、GitHubのissueシステムを使ってシンプルながらも強力なWikiサイトを構築するためのテンプレートです。
+
+### 主な特徴
+
+- **GitHubと完全連携**: issueで管理し、変更を自動的に反映
+- **カテゴリー分類**: ラベルを使ってコンテンツを自動分類
+- **Markdown完全対応**: リッチなコンテンツ作成が可能
+- **スマートフォン対応**: あらゆるデバイスで最適な表示
+
+### 使い方
+
+1. [GitHubリポジトリ](https://github.com/nao-amj/starlight-issue-wiki)を開く
+2. 「Issues」タブをクリック
+3. 「New Issue」ボタンでコンテンツを作成
+4. ラベルを付けてカテゴリ分類
