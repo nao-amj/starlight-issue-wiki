@@ -1,88 +1,52 @@
-/* カスタムスタイル */
-
-/* 基本フォント設定 */
-:root {
-  --sl-font: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
-  --sl-content-width: 55rem;
-  --sl-navbar-height: 4rem;
+/* カスタムフッタースタイル */
+.custom-footer {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background-color: var(--sl-color-bg-nav);
+  color: var(--sl-color-text);
 }
 
-/* リンクスタイル */
-a {
-  transition: color 0.2s ease-in-out;
+.custom-footer-content {
+  max-width: var(--sl-content-width);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-/* ヘッダーカスタマイズ */
-.sl-nav-link[aria-current="page"] {
-  font-weight: 600;
+.custom-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  font-size: 0.9rem;
 }
 
-/* サイドバーカスタマイズ */
-.sl-sidebar {
-  border-right: 1px solid var(--sl-color-gray-5);
+.custom-footer-links a {
+  color: var(--sl-color-text-accent);
+  text-decoration: none;
 }
 
-/* アクセントカラーのカスタマイズ */
-:root {
-  --sl-hue-accent: 255;  /* 紫色 */
-  --sl-color-accent-high: hsl(var(--sl-hue-accent), 80%, 40%);
-  --sl-color-accent: hsl(var(--sl-hue-accent), 70%, 50%);
-  --sl-color-accent-low: hsl(var(--sl-hue-accent), 60%, 85%);
+.custom-footer-links a:hover {
+  text-decoration: underline;
 }
 
-/* タグスタイル */
-.tag {
-  display: inline-block;
-  padding: 0.2em 0.5em;
-  border-radius: 0.25rem;
+.custom-footer-copyright {
+  margin: 0;
   font-size: 0.8rem;
-  font-weight: 500;
-  line-height: 1.2;
-  margin-right: 0.5rem;
-  margin-bottom: 0.5rem;
-  white-space: nowrap;
+  opacity: 0.8;
 }
 
-/* Issue一覧カード */
-.issue-card {
-  border: 1px solid var(--sl-color-gray-5);
-  border-radius: 0.5rem;
-  padding: 1rem;
-  margin-bottom: 1rem;
-  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-}
-
-.issue-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.issue-card h3 {
-  margin-top: 0;
-}
-
-.issue-card-meta {
-  font-size: 0.8rem;
-  color: var(--sl-color-gray-3);
-  margin-top: 0.5rem;
-}
-
-/* モバイル対応 */
-@media (max-width: 50rem) {
-  .issue-card {
-    padding: 0.75rem;
-  }
-  
-  .sl-container {
-    padding: 0 1rem;
+@media (min-width: 50rem) {
+  .custom-footer-content {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
   }
 }
 
-/* ダークモード対応 */
-:root[data-theme="dark"] .issue-card {
-  border-color: var(--sl-color-gray-6);
+/* 日本語フォントの最適化 */
+body {
+  font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
-:root[data-theme="dark"] .issue-card:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-}
+/* カスタムヘッダーとその他のスタイル */
