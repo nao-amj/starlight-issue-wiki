@@ -3,10 +3,6 @@ import { getIssues } from '../lib/github';
 import { marked } from 'marked';
 import { gfmHeadingId } from 'marked-gfm-heading-id';
 
-// starlight用の標準コンポーネントをインポート
-import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
-import ContentPanel from '@astrojs/starlight/components/ContentPanel.astro';
-
 // GitHubからissueを取得
 const issues = await getIssues();
 const welcomeIssue = issues.find(issue => issue.number === 1) || issues[0];
@@ -17,52 +13,100 @@ marked.use(gfmHeadingId());
 // issueの内容をHTMLに変換
 const content = welcomeIssue ? marked.parse(welcomeIssue.body || '') : '';
 
-const frontmatter = {
-  title: welcomeIssue?.title || 'Starlight Issue Wiki',
-  description: 'GitHubのissueを使ったWikiサイト',
-  template: 'splash',
-  hero: {
-    tagline: 'GitHubのissueを使って管理するWikiサイト',
-    actions: [
-      {
-        text: 'Wikiを見る',
-        link: '/wiki/welcome',
-        icon: 'right-arrow',
-        variant: 'primary',
-      },
-      {
-        text: 'GitHub',
-        link: 'https://github.com/nao-amj/starlight-issue-wiki',
-        icon: 'github',
-      },
-    ],
-  },
-};
-
-// Starlightページ用のデータを準備
-const starlightProps = {
-  frontmatter,
-  headings: [],
-  hasSidebar: false,
-  dir: 'ltr',
-  isFallback: false,
-  lang: 'ja',
-  lastUpdated: new Date(),
-  pagination: { prev: undefined, next: undefined },
-  sidebar: [],
-  toc: { items: [] },
-  entry: {},
-};
+const title = welcomeIssue?.title || 'Starlight Issue Wiki';
+const description = 'GitHubのissueを使ったWikiサイト';
 ---
 
-<StarlightPage {...starlightProps}>
-  <ContentPanel slot="content">
-    <div class="wiki-content" set:html={content} />
-  </ContentPanel>
-  
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{title}</title>
+  <meta name="description" content={description}>
+  <link rel="stylesheet" href="/styles/global.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>{title}</h1>
+      <p>GitHubのissueを使って管理するWikiサイト</p>
+      <div class="actions">
+        <a href="/wiki/welcome" class="button primary">Wikiを見る</a>
+        <a href="https://github.com/nao-amj/starlight-issue-wiki" class="button">GitHub</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="wiki-content" set:html={content}></div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>© 2025 Starlight Issue Wiki</p>
+    </div>
+  </footer>
+
   <style>
+    body {
+      font-family: system-ui, sans-serif;
+      margin: 0;
+      padding: 0;
+      line-height: 1.6;
+      color: #333;
+      background-color: #f9f9f9;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1rem;
+    }
+    header {
+      background-color: #4d1a9e;
+      color: white;
+      padding: 3rem 0;
+      text-align: center;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 2.5rem;
+    }
+    header p {
+      font-size: 1.2rem;
+      opacity: 0.9;
+      margin: 1rem 0 2rem;
+    }
+    .actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+    }
+    .button {
+      display: inline-block;
+      padding: 0.5rem 1.5rem;
+      border-radius: 4px;
+      background-color: rgba(255, 255, 255, 0.1);
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      transition: all 0.2s;
+    }
+    .button.primary {
+      background-color: white;
+      color: #4d1a9e;
+    }
+    .button:hover {
+      transform: translateY(-2px);
+    }
+    main {
+      padding: 3rem 0;
+    }
     .wiki-content {
-      padding: 1rem;
+      background-color: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
     }
     .wiki-content :global(h1) {
       margin-top: 0;
@@ -70,8 +114,15 @@ const starlightProps = {
     .wiki-content :global(pre) {
       padding: 1rem;
       border-radius: 0.5rem;
-      background-color: var(--sl-color-gray-6);
+      background-color: #f3f3f3;
       overflow-x: auto;
     }
+    footer {
+      border-top: 1px solid #eee;
+      padding: 2rem 0;
+      text-align: center;
+      color: #666;
+    }
   </style>
-</StarlightPage>
+</body>
+</html>
