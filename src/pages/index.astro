@@ -1,58 +1,54 @@
 ---
 import { BASE_PATH, SITE_TITLE, SITE_DESCRIPTION, REPO_URL } from '../config';
 
-// モックデータ
-const mockIssues = [
-  {
-    number: 1,
-    title: 'サンプルドキュメント',
-    html_url: 'https://github.com/nao-amj/starlight-issue-wiki/issues/1',
-    created_at: '2025-03-01T00:00:00Z',
-    updated_at: '2025-03-01T00:00:00Z',
-    labels: [
-      { name: 'documentation', color: '0075ca', description: 'ドキュメント関連' }
-    ]
-  },
-  {
-    number: 2,
-    title: 'Markdownの使い方',
-    html_url: 'https://github.com/nao-amj/starlight-issue-wiki/issues/2',
-    created_at: '2025-03-05T00:00:00Z',
-    updated_at: '2025-03-06T00:00:00Z',
-    labels: [
-      { name: 'tutorial', color: 'd876e3', description: 'チュートリアル' },
-      { name: 'wiki', color: '0e8a16', description: 'Wiki記事' }
-    ]
-  },
-  {
-    number: 3,
-    title: 'GitHubの使い方',
-    html_url: 'https://github.com/nao-amj/starlight-issue-wiki/issues/3',
-    created_at: '2025-03-10T00:00:00Z',
-    updated_at: '2025-03-10T00:00:00Z',
-    labels: [
-      { name: 'tutorial', color: 'd876e3', description: 'チュートリアル' }
-    ]
+// GitHub API からIssueを取得する関数
+async function fetchIssues() {
+  try {
+    // GitHub APIを使用してissueを取得
+    const response = await fetch('https://api.github.com/repos/nao-amj/starlight-issue-wiki/issues');
+    if (!response.ok) {
+      throw new Error(`GitHub API error: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching issues:', error);
+    return [];
   }
-];
+}
+
+// Issueデータを取得
+const issues = await fetchIssues();
 
 // カテゴリー別グループ化
 const categories = {};
-mockIssues.forEach(issue => {
+issues.forEach(issue => {
   if (issue.labels && issue.labels.length > 0) {
     issue.labels.forEach(label => {
       if (!categories[label.name]) {
         categories[label.name] = [];
       }
-      categories[label.name].push(issue);
+      // 重複を避けるために既に追加されていないか確認
+      if (!categories[label.name].some(existingIssue => existingIssue.number === issue.number)) {
+        categories[label.name].push(issue);
+      }
     });
   } else {
     if (!categories['未分類']) {
       categories['未分類'] = [];
     }
-    categories['未分類'].push(issue);
+    if (!categories['未分類'].some(existingIssue => existingIssue.number === issue.number)) {
+      categories['未分類'].push(issue);
+    }
   }
 });
+
+// カテゴリーをアルファベット順にソート
+const sortedCategories = Object.keys(categories).sort();
+
+// 最新の更新順にIssueをソート
+const recentIssues = [...issues].sort((a, b) => 
+  new Date(b.updated_at) - new Date(a.updated_at)
+).slice(0, 5);
 
 // スラッグを生成する関数
 function generateSlug(title) {
@@ -129,13 +125,42 @@ function generateSlug(title) {
         <p>
           詳しくは<a href={`${BASE_PATH}/wiki/1`}>はじめに</a>をご覧ください。
         </p>
+
+        <h3>Issue一覧</h3>
+        <div class="issue-list">
+          {issues.length > 0 ? (
+            <ul>
+              {issues.map(issue => (
+                <li class="issue-item">
+                  <a href={`${BASE_PATH}/wiki/${issue.number}`} class="issue-link">
+                    <span class="issue-number">#{issue.number}</span>
+                    <span class="issue-title">{issue.title}</span>
+                  </a>
+                  <div class="issue-labels">
+                    {issue.labels && issue.labels.map(label => (
+                      <a href={`${BASE_PATH}/category/${label.name.toLowerCase()}`} class="tag" 
+                         style={`background-color: #${label.color}20; color: #${label.color}; border: 1px solid #${label.color}40;`}>
+                        {label.name}
+                      </a>
+                    ))}
+                  </div>
+                  <div class="issue-date">
+                    更新: {new Date(issue.updated_at).toLocaleDateString('ja-JP')}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>Issueがありません。GitHubでIssueを作成してください。</p>
+          )}
+        </div>
       </div>
       
       <div class="sidebar">
         <div class="card">
-          <h2>Wiki ページ</h2>
+          <h2>カテゴリー</h2>
           
-          {Object.keys(categories).map(category => (
+          {sortedCategories.map(category => (
             <div class="category">
               <h3>{category}</h3>
               <ul>
@@ -154,7 +179,7 @@ function generateSlug(title) {
         <div class="card">
           <h2>最近の更新</h2>
           <ul>
-            {mockIssues.slice(0, 5).map(issue => {
+            {recentIssues.map(issue => {
               // 日付をフォーマット
               const date = new Date(issue.updated_at);
               const formattedDate = new Intl.DateTimeFormat('ja-JP', {
@@ -287,6 +312,63 @@ function generateSlug(title) {
     
     .date {
       display: block;
+      font-size: 0.8rem;
+      color: #666;
+    }
+
+    /* Issue一覧のスタイル */
+    .issue-list ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .issue-item {
+      border-bottom: 1px solid #eee;
+      padding: 1rem 0;
+    }
+
+    .issue-item:last-child {
+      border-bottom: none;
+    }
+
+    .issue-link {
+      display: flex;
+      align-items: baseline;
+      text-decoration: none;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: var(--color-primary);
+    }
+
+    .issue-number {
+      color: #666;
+      font-size: 0.9rem;
+      margin-right: 0.5rem;
+    }
+
+    .issue-title {
+      font-size: 1.1rem;
+    }
+
+    .issue-labels {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin: 0.5rem 0;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 0.2em 0.5em;
+      border-radius: 0.25rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      text-decoration: none;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+
+    .issue-date {
       font-size: 0.8rem;
       color: #666;
     }
