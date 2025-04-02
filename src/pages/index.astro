@@ -1,9 +1,10 @@
 ---
-import { getCollection } from 'astro:content';
 import { getIssues } from '../lib/github';
 import { marked } from 'marked';
 import { gfmHeadingId } from 'marked-gfm-heading-id';
-import Layout from '@astrojs/starlight/components/Layout.astro';
+
+// starlight用の標準コンポーネントをインポート
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 import ContentPanel from '@astrojs/starlight/components/ContentPanel.astro';
 
 // GitHubからissueを取得
@@ -37,10 +38,25 @@ const frontmatter = {
     ],
   },
 };
+
+// Starlightページ用のデータを準備
+const starlightProps = {
+  frontmatter,
+  headings: [],
+  hasSidebar: false,
+  dir: 'ltr',
+  isFallback: false,
+  lang: 'ja',
+  lastUpdated: new Date(),
+  pagination: { prev: undefined, next: undefined },
+  sidebar: [],
+  toc: { items: [] },
+  entry: {},
+};
 ---
 
-<Layout frontmatter={frontmatter}>
-  <ContentPanel>
+<StarlightPage {...starlightProps}>
+  <ContentPanel slot="content">
     <div class="wiki-content" set:html={content} />
   </ContentPanel>
   
@@ -58,4 +74,4 @@ const frontmatter = {
       overflow-x: auto;
     }
   </style>
-</Layout>
+</StarlightPage>
