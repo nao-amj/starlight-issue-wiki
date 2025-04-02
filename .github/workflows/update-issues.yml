@@ -1,0 +1,90 @@
+name: Update Issues JSON
+
+on:
+  issues:
+    types: [opened, edited, deleted, closed, reopened, labeled, unlabeled]
+  workflow_dispatch:
+  schedule:
+    - cron: '0 */6 * * *'  # 6時間ごとに実行
+
+jobs:
+  update-issues-json:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Octokit
+        run: npm install @octokit/rest
+
+      - name: Fetch Issues and Update JSON
+        run: |
+          node -e '
+          const { Octokit } = require("@octokit/rest");
+          const fs = require("fs");
+          const path = require("path");
+
+          async function run() {
+            const octokit = new Octokit({
+              auth: process.env.GITHUB_TOKEN
+            });
+
+            const owner = "nao-amj";
+            const repo = "starlight-issue-wiki";
+
+            console.log("Fetching issues...");
+            const { data: issues } = await octokit.issues.listForRepo({
+              owner,
+              repo,
+              state: "open",
+              per_page: 100,
+            });
+
+            // プルリクエストを除外
+            const filteredIssues = issues.filter(issue => !issue.pull_request);
+
+            console.log(`Found ${filteredIssues.length} issues`);
+
+            // 必要なプロパティだけを抽出
+            const formattedIssues = filteredIssues.map(issue => ({
+              number: issue.number,
+              title: issue.title,
+              body: issue.body || "",
+              html_url: issue.html_url,
+              created_at: issue.created_at,
+              updated_at: issue.updated_at,
+              labels: issue.labels.map(label => ({
+                name: label.name,
+                color: label.color,
+                description: label.description
+              }))
+            }));
+
+            // JSONファイルに保存
+            const filePath = path.join("src", "data", "issues.json");
+            fs.writeFileSync(filePath, JSON.stringify(formattedIssues, null, 2));
+            console.log(`Updated ${filePath} with ${formattedIssues.length} issues`);
+          }
+
+          run().catch(error => {
+            console.error("Error updating issues:", error);
+            process.exit(1);
+          });
+          '
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add src/data/issues.json
+          git diff --staged --quiet || (git commit -m "Update issues.json [skip ci]" && git push)
