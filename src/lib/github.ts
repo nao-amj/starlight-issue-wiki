@@ -1,21 +1,6 @@
-import { API_BASE_URL, BASE_PATH } from '../config';
+import { BASE_PATH } from '../config';
 import staticIssues from '../data/issues.json';
-
-// GitHubのIssue情報を型定義
-export interface GitHubIssue {
-  number: number;
-  title: string;
-  body: string;
-  html_url: string;
-  created_at: string;
-  updated_at: string;
-  labels: Array<{
-    name: string;
-    color: string;
-    description?: string;
-  }>;
-  [key: string]: any; // その他のプロパティも許容
-}
+import { GitHubIssue } from '../data/types';
 
 // キャッシュオブジェクト
 const cache: { 
@@ -39,6 +24,7 @@ export async function getIssues(): Promise<GitHubIssue[]> {
     }
 
     console.log('Using static JSON data for issues');
+    
     // 静的JSONファイルから読み込む
     const issues = staticIssues as GitHubIssue[];
     
@@ -69,7 +55,8 @@ export async function getIssue(issueNumber: number): Promise<GitHubIssue | null>
     const issue = (staticIssues as GitHubIssue[]).find(i => i.number === issueNumber);
     
     if (!issue) {
-      throw new Error(`Issue #${issueNumber} not found in static data`);
+      console.warn(`Issue #${issueNumber} not found in static data`);
+      return null;
     }
     
     // キャッシュを更新
