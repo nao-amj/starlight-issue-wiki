@@ -6,15 +6,54 @@ description: すべてのWikiページの一覧
 import { getIssuesData } from '../../utils/issues';
 import CategoryList from '../../components/CategoryList.astro';
 
-export async function getStaticProps() {
-  const { issues, categories } = await getIssuesData();
-  return { props: { issues, categories } };
-}
+{/* モックデータを直接使用 */}
+export const mockIssues = [
+  {
+    number: 1,
+    title: 'サンプルドキュメント',
+    body: '# サンプルドキュメント\n\nこれはサンプルドキュメントの内容です。\n\n## セクション1\n\nサンプルテキスト...',
+    html_url: 'https://github.com/nao-amj/starlight-issue-wiki/issues/1',
+    created_at: '2025-03-01T00:00:00Z',
+    updated_at: '2025-03-01T00:00:00Z',
+    labels: [
+      { name: 'documentation', color: '0075ca', description: 'ドキュメント関連' }
+    ]
+  },
+  {
+    number: 2,
+    title: 'Markdownの使い方',
+    body: '# Markdownの使い方\n\nこのWikiではMarkdownを使って文書を書くことができます。\n\n## 見出し\n\n見出しは`#`を使って表現します。\n\n## リスト\n\n- 箇条書き1\n- 箇条書き2\n\n順序付きリスト:\n\n1. 項目1\n2. 項目2',
+    html_url: 'https://github.com/nao-amj/starlight-issue-wiki/issues/2',
+    created_at: '2025-03-05T00:00:00Z',
+    updated_at: '2025-03-06T00:00:00Z',
+    labels: [
+      { name: 'tutorial', color: 'd876e3', description: 'チュートリアル' },
+      { name: 'wiki', color: '0e8a16', description: 'Wiki記事' }
+    ]
+  },
+  {
+    number: 3,
+    title: 'GitHubの使い方',
+    body: '# GitHubの使い方\n\n## アカウント作成\n\nGitHubアカウントを作成するには...\n\n## リポジトリの作成\n\n1. 右上の+ボタンをクリック\n2. New repositoryを選択\n3. ...',
+    html_url: 'https://github.com/nao-amj/starlight-issue-wiki/issues/3',
+    created_at: '2025-03-10T00:00:00Z',
+    updated_at: '2025-03-10T00:00:00Z',
+    labels: [
+      { name: 'tutorial', color: 'd876e3', description: 'チュートリアル' }
+    ]
+  }
+];
+
+export const mockCategories = [
+  { id: 'documentation', name: 'ドキュメント', count: 1, color: '0075ca', description: 'ドキュメント関連' },
+  { id: 'tutorial', name: 'チュートリアル', count: 2, color: 'd876e3', description: 'チュートリアル' },
+  { id: 'wiki', name: 'Wiki', count: 1, color: '0e8a16', description: 'Wiki記事' }
+];
 
 このページにはすべてのWikiコンテンツが一覧表示されています。記事の内容に興味がある場合はタイトルをクリックして詳細を確認してください。
 
 <CategoryList 
-  issues={frontmatter.getStaticProps.issues} 
+  issues={mockIssues} 
   title="すべてのページ" 
   showViewAll={false}
 />
@@ -23,14 +62,14 @@ export async function getStaticProps() {
 
 以下では、カテゴリー別にコンテンツを整理しています。
 
-{frontmatter.getStaticProps.categories.map(category => (
+{mockCategories.map(category => (
   <section key={category.id}>
     <h3 id={category.id}>
       {category.name} ({category.count})
     </h3>
     <p>{category.description}</p>
     <CategoryList 
-      issues={frontmatter.getStaticProps.issues} 
+      issues={mockIssues} 
       title="" 
       category={category.id}
       showViewAll={false}
