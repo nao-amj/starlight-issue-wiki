@@ -1,9 +1,10 @@
 import type { APIRoute } from 'astro';
 import { Octokit } from '@octokit/rest';
+import { REPO_OWNER, REPO_NAME } from '../../config';
 
 // 環境変数からリポジトリ情報を取得
-const owner = process.env.REPO_OWNER || 'nao-amj';
-const repo = process.env.REPO_NAME || 'starlight-issue-wiki';
+const owner = process.env.REPO_OWNER || REPO_OWNER;
+const repo = process.env.REPO_NAME || REPO_NAME;
 
 export const GET: APIRoute = async () => {
   try {
@@ -22,6 +23,8 @@ export const GET: APIRoute = async () => {
     // プルリクエストを除外
     const issues = response.data.filter(issue => !issue.pull_request);
     
+    console.log(`Successfully fetched ${issues.length} issues`);
+    
     // クライアントに必要な情報のみを返す
     return new Response(
       JSON.stringify(issues),
@@ -37,7 +40,7 @@ export const GET: APIRoute = async () => {
   } catch (error) {
     console.error('Error fetching issues:', error);
     return new Response(
-      JSON.stringify({ error: 'Failed to fetch issues' }),
+      JSON.stringify({ error: 'Failed to fetch issues', details: error.message }),
       {
         status: 500,
         headers: {
@@ -77,6 +80,8 @@ export const POST: APIRoute = async ({ request }) => {
       issue_number: issueNumber,
     });
     
+    console.log(`Successfully fetched issue #${issueNumber}`);
+    
     return new Response(
       JSON.stringify(response.data),
       {
@@ -90,7 +95,7 @@ export const POST: APIRoute = async ({ request }) => {
   } catch (error) {
     console.error('Error fetching issue:', error);
     return new Response(
-      JSON.stringify({ error: 'Failed to fetch issue' }),
+      JSON.stringify({ error: 'Failed to fetch issue', details: error.message }),
       {
         status: 500,
         headers: {
