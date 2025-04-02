@@ -33,17 +33,24 @@ export async function getIssues(): Promise<GitHubIssue[]> {
   try {
     // キャッシュが有効な場合はキャッシュを返す
     if (cache.issues && cache.timestamp && (Date.now() - cache.timestamp < CACHE_TTL)) {
+      console.log('Using cached issues');
       return cache.issues;
     }
 
+    console.log(`Fetching issues from ${API_BASE_URL}/issues`);
+    
     // サーバーサイドのAPIを呼び出す
     const response = await fetch(`${API_BASE_URL}/issues`);
     
     if (!response.ok) {
+      console.error(`API error: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('Error details:', errorText);
       throw new Error(`API error: ${response.status}`);
     }
     
     const issues = await response.json();
+    console.log(`Fetched ${issues.length} issues successfully`);
     
     // キャッシュを更新
     cache.issues = issues;
@@ -52,6 +59,11 @@ export async function getIssues(): Promise<GitHubIssue[]> {
     return issues;
   } catch (error) {
     console.error('Error fetching issues:', error);
+    // キャッシュがある場合は古いキャッシュを返す
+    if (cache.issues) {
+      console.log('Returning stale cache data');
+      return cache.issues;
+    }
     // エラーが発生した場合は空の配列を返す
     return [];
   }
@@ -66,6 +78,8 @@ export async function getIssue(issueNumber: number): Promise<GitHubIssue | null>
       return cachedIssue.issue;
     }
     
+    console.log(`Fetching issue #${issueNumber}`);
+    
     // キャッシュがない場合はAPIを呼び出す
     const response = await fetch(`${API_BASE_URL}/issues`, {
       method: 'POST',
@@ -76,10 +90,12 @@ export async function getIssue(issueNumber: number): Promise<GitHubIssue | null>
     });
     
     if (!response.ok) {
+      console.error(`API error when fetching issue #${issueNumber}: ${response.status} ${response.statusText}`);
       throw new Error(`API error: ${response.status}`);
     }
     
     const issue = await response.json();
+    console.log(`Successfully fetched issue #${issueNumber}`);
     
     // キャッシュを更新
     cache.singleIssues[issueNumber] = {
@@ -90,6 +106,12 @@ export async function getIssue(issueNumber: number): Promise<GitHubIssue | null>
     return issue;
   } catch (error) {
     console.error(`Error fetching issue #${issueNumber}:`, error);
+    // キャッシュがある場合は古いキャッシュを返す
+    const cachedIssue = cache.singleIssues[issueNumber];
+    if (cachedIssue) {
+      console.log('Returning stale cache data for issue');
+      return cachedIssue.issue;
+    }
     return null;
   }
 }
@@ -97,11 +119,7 @@ export async function getIssue(issueNumber: number): Promise<GitHubIssue | null>
 // スラッグから対応するIssueを検索する関数
 export function findIssueBySlug(issues: GitHubIssue[], slug: string): GitHubIssue | undefined {
   return issues.find(issue => {
-    const issueSlug = issue.title.toLowerCase()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/^-+|-+$/g, '');
-    
+    const issueSlug = generateSlug(issue.title);
     return issueSlug === slug;
   });
 }
