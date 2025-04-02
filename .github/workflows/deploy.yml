@@ -30,10 +30,6 @@ jobs:
       - name: Install dependencies
         run: npm install --no-package-lock
 
-      # ビルド前の準備
-      - name: Create output directory
-        run: mkdir -p dist
-
       # ビルド実行
       - name: Build with Astro
         run: npm run build
@@ -43,34 +39,24 @@ jobs:
           REPO_NAME: starlight-issue-wiki
 
       # ビルド結果の詳細確認（階層も含めて）
-      - name: Debug - Show detailed directory structure
+      - name: Debug - Show directory structure
         run: |
           echo "Current directory:"
           pwd
           echo "Top level directory listing:"
           ls -la
           echo "Dist directory structure:"
-          find dist -type f | sort
-          echo "Wiki directory content:"
-          ls -la dist/wiki || echo "wiki directory does not exist"
-          echo "Welcome page exists?"
-          find dist -name "welcome" -type d || echo "welcome directory not found"
-          find dist -name "index.html" | xargs -I{} grep -l "welcome" {} || echo "No index.html containing welcome found"
+          find dist -type f -name "*.html" | sort
+          echo "Total number of HTML files:"
+          find dist -type f -name "*.html" | wc -l
 
-      # 404ページと404.htmlが存在するかチェック
+      # 404ページが存在するかチェック
       - name: Ensure 404 page exists
         run: |
           if [ ! -f "dist/404.html" ]; then
             echo "Creating 404.html page"
             cp dist/index.html dist/404.html
           fi
-
-      # ウェルカムページを強制的に作成
-      - name: Ensure welcome page exists
-        run: |
-          mkdir -p dist/wiki/welcome
-          echo '<html><head><meta http-equiv="refresh" content="0;url=/starlight-issue-wiki/"></head><body><p>Redirecting to home...</p></body></html>' > dist/wiki/welcome/index.html
-          echo "Created welcome page with redirect"
 
       # アーティファクトのアップロード
       - name: Upload artifact
