@@ -80,10 +80,10 @@
   {
     "number": 1,
     "title": "ようこそGitWiki Hubへ",
-    "body": "## ようこそStarlight Issue Wikiへ\n\nこのWikiは、GitHubのissueを使って管理されています。\n\n### 特徴\n- Astro + Starlightを使用したモダンな静的サイト\n- GitHubのissueからコンテンツを動的に取得\n- GitHub Actionsによる自動デプロイ\n\n### 使い方\n1. 新しいコンテンツを追加したい場合は、新しいissueを作成します\n2. issueのタイトルは、ページのタイトルになります\n3. issueの本文は、ページの内容になります（Markdownをサポート）\n\nissueにラベルを付けることで、カテゴリ分けすることもできます。",
+    "body": "## ようこそGitWiki Hubへ\n\nこのWikiは、GitHubのissueを使って管理されています。\n\n### 特徴\n- Astroを使用したモダンな静的サイト\n- GitHubのissueからコンテンツを動的に取得\n- GitHub Actionsによる自動デプロイ\n- 検索機能でコンテンツをすばやく見つける\n- タイムライン表示で最新の更新を確認\n- レスポンシブデザインで様々なデバイスに対応\n\n### 使い方\n1. 新しいコンテンツを追加したい場合は、新しいissueを作成します\n2. issueのタイトルは、ページのタイトルになります\n3. issueの本文は、ページの内容になります（Markdownをサポート）\n\nissueにラベルを付けることで、カテゴリ分けすることもできます。\n\n### 今後の予定\n- コメント機能の強化\n- カスタムテーマ機能\n- タグクラウド表示\n- コンテンツの関連付け機能\n\nGitWiki Hubでより効率的な情報管理を始めましょう！",
     "html_url": "https://github.com/nao-amj/starlight-issue-wiki/issues/1",
     "created_at": "2025-04-01T12:49:35Z",
-    "updated_at": "2025-04-02T12:22:26Z",
+    "updated_at": "2025-04-02T12:22:38Z",
     "labels": [
       {
         "name": "documentation",
