@@ -1,0 +1,90 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { BASE_PATH, REPO_URL } from '../config';
+---
+
+<Layout title="404 - ページが見つかりません">
+  <div class="error-container">
+    <h1>404</h1>
+    <h2>ページが見つかりませんでした</h2>
+    <p>
+      お探しのページは存在しないか、移動した可能性があります。
+    </p>
+    
+    <div class="actions">
+      <a href={BASE_PATH + "/"} class="button">ホームに戻る</a>
+      <a href={REPO_URL + "/issues"} class="button secondary">GitHub Issuesを見る</a>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .error-container {
+    background-color: white;
+    padding: 3rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    text-align: center;
+    margin: 3rem auto;
+    max-width: 600px;
+  }
+  
+  h1 {
+    font-size: 6rem;
+    margin: 0;
+    line-height: 1;
+    color: var(--color-primary);
+  }
+  
+  h2 {
+    font-size: 1.8rem;
+    margin-top: 1rem;
+    margin-bottom: 2rem;
+  }
+  
+  p {
+    margin-bottom: 2rem;
+    color: #666;
+    font-size: 1.1rem;
+  }
+  
+  .actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+  }
+  
+  .button {
+    display: inline-block;
+    padding: 0.7rem 1.5rem;
+    border-radius: 4px;
+    background-color: var(--color-primary);
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+    transition: all 0.2s;
+  }
+  
+  .button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-decoration: none;
+  }
+  
+  .button.secondary {
+    background-color: transparent;
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary);
+  }
+  
+  @media (max-width: 768px) {
+    .error-container {
+      padding: 2rem;
+      margin: 2rem 1rem;
+    }
+    
+    .actions {
+      flex-direction: column;
+    }
+  }
+</style>
