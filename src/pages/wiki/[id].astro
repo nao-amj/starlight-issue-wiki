@@ -1,8 +1,7 @@
 ---
 import { getIssuesData, getIssueByNumber } from '../../utils/issues';
 import { marked } from 'marked';
-import Layout from '@astrojs/starlight/components/Layout.astro';
-import ContentPanel from '@astrojs/starlight/components/ContentPanel.astro';
+import { BASE_PATH, SITE_TITLE } from '../../config';
 
 export async function getStaticPaths() {
   // モックデータを使用
@@ -10,7 +9,7 @@ export async function getStaticPaths() {
     {
       number: 1,
       title: 'サンプルドキュメント',
-      body: '# サンプルドキュメント\n\nこれはサンプルドキュメントの内容です。\n\n## セクション1\n\nサンプルテキスト...',
+      body: '# サンプルドキュメント\\n\\nこれはサンプルドキュメントの内容です。\\n\\n## セクション1\\n\\nサンプルテキスト...',
       html_url: 'https://github.com/nao-amj/starlight-issue-wiki/issues/1',
       created_at: '2025-03-01T00:00:00Z',
       updated_at: '2025-03-01T00:00:00Z',
@@ -21,7 +20,7 @@ export async function getStaticPaths() {
     {
       number: 2,
       title: 'Markdownの使い方',
-      body: '# Markdownの使い方\n\nこのWikiではMarkdownを使って文書を書くことができます。\n\n## 見出し\n\n見出しは`#`を使って表現します。\n\n## リスト\n\n- 箇条書き1\n- 箇条書き2\n\n順序付きリスト:\n\n1. 項目1\n2. 項目2',
+      body: '# Markdownの使い方\\n\\nこのWikiではMarkdownを使って文書を書くことができます。\\n\\n## 見出し\\n\\n見出しは`#`を使って表現します。\\n\\n## リスト\\n\\n- 箇条書き1\\n- 箇条書き2\\n\\n順序付きリスト:\\n\\n1. 項目1\\n2. 項目2',
       html_url: 'https://github.com/nao-amj/starlight-issue-wiki/issues/2',
       created_at: '2025-03-05T00:00:00Z',
       updated_at: '2025-03-06T00:00:00Z',
@@ -33,7 +32,7 @@ export async function getStaticPaths() {
     {
       number: 3,
       title: 'GitHubの使い方',
-      body: '# GitHubの使い方\n\n## アカウント作成\n\nGitHubアカウントを作成するには...\n\n## リポジトリの作成\n\n1. 右上の+ボタンをクリック\n2. New repositoryを選択\n3. ...',
+      body: '# GitHubの使い方\\n\\n## アカウント作成\\n\\nGitHubアカウントを作成するには...\\n\\n## リポジトリの作成\\n\\n1. 右上の+ボタンをクリック\\n2. New repositoryを選択\\n3. ...',
       html_url: 'https://github.com/nao-amj/starlight-issue-wiki/issues/3',
       created_at: '2025-03-10T00:00:00Z',
       updated_at: '2025-03-10T00:00:00Z',
@@ -74,41 +73,222 @@ const updatedDate = new Date(updated_at).toLocaleDateString('ja-JP', {
 const pageTitle = `${title} (#${issue.number})`;
 ---
 
-<Layout title={pageTitle}>
-  <ContentPanel>
-    <div class="wiki-header">
-      <h1>{title}</h1>
-      
-      <div class="issue-labels">
-        {labels.map(label => (
-          <a href={`/category/${label.name.toLowerCase()}`} class="tag" 
-             style={`background-color: #${label.color}20; color: #${label.color}; border: 1px solid #${label.color}40;`}>
-            {label.name}
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{pageTitle} | {SITE_TITLE}</title>
+  <meta name="description" content={title}>
+  <!-- スタイルシート -->
+  <link rel="stylesheet" href={`${BASE_PATH}/styles/global.css`}>
+  <!-- Google Fontsを追加 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <div class="header-content">
+        <h1><a href={BASE_PATH + "/"}>Starlight Issue Wiki</a></h1>
+        <nav>
+          <a href={BASE_PATH + "/"}>ホーム</a>
+          <a href={`${BASE_PATH}/wiki/index`}>ページ一覧</a>
+          <a href={`${BASE_PATH}/wiki/welcome`}>はじめに</a>
+          <a href="https://github.com/nao-amj/starlight-issue-wiki">GitHub</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <main class="container wiki-page">
+    <div class="content-panel">
+      <div class="wiki-header">
+        <h1>{title}</h1>
+        
+        <div class="issue-labels">
+          {labels.map(label => (
+            <a href={`${BASE_PATH}/category/${label.name.toLowerCase()}`} class="tag" 
+               style={`background-color: #${label.color}20; color: #${label.color}; border: 1px solid #${label.color}40;`}>
+              {label.name}
+            </a>
+          ))}
+        </div>
+        
+        <div class="issue-meta">
+          <span>作成日: {createdDate}</span>
+          {created_at !== updated_at && (
+            <span>更新日: {updatedDate}</span>
+          )}
+          <a href={html_url} target="_blank" rel="noopener noreferrer" class="issue-link">
+            GitHubで表示
           </a>
-        ))}
+        </div>
       </div>
       
-      <div class="issue-meta">
-        <span>作成日: {createdDate}</span>
-        {created_at !== updated_at && (
-          <span>更新日: {updatedDate}</span>
-        )}
-        <a href={html_url} target="_blank" rel="noopener noreferrer" class="issue-link">
-          GitHubで表示
-        </a>
+      <div class="wiki-content">
+        <div set:html={htmlContent} />
       </div>
     </div>
-    
-    <div class="wiki-content">
-      <div set:html={htmlContent} />
+
+    <div class="sidebar">
+      <div class="toc-panel">
+        <h2>目次</h2>
+        <!-- 目次はクライアントサイドJSで生成するか、Markdownパース時に抽出できます -->
+        <div class="toc-placeholder">
+          <!-- 目次プレースホルダー -->
+        </div>
+      </div>
+      
+      <div class="nav-panel">
+        <h2>クイックリンク</h2>
+        <ul>
+          <li><a href={`${BASE_PATH}/`}>トップページ</a></li>
+          <li><a href={`${BASE_PATH}/wiki/index`}>ページ一覧</a></li>
+          <li><a href="https://github.com/nao-amj/starlight-issue-wiki/issues/new">新しいページの作成</a></li>
+        </ul>
+      </div>
     </div>
-  </ContentPanel>
-</Layout>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2025 Starlight Issue Wiki</p>
+    </div>
+  </footer>
+</body>
+</html>
 
 <style>
+  /* グローバルスタイルは別ファイルで定義し、ここではページ固有のスタイルを定義 */
+  body {
+    font-family: 'Noto Sans JP', system-ui, sans-serif;
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+    color: #333;
+    background-color: #f9f9f9;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+
+  header {
+    background-color: #4d1a9e;
+    color: white;
+    padding: 1rem 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+  }
+
+  header h1 a {
+    color: white;
+    text-decoration: none;
+  }
+
+  nav {
+    display: flex;
+    gap: 1.5rem;
+  }
+
+  nav a {
+    color: white;
+    text-decoration: none;
+    opacity: 0.9;
+    padding: 0.5rem;
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+
+  nav a:hover {
+    opacity: 1;
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  main {
+    padding: 2rem 0;
+    display: grid;
+    grid-template-columns: 3fr 1fr;
+    gap: 2rem;
+  }
+
+  .content-panel {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .sidebar > div {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+
+  .sidebar h2 {
+    margin-top: 0;
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #eee;
+  }
+
+  .sidebar ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .sidebar li {
+    margin-bottom: 0.5rem;
+  }
+
+  .sidebar a {
+    display: block;
+    padding: 0.5rem;
+    color: #4d1a9e;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+  }
+
+  .sidebar a:hover {
+    background-color: #f5f5f5;
+  }
+
+  footer {
+    background-color: #4d1a9e;
+    color: white;
+    padding: 1.5rem 0;
+    text-align: center;
+    margin-top: 2rem;
+  }
+
+  /* Wiki ページ特有のスタイル */
   .wiki-header {
     margin-bottom: 2rem;
-    border-bottom: 1px solid var(--sl-color-gray-5);
+    border-bottom: 1px solid #eee;
     padding-bottom: 1rem;
   }
   
@@ -135,11 +315,11 @@ const pageTitle = `${title} (#${issue.number})`;
     flex-wrap: wrap;
     gap: 1rem;
     font-size: 0.9rem;
-    color: var(--sl-color-gray-3);
+    color: #666;
   }
   
   .issue-link {
-    color: var(--sl-color-text-accent);
+    color: #4d1a9e;
     text-decoration: none;
   }
   
@@ -155,7 +335,7 @@ const pageTitle = `${title} (#${issue.number})`;
     margin-top: 2rem;
     margin-bottom: 1rem;
     padding-bottom: 0.5rem;
-    border-bottom: 1px solid var(--sl-color-gray-5);
+    border-bottom: 1px solid #eee;
   }
   
   .wiki-content :global(h3) {
@@ -170,6 +350,7 @@ const pageTitle = `${title} (#${issue.number})`;
   
   .wiki-content :global(pre) {
     padding: 1rem;
+    background-color: #f5f5f5;
     border-radius: 0.5rem;
     overflow-x: auto;
   }
@@ -181,11 +362,32 @@ const pageTitle = `${title} (#${issue.number})`;
   }
   
   .wiki-content :global(a) {
-    color: var(--sl-color-text-accent);
+    color: #4d1a9e;
     text-decoration: none;
   }
   
   .wiki-content :global(a:hover) {
     text-decoration: underline;
+  }
+
+  /* レスポンシブデザイン */
+  @media (max-width: 768px) {
+    .header-content {
+      flex-direction: column;
+      gap: 1rem;
+    }
+    
+    nav {
+      width: 100%;
+      justify-content: space-between;
+    }
+    
+    main {
+      grid-template-columns: 1fr;
+    }
+    
+    .sidebar {
+      order: 2;
+    }
   }
 </style>
