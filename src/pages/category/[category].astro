@@ -1,104 +1,135 @@
 ---
-import CategoryList from '../../components/CategoryList.astro';
 import Layout from '../../layouts/Layout.astro';
 import { BASE_PATH } from '../../config';
 
+// GitHub API からIssueを取得する関数
+async function fetchIssues() {
+  try {
+    // GitHub APIを使用してissueを取得
+    const response = await fetch('https://api.github.com/repos/nao-amj/starlight-issue-wiki/issues');
+    if (!response.ok) {
+      throw new Error(`GitHub API error: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching issues:', error);
+    return [];
+  }
+}
+
+// カテゴリ一覧を取得（全てのIssueからラベルを収集）
 export async function getStaticPaths() {
-  // モックカテゴリーデータ
-  const mockCategories = [
-    { id: 'documentation', name: 'ドキュメント', count: 1, color: '0075ca', description: 'ドキュメント関連' },
-    { id: 'tutorial', name: 'チュートリアル', count: 2, color: 'd876e3', description: 'チュートリアル' },
-    { id: 'wiki', name: 'Wiki', count: 1, color: '0e8a16', description: 'Wiki記事' }
-  ];
+  const issues = await fetchIssues();
   
-  return mockCategories.map(category => {
+  // 全てのカテゴリー（ラベル）を収集
+  const categories = new Set();
+  issues.forEach(issue => {
+    if (issue.labels && issue.labels.length > 0) {
+      issue.labels.forEach(label => {
+        categories.add(label.name.toLowerCase());
+      });
+    }
+  });
+  
+  // 各カテゴリに対応するパラメータを作成
+  return Array.from(categories).map(category => {
     return {
-      params: { category: category.id },
-      props: { category }
+      params: { category },
+      props: { categoryName: category, issues }
     };
   });
 }
 
-const { category } = Astro.props;
+const { categoryName, issues } = Astro.props;
 
-// モックIssueデータ
-const mockIssues = [
-  {
-    number: 1,
-    title: 'サンプルドキュメント',
-    body: '# サンプルドキュメント\n\nこれはサンプルドキュメントの内容です。\n\n## セクション1\n\nサンプルテキスト...',
-    html_url: 'https://github.com/nao-amj/starlight-issue-wiki/issues/1',
-    created_at: '2025-03-01T00:00:00Z',
-    updated_at: '2025-03-01T00:00:00Z',
-    labels: [
-      { name: 'documentation', color: '0075ca', description: 'ドキュメント関連' }
-    ]
-  },
-  {
-    number: 2,
-    title: 'Markdownの使い方',
-    body: '# Markdownの使い方\n\nこのWikiではMarkdownを使って文書を書くことができます。\n\n## 見出し\n\n見出しは`#`を使って表現します。\n\n## リスト\n\n- 箇条書き1\n- 箇条書き2\n\n順序付きリスト:\n\n1. 項目1\n2. 項目2',
-    html_url: 'https://github.com/nao-amj/starlight-issue-wiki/issues/2',
-    created_at: '2025-03-05T00:00:00Z',
-    updated_at: '2025-03-06T00:00:00Z',
-    labels: [
-      { name: 'tutorial', color: 'd876e3', description: 'チュートリアル' },
-      { name: 'wiki', color: '0e8a16', description: 'Wiki記事' }
-    ]
-  },
-  {
-    number: 3,
-    title: 'GitHubの使い方',
-    body: '# GitHubの使い方\n\n## アカウント作成\n\nGitHubアカウントを作成するには...\n\n## リポジトリの作成\n\n1. 右上の+ボタンをクリック\n2. New repositoryを選択\n3. ...',
-    html_url: 'https://github.com/nao-amj/starlight-issue-wiki/issues/3',
-    created_at: '2025-03-10T00:00:00Z',
-    updated_at: '2025-03-10T00:00:00Z',
-    labels: [
-      { name: 'tutorial', color: 'd876e3', description: 'チュートリアル' }
-    ]
+// 表示用のカテゴリー名（先頭大文字）
+const displayCategoryName = categoryName.charAt(0).toUpperCase() + categoryName.slice(1);
+
+// 現在のカテゴリに属するIssueをフィルタリング
+const categoryIssues = issues.filter(issue => 
+  issue.labels && issue.labels.some(label => 
+    label.name.toLowerCase() === categoryName.toLowerCase()
+  )
+);
+
+// カテゴリーの色を取得（最初に見つかったラベルの色を使用）
+let categoryColor = "808080"; // デフォルト色
+if (categoryIssues.length > 0 && categoryIssues[0].labels) {
+  const categoryLabel = categoryIssues[0].labels.find(label => 
+    label.name.toLowerCase() === categoryName.toLowerCase()
+  );
+  if (categoryLabel && categoryLabel.color) {
+    categoryColor = categoryLabel.color;
   }
-];
+}
 
-// ページタイトル
-const pageTitle = `カテゴリー: ${category.name}`;
+// 日付でソート（新しい順）
+categoryIssues.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
 ---
 
-<Layout title={pageTitle}>
-  <div class="content-panel">
+<Layout title={`${displayCategoryName} - カテゴリー`}>
+  <div class="container">
     <div class="category-header">
-      <h1>{category.name}</h1>
-      
-      <div class="category-badge" style={`background-color: #${category.color}20; color: #${category.color}; border: 1px solid #${category.color}40;`}>
-        {category.count} 件のコンテンツ
+      <h1>カテゴリー: {displayCategoryName}</h1>
+      <div class="category-badge" style={`background-color: #${categoryColor}20; color: #${categoryColor}; border: 1px solid #${categoryColor}40;`}>
+        {categoryIssues.length} 件のページがあります
       </div>
-      
-      {category.description && (
-        <p class="category-description">{category.description}</p>
-      )}
     </div>
     
-    <CategoryList 
-      issues={mockIssues} 
-      title="このカテゴリーのコンテンツ" 
-      category={category.id}
-      showViewAll={false}
-    />
+    <div class="issue-grid">
+      {categoryIssues.map(issue => {
+        const date = new Date(issue.updated_at);
+        const formattedDate = new Intl.DateTimeFormat('ja-JP', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        }).format(date);
+        
+        return (
+          <div class="issue-card">
+            <a href={`${BASE_PATH}/wiki/${issue.number}`} class="issue-link">
+              <h2>{issue.title}</h2>
+            </a>
+            <div class="issue-labels">
+              {issue.labels.map(label => (
+                <a href={`${BASE_PATH}/category/${label.name.toLowerCase()}`} class="tag" 
+                   style={`background-color: #${label.color}20; color: #${label.color}; border: 1px solid #${label.color}40;`}>
+                  {label.name}
+                </a>
+              ))}
+            </div>
+            <div class="issue-meta">
+              <span class="issue-number">#{issue.number}</span>
+              <span class="issue-date">更新: {formattedDate}</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+    
+    <div class="nav-panel">
+      <a href={BASE_PATH + "/"} class="back-button">← トップページに戻る</a>
+    </div>
   </div>
 </Layout>
 
 <style>
-  .content-panel {
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+  
+  .category-header {
+    margin-bottom: 2rem;
     background: white;
     padding: 2rem;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    margin: 2rem 0;
   }
-
-  .category-header {
-    margin-bottom: 2rem;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 1rem;
+  
+  .category-header h1 {
+    margin: 0 0 1rem 0;
   }
   
   .category-badge {
@@ -107,13 +138,91 @@ const pageTitle = `カテゴリー: ${category.name}`;
     border-radius: 0.25rem;
     font-size: 0.9rem;
     font-weight: 500;
-    margin: 0.5rem 0 1rem;
   }
   
-  .category-description {
-    font-size: 1.1rem;
-    line-height: 1.6;
-    margin-top: 1rem;
+  .issue-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  .issue-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  
+  .issue-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  }
+  
+  .issue-link {
+    text-decoration: none;
+  }
+  
+  .issue-link h2 {
+    color: var(--color-primary);
+    margin: 0 0 1rem 0;
+    font-size: 1.3rem;
+  }
+  
+  .issue-labels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .tag {
+    display: inline-block;
+    padding: 0.2em 0.5em;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-decoration: none;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  
+  .issue-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
     color: #666;
+  }
+  
+  .nav-panel {
+    margin-top: 2rem;
+    text-align: center;
+  }
+  
+  .back-button {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    background-color: var(--color-primary);
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-weight: 500;
+    transition: background-color 0.2s;
+  }
+  
+  .back-button:hover {
+    background-color: var(--color-primary-dark, #0056b3);
+  }
+  
+  /* レスポンシブデザイン */
+  @media (max-width: 768px) {
+    .issue-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .container {
+      padding: 1rem;
+    }
   }
 </style>
