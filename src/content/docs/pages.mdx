@@ -3,8 +3,8 @@ title: すべてのページ
 description: すべてのWikiページの一覧
 ---
 
-import { getIssuesData } from '../../../utils/issues';
-import CategoryList from '../../../components/CategoryList.astro';
+import { getIssuesData } from '../../utils/issues';
+import CategoryList from '../../components/CategoryList.astro';
 
 export async function getStaticProps() {
   const { issues, categories } = await getIssuesData();
