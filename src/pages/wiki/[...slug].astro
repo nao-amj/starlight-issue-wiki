@@ -2,8 +2,6 @@
 import { getIssues } from '../../lib/github';
 import { marked } from 'marked';
 import { gfmHeadingId } from 'marked-gfm-heading-id';
-import WikiContent from '../../components/WikiContent.astro';
-import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 
 export async function getStaticPaths() {
   const issues = await getIssues();
@@ -28,31 +26,146 @@ const { issue } = Astro.props;
 // markedのセットアップ
 marked.use(gfmHeadingId());
 
-// issueの内容をHTMLに変換（非同期処理ではなく同期的に変換）
+// issueの内容をHTMLに変換
 const content = issue.body ? marked.parse(issue.body) : '';
 
-// frontmatterの設定
-const frontmatter = {
-  title: issue.title,
-  description: `${issue.title} - Starlight Issue Wiki`,
-};
-
-// Starlightページ用のデータを準備
-const starlightProps = {
-  frontmatter,
-  headings: [],
-  hasSidebar: true,
-  dir: 'ltr',
-  isFallback: false,
-  lang: 'ja',
-  lastUpdated: new Date(),
-  pagination: { prev: undefined, next: undefined },
-  sidebar: [],
-  toc: { items: [] },
-  entry: {},
-};
+const title = issue.title;
+const description = `${issue.title} - Starlight Issue Wiki`;
 ---
 
-<StarlightPage {...starlightProps}>
-  <WikiContent slot="content" content={content} issueUrl={issue.html_url} />
-</StarlightPage>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{title} - Starlight Issue Wiki</title>
+  <meta name="description" content={description}>
+  <link rel="stylesheet" href="/styles/global.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <div class="header-content">
+        <h1><a href="/">Starlight Issue Wiki</a></h1>
+        <nav>
+          <a href="/">ホーム</a>
+          <a href="/wiki/welcome">Wiki</a>
+          <a href="https://github.com/nao-amj/starlight-issue-wiki">GitHub</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="page-header">
+      <h1>{title}</h1>
+    </div>
+    
+    <div class="wiki-content" set:html={content}></div>
+    
+    <div class="edit-links">
+      <a href={issue.html_url} target="_blank" rel="noopener noreferrer">
+        GitHubでこのページを編集する
+      </a>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>© 2025 Starlight Issue Wiki</p>
+    </div>
+  </footer>
+
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      margin: 0;
+      padding: 0;
+      line-height: 1.6;
+      color: #333;
+      background-color: #f9f9f9;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1rem;
+    }
+    header {
+      background-color: #4d1a9e;
+      color: white;
+      padding: 1rem 0;
+    }
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+    header h1 a {
+      color: white;
+      text-decoration: none;
+    }
+    nav {
+      display: flex;
+      gap: 1.5rem;
+    }
+    nav a {
+      color: white;
+      text-decoration: none;
+      opacity: 0.9;
+    }
+    nav a:hover {
+      opacity: 1;
+      text-decoration: underline;
+    }
+    main {
+      padding: 2rem 0;
+    }
+    .page-header {
+      margin-bottom: 2rem;
+    }
+    .page-header h1 {
+      border-bottom: 2px solid #eee;
+      padding-bottom: 0.5rem;
+    }
+    .wiki-content {
+      background-color: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+    .wiki-content :global(img) {
+      max-width: 100%;
+      height: auto;
+    }
+    .wiki-content :global(pre) {
+      padding: 1rem;
+      border-radius: 0.5rem;
+      background-color: #f3f3f3;
+      overflow-x: auto;
+    }
+    .edit-links {
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px solid #eee;
+      font-size: 0.9rem;
+    }
+    .edit-links a {
+      color: #4d1a9e;
+      text-decoration: none;
+    }
+    .edit-links a:hover {
+      text-decoration: underline;
+    }
+    footer {
+      border-top: 1px solid #eee;
+      padding: 2rem 0;
+      text-align: center;
+      color: #666;
+    }
+  </style>
+</body>
+</html>
