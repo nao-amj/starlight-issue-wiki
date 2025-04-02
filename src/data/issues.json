@@ -1,0 +1,89 @@
+[
+  {
+    "number": 1,
+    "title": "ようこそStarlight Issue Wikiへ",
+    "body": "## ようこそStarlight Issue Wikiへ\n\nこのWikiは、GitHubのissueを使って管理されています。\n\n### 特徴\n- Astro + Starlightを使用したモダンな静的サイト\n- GitHubのissueからコンテンツを動的に取得\n- GitHub Actionsによる自動デプロイ\n\n### 使い方\n1. 新しいコンテンツを追加したい場合は、新しいissueを作成します\n2. issueのタイトルは、ページのタイトルになります\n3. issueの本文は、ページの内容になります（Markdownをサポート）\n\nissueにラベルを付けることで、カテゴリ分けすることもできます。",
+    "html_url": "https://github.com/nao-amj/starlight-issue-wiki/issues/1",
+    "created_at": "2025-04-01T12:49:35Z",
+    "updated_at": "2025-04-01T12:49:35Z",
+    "labels": [
+      {
+        "name": "documentation",
+        "color": "0075ca",
+        "description": "Improvements or additions to documentation"
+      },
+      {
+        "name": "wiki",
+        "color": "ededed",
+        "description": null
+      }
+    ]
+  },
+  {
+    "number": 2,
+    "title": "Starlightの基本機能",
+    "body": "## Starlightの基本機能\n\n[Starlight](https://starlight.astro.build/)は、Astroベースのドキュメントフレームワークです。\n\n### 主な機能\n\n#### 1. コンテンツ中心の設計\nStarlightはマークダウンを中心としたコンテンツ作成に最適化されています。MDXもサポートしており、インタラクティブな要素も追加できます。\n\n#### 2. パフォーマンス\nAstroの基盤を活かした高速なサイト生成と優れたパフォーマンスを提供します。\n\n#### 3. 国際化対応\n多言語サイトの構築が簡単にできる機能が組み込まれています。\n\n#### 4. カスタマイズ性\nテーマやレイアウトを自由にカスタマイズできます。\n\n#### 5. SEO対応\nSEOに必要なメタデータの設定が簡単に行えます。\n\n### 活用例\n- プロダクトドキュメント\n- API参照ガイド\n- チュートリアル\n- マニュアル\n- Wiki（このプロジェクトのように）",
+    "html_url": "https://github.com/nao-amj/starlight-issue-wiki/issues/2",
+    "created_at": "2025-04-01T12:49:44Z",
+    "updated_at": "2025-04-01T12:49:44Z",
+    "labels": [
+      {
+        "name": "documentation",
+        "color": "0075ca",
+        "description": "Improvements or additions to documentation"
+      },
+      {
+        "name": "wiki",
+        "color": "ededed",
+        "description": null
+      },
+      {
+        "name": "feature",
+        "color": "ededed",
+        "description": null
+      }
+    ]
+  },
+  {
+    "number": 3,
+    "title": "GitHub Pagesの設定方法",
+    "body": "## GitHub Pagesの設定について\n\nこのリポジトリをGitHub Pagesでデプロイするために、以下の設定が必要です：\n\n1. リポジトリの「Settings」タブを開く\n2. 左側のサイドバーから「Pages」を選択\n3. 「Source」セクションで「GitHub Actions」を選択\n4. その他の設定はデフォルトのままでOK\n\nこれにより、`.github/workflows/deploy.yml`で定義したワークフローに従って自動的にサイトがデプロイされます。\n\nissueが更新されるたびに、ワークフローがトリガーされて最新の内容が反映されます。",
+    "html_url": "https://github.com/nao-amj/starlight-issue-wiki/issues/3",
+    "created_at": "2025-04-01T12:53:51Z",
+    "updated_at": "2025-04-01T12:53:51Z",
+    "labels": [
+      {
+        "name": "documentation",
+        "color": "0075ca",
+        "description": "Improvements or additions to documentation"
+      }
+    ]
+  },
+  {
+    "number": 4,
+    "title": "BlogではなくWikiにするメリットの検討",
+    "body": "時系列優先ではない管理方法と内容にしたい。\n\n※タスク管理も兼ねるか、別リポジトリにするか検討が必要\n※GitHubのリポジトリも管理対象にするかも",
+    "html_url": "https://github.com/nao-amj/starlight-issue-wiki/issues/4",
+    "created_at": "2025-04-02T02:44:52Z",
+    "updated_at": "2025-04-02T02:44:52Z",
+    "labels": []
+  },
+  {
+    "number": 5,
+    "title": "問題診断用",
+    "body": "このIssueはGitHub Pagesへの反映を確認するためのテスト用です。問題が解決したら閉じることができます。",
+    "html_url": "https://github.com/nao-amj/starlight-issue-wiki/issues/5",
+    "created_at": "2025-04-02T03:34:22Z",
+    "updated_at": "2025-04-02T03:34:22Z",
+    "labels": []
+  },
+  {
+    "number": 6,
+    "title": "GitHub Pagesの設定確認",
+    "body": "## GitHub Pages設定\n\nこのIssueは、GitHub Pages設定が正しいことを確認するためのものです。\n\n1. リポジトリの「Settings」タブから「Pages」を選択\n2. Source が「GitHub Actions」になっていることを確認\n3. Custom domain が設定されていないことを確認\n4. 「Visit site」が表示されることを確認\n\nデプロイ履歴に最新のビルドが表示され、成功していることを確認してください。",
+    "html_url": "https://github.com/nao-amj/starlight-issue-wiki/issues/6",
+    "created_at": "2025-04-02T03:35:16Z",
+    "updated_at": "2025-04-02T03:35:16Z",
+    "labels": []
+  }
+]
