@@ -1,20 +1,31 @@
 [
   {
+    "number": 11,
+    "title": "GitWiki Hub 機能紹介",
+    "body": "## GitWiki Hub の特徴と機能\n\nGitWiki Hub は GitHub Issues を利用した便利な Wiki プラットフォームです。このページでは主要な機能を紹介します。\n\n### 1. Markdown による簡単な編集\n\nGitHub の Issue でサポートされるすべての Markdown 記法が利用できます：\n\n- **太字** や *斜体* などの書式\n- リスト（順序付き・順序なし）\n- 表\n- コードブロック\n- リンク\n- 画像埋め込み\n\n### 2. カテゴリ分け\n\nIssue にラベルを付けることで、自動的にカテゴリ分けされます。例えば：\n\n- documentation：ドキュメント関連\n- wiki：Wiki コンテンツ \n- feature：機能の説明\n\n### 3. タイムライン表示\n\n最近の更新が自動的にタイムライン形式で表示されます。これにより：\n\n- 最新の更新内容を素早く確認できる\n- 時系列で変更履歴を追うことができる\n\n### 4. 高速検索\n\nインラインの検索機能により、コンテンツをすばやく見つけられます：\n\n1. 検索ボックスにキーワードを入力\n2. リアルタイムで検索結果が表示される\n3. 該当ページにすぐにアクセス可能\n\n### 5. レスポンシブデザイン\n\n様々なデバイスで最適な表示を実現：\n\n- デスクトップ\n- タブレット\n- スマートフォン\n\n### 6. GitHub との連携\n\nGitHub のパワフルな機能をそのまま活用：\n\n- バージョン管理\n- 変更履歴\n- コラボレーション\n- コメント・議論\n\n---\n\nGitWiki Hub で効率的な情報管理を実現しましょう！",
+    "html_url": "https://github.com/nao-amj/starlight-issue-wiki/issues/11",
+    "created_at": "2025-04-02T12:22:19Z",
+    "updated_at": "2025-04-02T12:22:19Z",
+    "labels": [
+      {
+        "name": "documentation",
+        "color": "0075ca",
+        "description": "Improvements or additions to documentation"
+      },
+      {
+        "name": "wiki",
+        "color": "ededed",
+        "description": null
+      }
+    ]
+  },
+  {
     "number": 6,
     "title": "GitHub Pagesの設定確認",
     "body": "## GitHub Pages設定\n\nこのIssueは、GitHub Pages設定が正しいことを確認するためのものです。\n\n1. リポジトリの「Settings」タブから「Pages」を選択\n2. Source が「GitHub Actions」になっていることを確認\n3. Custom domain が設定されていないことを確認\n4. 「Visit site」が表示されることを確認\n\nデプロイ履歴に最新のビルドが表示され、成功していることを確認してください。",
     "html_url": "https://github.com/nao-amj/starlight-issue-wiki/issues/6",
     "created_at": "2025-04-02T03:35:16Z",
     "updated_at": "2025-04-02T03:35:16Z",
-    "labels": []
-  },
-  {
-    "number": 5,
-    "title": "問題診断用",
-    "body": "このIssueはGitHub Pagesへの反映を確認するためのテスト用です。問題が解決したら閉じることができます。",
-    "html_url": "https://github.com/nao-amj/starlight-issue-wiki/issues/5",
-    "created_at": "2025-04-02T03:34:22Z",
-    "updated_at": "2025-04-02T03:34:22Z",
     "labels": []
   },
   {
@@ -68,11 +79,11 @@
   },
   {
     "number": 1,
-    "title": "ようこそStarlight Issue Wikiへ",
+    "title": "ようこそGitWiki Hubへ",
     "body": "## ようこそStarlight Issue Wikiへ\n\nこのWikiは、GitHubのissueを使って管理されています。\n\n### 特徴\n- Astro + Starlightを使用したモダンな静的サイト\n- GitHubのissueからコンテンツを動的に取得\n- GitHub Actionsによる自動デプロイ\n\n### 使い方\n1. 新しいコンテンツを追加したい場合は、新しいissueを作成します\n2. issueのタイトルは、ページのタイトルになります\n3. issueの本文は、ページの内容になります（Markdownをサポート）\n\nissueにラベルを付けることで、カテゴリ分けすることもできます。",
     "html_url": "https://github.com/nao-amj/starlight-issue-wiki/issues/1",
     "created_at": "2025-04-01T12:49:35Z",
-    "updated_at": "2025-04-01T12:49:35Z",
+    "updated_at": "2025-04-02T12:22:26Z",
     "labels": [
       {
         "name": "documentation",
