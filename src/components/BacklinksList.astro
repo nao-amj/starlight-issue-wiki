@@ -1,0 +1,99 @@
+---
+/**
+ * BacklinksList - Shows other notes that reference the current note
+ */
+import type { ZettelNote } from '../lib/zettelkasten';
+import { BASE_PATH } from '../config';
+
+interface Props {
+  note: ZettelNote;
+  maxContextLength?: number;
+}
+
+const { note, maxContextLength = 150 } = Astro.props;
+const { backlinks } = note;
+
+// Check if there are any backlinks to display
+const hasBacklinks = backlinks && backlinks.length > 0;
+---
+
+<div class="backlinks-container">
+  <h3 class="backlinks-title">Referenced in {backlinks.length} notes</h3>
+  
+  {!hasBacklinks && (
+    <p class="backlinks-empty">No other notes link to this note yet.</p>
+  )}
+  
+  {hasBacklinks && (
+    <ul class="backlinks-list">
+      {backlinks.map(link => (
+        <li class="backlink-item">
+          <a href={`${BASE_PATH}/wiki/${link.slug}`} class="backlink-title">
+            {link.title}
+          </a>
+          {link.context && (
+            <p class="backlink-context">
+              {link.context.length > maxContextLength 
+                ? `${link.context.substring(0, maxContextLength)}...` 
+                : link.context}
+            </p>
+          )}
+        </li>
+      ))}
+    </ul>
+  )}
+</div>
+
+<style>
+  .backlinks-container {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid #eee;
+  }
+  
+  .backlinks-title {
+    font-size: 1.1rem;
+    margin-bottom: 0.75rem;
+    color: #555;
+    font-weight: 500;
+  }
+  
+  .backlinks-empty {
+    color: #888;
+    font-style: italic;
+    font-size: 0.9rem;
+  }
+  
+  .backlinks-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .backlink-item {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background-color: #f9f9f9;
+    border-radius: 6px;
+    border-left: 3px solid #4d1a9e;
+  }
+  
+  .backlink-title {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: #4d1a9e;
+    text-decoration: none;
+  }
+  
+  .backlink-title:hover {
+    text-decoration: underline;
+  }
+  
+  .backlink-context {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #666;
+    line-height: 1.4;
+  }
+</style>
