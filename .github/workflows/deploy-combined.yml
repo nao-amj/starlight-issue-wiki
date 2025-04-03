@@ -1,0 +1,99 @@
+name: Deploy Combined to GitHub Pages
+
+on:
+  push:
+    branches: [main, zettelkasten]
+  issues:
+    types: [opened, edited, deleted, closed, reopened, labeled, unlabeled]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  issues: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main-branch
+
+      - name: Checkout zettelkasten branch
+        uses: actions/checkout@v4
+        with:
+          ref: zettelkasten
+          path: zettelkasten-branch
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # ビルド - mainブランチ
+      - name: Build main version
+        run: |
+          cd main-branch
+          # クリーンインストール
+          rm -f package-lock.json || true
+          rm -rf node_modules || true
+          npm cache clean --force
+          npm install
+          # ビルド実行
+          npm run build
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_OWNER: "nao-amj"
+          REPO_NAME: "starlight-issue-wiki"
+
+      # ビルド - zettelkastenブランチ
+      - name: Build zettelkasten version
+        run: |
+          cd zettelkasten-branch
+          # クリーンインストール
+          rm -f package-lock.json || true
+          rm -rf node_modules || true
+          npm cache clean --force
+          npm install
+          # ビルド実行（サブディレクトリ用に設定を変更）
+          npx astro config set base /starlight-issue-wiki/zettelkasten
+          npm run build
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_OWNER: "nao-amj"
+          REPO_NAME: "starlight-issue-wiki"
+
+      # 両方のビルド結果を結合
+      - name: Combine build outputs
+        run: |
+          mkdir -p combined-dist
+          # メインバージョンをルートにコピー
+          cp -r main-branch/dist/* combined-dist/
+          # Zettelkastenバージョンをサブディレクトリにコピー
+          mkdir -p combined-dist/zettelkasten
+          cp -r zettelkasten-branch/dist/* combined-dist/zettelkasten/
+          # 確認
+          ls -la combined-dist
+          ls -la combined-dist/zettelkasten
+
+      # 結合されたアーティファクトのアップロード
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./combined-dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
