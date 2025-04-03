@@ -59,7 +59,7 @@ export function extractKeywords(issues: GitHubIssue[]): Map<string, number> {
     // ラベルをキーワードとして追加
     if (issue.labels && Array.isArray(issue.labels)) {
       issue.labels.forEach(label => {
-        if (label.name && label.name.length >= minLength) {
+        if (typeof label === 'object' && label.name && label.name.length >= minLength) {
           keywordMap.set(label.name.toLowerCase(), issue.number);
         }
       });
@@ -74,31 +74,58 @@ export function findBidirectionalLinks(issues: GitHubIssue[]): Map<number, numbe
   const mentionMap = new Map<number, Set<number>>();
   const bidirectionalLinks = new Map<number, number[]>();
   
+  // 各issueのデフォルトの空のセットを作成
+  issues.forEach(issue => {
+    mentionMap.set(issue.number, new Set<number>());
+  });
+  
   // すべての言及を収集
   issues.forEach(issue => {
-    if (!mentionMap.has(issue.number)) {
-      mentionMap.set(issue.number, new Set<number>());
-    }
-    
     // 本文中の[[...]]形式のリンクを検出
-    const wikiLinkRegex = /\[\[(.*?)\]\]/g;
-    let match;
+    const wikiLinkRegex = /\\[\\[(.*?)\\]\\]/g;
     
     if (issue.body) {
-      let matches = issue.body.match(wikiLinkRegex);
-      if (matches) {
-        matches.forEach(matchStr => {
-          // [[...]]から内部のテキストを抽出
-          const linkedTitle = matchStr.substring(2, matchStr.length - 2).trim();
-          
-          // タイトルから対応するIssueを探す
-          const linkedIssue = issues.find(i => 
-            i.title.toLowerCase() === linkedTitle.toLowerCase() ||
-            i.title.toLowerCase().includes(linkedTitle.toLowerCase())
-          );
-          
-          if (linkedIssue && linkedIssue.number !== issue.number) {
-            mentionMap.get(issue.number)?.add(linkedIssue.number);
+      // マッチをすべて検出
+      const matches = [...issue.body.matchAll(/\[\[(.*?)\]\]/g)];
+      
+      if (matches.length > 0) {
+        matches.forEach(match => {
+          if (match[1]) {
+            // [[...]]から内部のテキストを抽出
+            const linkedTitle = match[1].trim();
+            
+            // タイトルから対応するIssueを探す
+            const linkedIssue = issues.find(i => 
+              i.title.toLowerCase() === linkedTitle.toLowerCase() ||
+              i.title.toLowerCase().includes(linkedTitle.toLowerCase())
+            );
+            
+            if (linkedIssue && linkedIssue.number !== issue.number) {
+              const mentions = mentionMap.get(issue.number);
+              if (mentions) {
+                mentions.add(linkedIssue.number);
+              }
+            }
+          }
+        });
+      }
+      
+      // #番号の形式も検出
+      const issueRefMatches = [...issue.body.matchAll(/#(\d+)/g)];
+      
+      if (issueRefMatches.length > 0) {
+        issueRefMatches.forEach(match => {
+          if (match[1]) {
+            const issueNumber = parseInt(match[1], 10);
+            // 実際にそのissue番号が存在するか確認
+            const linkedIssue = issues.find(i => i.number === issueNumber);
+            
+            if (linkedIssue && linkedIssue.number !== issue.number) {
+              const mentions = mentionMap.get(issue.number);
+              if (mentions) {
+                mentions.add(linkedIssue.number);
+              }
+            }
           }
         });
       }
@@ -163,29 +190,48 @@ export function applyZettelkastenLinks(
   let processedBody = body;
   
   // すでに[[...]]形式でリンクされている部分を除外するために、文書をセグメント化
+  const segments: {text: string, isWikiLink: boolean}[] = [];
+  let lastIndex = 0;
+  
+  // [[...]]を見つけてセグメント化
   const wikiLinkRegex = /\[\[(.*?)\]\]/g;
+  let match;
   
-  // 一時的に[[...]]をプレースホルダーに置き換え
-  const placeholders: {original: string, replacement: string}[] = [];
-  let index = 0;
+  while ((match = wikiLinkRegex.exec(processedBody)) !== null) {
+    // リンク前のテキスト
+    if (match.index > lastIndex) {
+      segments.push({
+        text: processedBody.substring(lastIndex, match.index),
+        isWikiLink: false
+      });
+    }
+    
+    // リンク自体
+    segments.push({
+      text: match[0],
+      isWikiLink: true
+    });
+    
+    lastIndex = match.index + match[0].length;
+  }
   
-  // [[...]]を一時的に置き換え
-  processedBody = processedBody.replace(wikiLinkRegex, (match) => {
-    const placeholder = `__WIKILINK_${index}__`;
-    placeholders.push({original: match, replacement: placeholder});
-    index++;
-    return placeholder;
-  });
+  // 残りのテキスト
+  if (lastIndex < processedBody.length) {
+    segments.push({
+      text: processedBody.substring(lastIndex),
+      isWikiLink: false
+    });
+  }
   
-  // キーワードリンクを適用
-  processedBody = processKeywordLinks(processedBody, keywords, currentIssueNumber);
+  // Wiki形式でないセグメントのみキーワード変換
+  for (let i = 0; i < segments.length; i++) {
+    if (!segments[i].isWikiLink) {
+      segments[i].text = processKeywordLinks(segments[i].text, keywords, currentIssueNumber);
+    }
+  }
   
-  // プレースホルダーを元のWikiリンクに戻す
-  placeholders.forEach(({original, replacement}) => {
-    processedBody = processedBody.replace(replacement, original);
-  });
-  
-  return processedBody;
+  // 全セグメントを結合
+  return segments.map(s => s.text).join('');
 }
 
 // キーワードをWikiリンクに変換
