@@ -3,50 +3,90 @@ import { getIssues, generateSlug } from '../../lib/github';
 import { marked } from 'marked';
 import { gfmHeadingId } from 'marked-gfm-heading-id';
 import { BASE_PATH, SITE_TITLE, SITE_DESCRIPTION, REPO_URL } from '../../config';
+import { processZettelNotes, processWikiLinks, processTags } from '../../lib/zettelkasten';
+import type { ZettelNote } from '../../lib/zettelkasten';
+
+// Import Zettelkasten components
+import BacklinksList from '../../components/BacklinksList.astro';
+import TagsList from '../../components/TagsList.astro';
+import ZettelGraph from '../../components/ZettelGraph.astro';
+import NoteMetadata from '../../components/NoteMetadata.astro';
 
 export async function getStaticPaths() {
   const issues = await getIssues();
   
+  // Process issues into Zettelkasten notes with backlinks
+  const zettelNotes = processZettelNotes(issues);
+  
   // issueからパスを生成
-  const issuePaths = issues.map(issue => {
+  const issuePaths = zettelNotes.map(note => {
     // スラッグを生成
-    const slug = generateSlug(issue.title);
+    const slug = note.slug;
     
     return {
       params: { slug },
-      props: { issue },
+      props: { note, allNotes: zettelNotes },
     };
   });
   
   // welcomeページに対応するパスを特別に処理
   // #1のissueがwelcomeページになるように設定
-  const welcomeIssue = issues.find(issue => issue.number === 1);
+  const welcomeNote = zettelNotes.find(note => note.number === 1);
+  
+  // welcomeページのフォールバック
+  const fallbackWelcomeNote: ZettelNote = {
+    id: 'zettel-welcome',
+    title: 'ようこそ',
+    body: 'Wikiへようこそ！このページはissueが見つからなかった場合のフォールバックページです。',
+    html_url: REPO_URL + '/issues',
+    number: -2,
+    labels: [],
+    links: [],
+    tags: [],
+    backlinks: [],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    slug: 'welcome',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    state: 'open',
+    user: { login: 'system' },
+  };
   
   // welcomeページを追加
   const welcomePath = {
     params: { slug: 'welcome' },
     props: { 
-      issue: welcomeIssue || issues[0] || {
-        title: 'ようこそ',
-        body: 'Wikiへようこそ！このページはissueが見つからなかった場合のフォールバックページです。',
-        html_url: REPO_URL + '/issues',
-        number: -2,
-        labels: []
-      }
+      note: welcomeNote || zettelNotes[0] || fallbackWelcomeNote,
+      allNotes: zettelNotes
     }
   };
   
   // ページ一覧用の特別なパスを追加
+  const indexNote: ZettelNote = {
+    id: 'zettel-index',
+    title: 'Wikiページ一覧',
+    body: '## すべてのWikiページ\n\nこのWikiに含まれるすべてのページの一覧です。',
+    html_url: REPO_URL + '/issues',
+    number: -1, // 特別な番号を割り当てて識別
+    labels: [],
+    links: [],
+    tags: [],
+    backlinks: [],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    slug: 'index',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    state: 'open',
+    user: { login: 'system' },
+  };
+  
   const indexPath = {
     params: { slug: 'index' },
     props: { 
-      issue: {
-        title: 'Wikiページ一覧',
-        body: '## すべてのWikiページ\n\nこのWikiに含まれるすべてのページの一覧です。',
-        html_url: REPO_URL + '/issues',
-        number: -1, // 特別な番号を割り当てて識別
-        labels: []
-      },
+      note: indexNote,
+      allNotes: zettelNotes,
       isIndex: true
     }
   };
@@ -55,22 +95,34 @@ export async function getStaticPaths() {
   return [...issuePaths, welcomePath, indexPath];
 }
 
-const { issue, isIndex = false } = Astro.props;
+const { note, allNotes, isIndex = false } = Astro.props;
 
 // markedのセットアップ
 marked.use(gfmHeadingId());
 
+// Process wiki-style links in content
+const processedContent = note.body ? processWikiLinks(note.body, allNotes) : '';
+
+// Process hashtags in content
+const processedContentWithTags = processTags(processedContent);
+
 // issueの内容をHTMLに変換
-const content = issue.body ? marked.parse(issue.body) : '';
+const content = processedContentWithTags ? marked.parse(processedContentWithTags) : '';
 
-const title = issue.title;
-const description = `${issue.title} - ${SITE_TITLE}`;
+// ナビゲーション用のIssue一覧はすでにZettelNotesとして取得済み
+const title = note.title;
+const description = `${note.title} - ${SITE_TITLE}`;
 
-// ナビゲーション用のIssue一覧を取得
-const issues = await getIssues();
+// Extract tags from all notes for the tag cloud
+const allTags = Array.from(new Set(
+  allNotes.flatMap(note => note.tags)
+));
 
 // 現在のパスがindex（一覧ページ）かどうかを判定
 const isListPage = isIndex;
+
+// Graph visualization is enabled by default, but can be disabled on some pages
+const showGraph = !isListPage && note.number !== -2;
 ---
 
 <!DOCTYPE html>
@@ -90,7 +142,8 @@ const isListPage = isIndex;
         <nav>
           <a href={BASE_PATH + "/"}>ホーム</a>
           <a href={`${BASE_PATH}/wiki/index`} class={isListPage ? 'active' : ''}>ページ一覧</a>
-          <a href={`${BASE_PATH}/wiki/welcome`} class={issue.number === 1 ? 'active' : ''}>はじめに</a>
+          <a href={`${BASE_PATH}/wiki/welcome`} class={note.number === 1 ? 'active' : ''}>はじめに</a>
+          <a href={`${BASE_PATH}/graph`} class="graph-link">知識グラフ</a>
           <a href={REPO_URL}>GitHub</a>
         </nav>
       </div>
@@ -108,74 +161,89 @@ const isListPage = isIndex;
             </a>
           </li>
           <li>
-            <a href={`${BASE_PATH}/wiki/welcome`} class={issue.number === 1 ? 'active' : ''}>
+            <a href={`${BASE_PATH}/wiki/welcome`} class={note.number === 1 ? 'active' : ''}>
               はじめに
             </a>
           </li>
-          {issues.map(item => {
-            if (item.number === 1) return null; // welcomeページは上で表示済み
-            
-            // スラッグを生成
-            const slug = generateSlug(item.title);
-            
-            return (
+          {allNotes
+            .filter(item => item.number > 1) // welcomeページは上で表示済み
+            .sort((a, b) => a.title.localeCompare(b.title))
+            .map(item => (
               <li>
-                <a href={`${BASE_PATH}/wiki/${slug}`} class={item.number === issue.number ? 'active' : ''}>
+                <a href={`${BASE_PATH}/wiki/${item.slug}`} class={item.number === note.number ? 'active' : ''}>
                   {item.title}
                 </a>
               </li>
-            );
-          })}
+            ))
+          }
         </ul>
+        
+        <h2 class="sidebar-section-title">タグクラウド</h2>
+        <TagsList notes={allNotes} layout="cloud" showCounts={true} maxTags={20} />
       </aside>
       
       <div class="content">
         <div class="page-header">
           <h1>{title}</h1>
-          {issue.labels && issue.labels.length > 0 && (
-            <div class="labels">
-              {issue.labels.map(label => (
-                <span class="label" style={`background-color: #${label.color || 'ededed'}`}>
-                  {label.name}
-                </span>
+          {note.tags && note.tags.length > 0 && (
+            <div class="tags">
+              {note.tags.map(tag => (
+                <a href={`${BASE_PATH}/category/${tag}`} class="tag">
+                  #{tag}
+                </a>
               ))}
             </div>
           )}
         </div>
         
+        {showGraph && (
+          <div class="zettel-graph-overview">
+            <h2>ノートの関連図</h2>
+            <ZettelGraph notes={allNotes} currentNote={note} height="250px" showControls={false} />
+          </div>
+        )}
+        
         <div class="wiki-content" set:html={content}></div>
+        
+        {/* Backlinks section */}
+        {!isListPage && note.backlinks.length > 0 && (
+          <BacklinksList note={note} />
+        )}
+        
+        {/* Note metadata section */}
+        {!isListPage && note.number > 0 && (
+          <NoteMetadata note={note} />
+        )}
         
         {isListPage ? (
           <div class="page-list">
             <h2>すべてのWikiページ</h2>
             <ul class="grid-list">
-              {issues.map(item => {
-                // スラッグを生成
-                const slug = generateSlug(item.title);
-                
-                return (
+              {allNotes
+                .filter(item => item.number > 0) // フィルターして実際のノートのみを表示
+                .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()) // 更新日時の降順でソート
+                .map(item => (
                   <li class="card">
-                    <a href={`${BASE_PATH}/wiki/${slug}`}>
+                    <a href={`${BASE_PATH}/wiki/${item.slug}`}>
                       <h3>{item.title}</h3>
                       <p>{item.body?.slice(0, 100)}...</p>
-                      {item.labels && item.labels.length > 0 && (
-                        <div class="card-labels">
-                          {item.labels.map(label => (
-                            <span class="card-label" style={`background-color: #${label.color || 'ededed'}`}>
-                              {label.name}
-                            </span>
+                      {item.tags.length > 0 && (
+                        <div class="card-tags">
+                          {item.tags.slice(0, 3).map(tag => (
+                            <span class="card-tag">#{tag}</span>
                           ))}
+                          {item.tags.length > 3 && <span class="card-tag-more">+{item.tags.length - 3}</span>}
                         </div>
                       )}
                     </a>
                   </li>
-                );
-              })}
+                ))
+              }
             </ul>
           </div>
         ) : (
           <div class="edit-links">
-            <a href={issue.html_url} target="_blank" rel="noopener noreferrer">
+            <a href={note.html_url} target="_blank" rel="noopener noreferrer">
               GitHubでこのページを編集する
             </a>
           </div>
@@ -186,7 +254,7 @@ const isListPage = isIndex;
 
   <footer>
     <div class="container">
-      <p>© 2025 Starlight Issue Wiki</p>
+      <p>© 2025 Starlight Issue Wiki with Zettelkasten</p>
     </div>
   </footer>
 
@@ -243,6 +311,9 @@ const isListPage = isIndex;
       background-color: rgba(255, 255, 255, 0.2);
       font-weight: 500;
     }
+    nav a.graph-link {
+      color: #ffeb3b;
+    }
     main {
       padding: 2rem 0;
     }
@@ -263,6 +334,13 @@ const isListPage = isIndex;
       margin-top: 0;
       margin-bottom: 1rem;
       padding-bottom: 0.5rem;
+      border-bottom: 1px solid #eee;
+    }
+    .sidebar-section-title {
+      font-size: 1.1rem;
+      margin-top: 2rem;
+      margin-bottom: 0.7rem;
+      padding-bottom: 0.3rem;
       border-bottom: 1px solid #eee;
     }
     .sidebar ul {
@@ -297,16 +375,24 @@ const isListPage = isIndex;
       padding-bottom: 0.5rem;
       margin-bottom: 0.5rem;
     }
-    .labels {
+    .tags {
       display: flex;
+      flex-wrap: wrap;
       gap: 0.5rem;
       margin-bottom: 1rem;
     }
-    .label {
-      font-size: 0.8rem;
+    .tag {
+      font-size: 0.85rem;
       padding: 0.25rem 0.75rem;
       border-radius: 20px;
-      color: #333;
+      color: #4d1a9e;
+      background-color: #f0e6ff;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+    .tag:hover {
+      background-color: #e0d0ff;
+      transform: translateY(-1px);
     }
     .content {
       background-color: white;
@@ -323,6 +409,45 @@ const isListPage = isIndex;
       border-radius: 0.5rem;
       background-color: #f3f3f3;
       overflow-x: auto;
+    }
+    .wiki-content :global(.wiki-link) {
+      color: #4d1a9e;
+      text-decoration: none;
+      border-bottom: 1px dotted #4d1a9e;
+      transition: all 0.2s;
+    }
+    .wiki-content :global(.wiki-link:hover) {
+      background-color: #f0e6ff;
+      border-bottom: 1px solid #4d1a9e;
+    }
+    .wiki-content :global(.wiki-link-new) {
+      color: #999;
+      border-bottom: 1px dashed #999;
+    }
+    .wiki-content :global(.tag-link) {
+      color: #4d1a9e;
+      text-decoration: none;
+      padding: 0.1rem 0.3rem;
+      border-radius: 3px;
+      background-color: #f0e6ff;
+      font-size: 0.9em;
+      transition: all 0.2s;
+    }
+    .wiki-content :global(.tag-link:hover) {
+      background-color: #e0d0ff;
+    }
+    .zettel-graph-overview {
+      margin-bottom: 2rem;
+      padding: 1rem;
+      background-color: #f9f9f9;
+      border-radius: 8px;
+      border: 1px solid #eee;
+    }
+    .zettel-graph-overview h2 {
+      font-size: 1.1rem;
+      margin-top: 0;
+      margin-bottom: 1rem;
+      color: #555;
     }
     .edit-links {
       margin-top: 2rem;
@@ -345,6 +470,8 @@ const isListPage = isIndex;
       grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
       gap: 1rem;
       margin-top: 1rem;
+      padding: 0;
+      list-style: none;
     }
     .card {
       border-radius: 8px;
@@ -375,17 +502,25 @@ const isListPage = isIndex;
       color: #666;
       font-size: 0.9rem;
     }
-    .card-labels {
+    .card-tags {
       display: flex;
       flex-wrap: wrap;
       gap: 0.3rem;
       margin-top: 0.5rem;
     }
-    .card-label {
-      font-size: 0.7rem;
+    .card-tag {
+      font-size: 0.75rem;
       padding: 0.1rem 0.5rem;
       border-radius: 20px;
-      color: #333;
+      color: #4d1a9e;
+      background-color: #f0e6ff;
+    }
+    .card-tag-more {
+      font-size: 0.75rem;
+      padding: 0.1rem 0.5rem;
+      border-radius: 20px;
+      color: #666;
+      background-color: #eee;
     }
     footer {
       border-top: 1px solid #eee;
@@ -403,6 +538,7 @@ const isListPage = isIndex;
       nav {
         width: 100%;
         justify-content: space-between;
+        flex-wrap: wrap;
       }
       .layout {
         grid-template-columns: 1fr;
