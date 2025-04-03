@@ -77,6 +77,49 @@ import { BASE_PATH } from '../config';
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
+  // タグカラーの最適化
+  function getOptimizedTagStyle(labelName, labelColor) {
+    // 特定のタグには固定の色を割り当てる
+    const tagColors = {
+      'documentation': { bg: '#0EA5E9', color: '#FFFFFF' }, // 青系
+      'wiki': { bg: '#10B981', color: '#FFFFFF' }, // 緑系
+      'feature': { bg: '#8B5CF6', color: '#FFFFFF' }, // 紫系
+      'bug': { bg: '#EF4444', color: '#FFFFFF' }, // 赤系
+      'enhancement': { bg: '#F59E0B', color: '#FFFFFF' }, // オレンジ系
+      'help wanted': { bg: '#EC4899', color: '#FFFFFF' } // ピンク系
+    };
+    
+    // 特定のタグに定義されている場合はそれを使用
+    const lowerLabelName = labelName.toLowerCase();
+    if (tagColors[lowerLabelName]) {
+      return {
+        bg: tagColors[lowerLabelName].bg,
+        color: tagColors[lowerLabelName].color
+      };
+    }
+    
+    // それ以外は提供された色を使用するが、コントラスト比を改善
+    const color = labelColor || '888888';
+    // 暗い背景色に明るいテキストを使用
+    return {
+      bg: `#${color}`,
+      color: isLightColor(color) ? '#000000' : '#FFFFFF'
+    };
+  }
+  
+  // 色が明るいかどうかを判定
+  function isLightColor(hexColor) {
+    // 16進数のカラーコードをRGBに変換
+    const r = parseInt(hexColor.substr(0, 2), 16);
+    const g = parseInt(hexColor.substr(2, 2), 16);
+    const b = parseInt(hexColor.substr(4, 2), 16);
+    
+    // 明るさを計算 (YIQ方式)
+    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+    
+    return yiq >= 128; // 128以上なら明るい色と判定
+  }
+
   // クライアントサイド検索機能
   document.addEventListener('DOMContentLoaded', async () => {
     try {
@@ -122,14 +165,17 @@ import { BASE_PATH } from '../config';
               excerptHtml = highlightText(excerpt, lowerQuery);
             }
             
-            // ラベル表示の処理
+            // ラベル表示の処理（改善版）
             const labelsHtml = issue.labels && issue.labels.length > 0 
               ? `<div class="search-result-labels">
-                  ${issue.labels.map(label => `
-                    <span class="search-tag" style="background-color: #${label.color}20; color: #${label.color}; border: 1px solid #${label.color}40;">
-                      ${label.name}
-                    </span>
-                  `).join('')}
+                  ${issue.labels.map(label => {
+                    const style = getOptimizedTagStyle(label.name, label.color);
+                    return `
+                      <span class="search-tag" style="background-color: ${style.bg}; color: ${style.color};">
+                        ${label.name}
+                      </span>
+                    `;
+                  }).join('')}
                 </div>` 
               : '';
             
@@ -343,11 +389,19 @@ import { BASE_PATH } from '../config';
   
   .search-tag {
     display: inline-block;
-    padding: 0.15em 0.5em;
-    border-radius: 0.25rem;
+    padding: 0.25em 0.65em;
+    border-radius: 1rem;
     font-size: 0.75rem;
-    font-weight: 500;
+    font-weight: 600;
     line-height: 1.2;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+  }
+  
+  .search-tag:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
   }
   
   .search-highlight {
