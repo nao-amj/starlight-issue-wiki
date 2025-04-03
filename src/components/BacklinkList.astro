@@ -1,0 +1,168 @@
+---
+// バックリンク一覧コンポーネント
+import { BASE_PATH } from '../config';
+import type { GitHubIssue } from '../data/types';
+
+interface Props {
+  backlinks: GitHubIssue[];
+  currentIssueNumber: number;
+}
+
+const { backlinks, currentIssueNumber } = Astro.props;
+---
+
+<div class="backlinks-container">
+  <div class="backlinks-header">
+    <h3>バックリンク</h3>
+    <span class="backlinks-count">{backlinks.length}</span>
+  </div>
+  
+  {backlinks.length > 0 ? (
+    <ul class="backlinks-list">
+      {backlinks.map(issue => (
+        <li class="backlink-item">
+          <a href={`${BASE_PATH}/wiki/${issue.number}`} class="backlink-link">
+            <div class="backlink-title">{issue.title}</div>
+            <div class="backlink-meta">
+              <span class="backlink-number">#{issue.number}</span>
+              <span class="backlink-date">
+                {new Date(issue.updated_at).toLocaleDateString('ja-JP')}
+              </span>
+            </div>
+          </a>
+        </li>
+      ))}
+    </ul>
+  ) : (
+    <p class="no-backlinks">このページにリンクしている他のページはありません。</p>
+  )}
+</div>
+
+<style>
+  .backlinks-container {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #eee;
+  }
+  
+  .dark .backlinks-container {
+    border-top-color: #444;
+  }
+  
+  .backlinks-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  
+  .backlinks-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+  }
+  
+  .backlinks-count {
+    background-color: #f0f0f0;
+    color: #555;
+    padding: 0.2rem 0.6rem;
+    border-radius: 1rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  
+  .dark .backlinks-count {
+    background-color: #333;
+    color: #ccc;
+  }
+  
+  .backlinks-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .backlink-item {
+    margin-bottom: 0.5rem;
+  }
+  
+  .backlink-link {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    background-color: #f9f9f9;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s;
+  }
+  
+  .dark .backlink-link {
+    background-color: #222;
+  }
+  
+  .backlink-link:hover {
+    background-color: #f0f0f0;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  }
+  
+  .dark .backlink-link:hover {
+    background-color: #2a2a2a;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  }
+  
+  .backlink-title {
+    font-weight: 500;
+    color: var(--color-primary);
+  }
+  
+  .backlink-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    font-size: 0.8rem;
+    color: #666;
+  }
+  
+  .dark .backlink-meta {
+    color: #aaa;
+  }
+  
+  .backlink-number {
+    font-weight: 600;
+  }
+  
+  .backlink-date {
+    font-style: italic;
+  }
+  
+  .no-backlinks {
+    color: #666;
+    font-style: italic;
+    padding: 1rem;
+    text-align: center;
+    background-color: #f9f9f9;
+    border-radius: 0.375rem;
+  }
+  
+  .dark .no-backlinks {
+    color: #aaa;
+    background-color: #222;
+  }
+  
+  @media (max-width: 640px) {
+    .backlink-link {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    .backlink-meta {
+      margin-top: 0.5rem;
+      flex-direction: row;
+      gap: 0.5rem;
+      align-items: center;
+    }
+  }
+</style>
