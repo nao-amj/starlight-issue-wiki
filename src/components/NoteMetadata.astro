@@ -1,0 +1,86 @@
+---
+/**
+ * NoteMetadata - Displays note creation date, last modified date, and ID
+ */
+import type { ZettelNote } from '../lib/zettelkasten';
+import { format } from 'date-fns';
+import { ja } from 'date-fns/locale';
+
+interface Props {
+  note: ZettelNote;
+  showId?: boolean;
+  showDates?: boolean;
+}
+
+const { note, showId = true, showDates = true } = Astro.props;
+
+// Format dates
+const createdDate = format(new Date(note.createdAt), 'yyyy年MM月dd日', { locale: ja });
+const updatedDate = format(new Date(note.updatedAt), 'yyyy年MM月dd日', { locale: ja });
+
+// Check if dates are the same
+const datesAreSame = createdDate === updatedDate;
+---
+
+<div class="note-metadata">
+  {showDates && (
+    <div class="metadata-dates">
+      <div class="metadata-created">
+        <span class="metadata-label">作成日:</span>
+        <time datetime={note.createdAt.toISOString()}>{createdDate}</time>
+      </div>
+      
+      {!datesAreSame && (
+        <div class="metadata-updated">
+          <span class="metadata-label">更新日:</span>
+          <time datetime={note.updatedAt.toISOString()}>{updatedDate}</time>
+        </div>
+      )}
+    </div>
+  )}
+  
+  {showId && (
+    <div class="metadata-id">
+      <span class="metadata-label">ID:</span>
+      <code>{note.id}</code>
+    </div>
+  )}
+</div>
+
+<style>
+  .note-metadata {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    font-size: 0.85rem;
+    color: #777;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px dashed #eee;
+  }
+  
+  .metadata-dates {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  
+  .metadata-label {
+    font-weight: 500;
+    margin-right: 0.3rem;
+  }
+  
+  .metadata-id code {
+    font-size: 0.8rem;
+    background-color: #f5f5f5;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+  }
+  
+  @media (max-width: 768px) {
+    .note-metadata {
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+  }
+</style>
