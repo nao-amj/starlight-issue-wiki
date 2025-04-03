@@ -1,6 +1,7 @@
 ---
 // 検索バーコンポーネント
 import { BASE_PATH } from '../config';
+import * as searchModule from '../lib/search.js';
 ---
 
 <div class="search-container">
@@ -17,13 +18,11 @@ import { BASE_PATH } from '../config';
   <div id="search-results" class="search-results"></div>
 </div>
 
-<script define:vars={{ BASE_PATH }}>
+<script define:vars={{ BASE_PATH, searchModule }}>
   // クライアントサイド検索機能
   document.addEventListener('DOMContentLoaded', async () => {
-    // 検索ユーティリティをロード
     try {
-      const module = await import('../lib/search.js');
-      const { filterIssuesByQuery, highlightText, extractContext, escapeRegExp } = module;
+      const { filterIssuesByQuery, highlightText, extractContext, escapeRegExp } = searchModule;
       
       const searchInput = document.getElementById('search-input');
       const searchResults = document.getElementById('search-results');
