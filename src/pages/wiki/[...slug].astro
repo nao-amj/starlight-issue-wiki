@@ -144,7 +144,7 @@ const showGraph = !isListPage && note.number !== -2;
           <a href={`${BASE_PATH}/wiki/index`} class={isListPage ? 'active' : ''}>ページ一覧</a>
           <a href={`${BASE_PATH}/wiki/welcome`} class={note.number === 1 ? 'active' : ''}>はじめに</a>
           <a href={`${BASE_PATH}/graph`} class="graph-link">知識グラフ</a>
-          <a href={REPO_URL}>GitHub</a>
+          <a href="/">標準版に戻る</a>
         </nav>
       </div>
     </div>
@@ -206,7 +206,7 @@ const showGraph = !isListPage && note.number !== -2;
         <div class="wiki-content" set:html={content}></div>
         
         {/* Backlinks section */}
-        {!isListPage && note.backlinks.length > 0 && (
+        {!isListPage && note.backlinks && note.backlinks.length > 0 && (
           <BacklinksList note={note} />
         )}
         
