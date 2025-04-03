@@ -1,8 +1,6 @@
 ---
 // 検索バーコンポーネント
 import { BASE_PATH } from '../config';
-// 検索機能のインポート
-import { filterIssuesByQuery, highlightText, extractContext, escapeRegExp } from '../lib/search.js';
 ---
 
 <div class="search-container">
@@ -19,25 +17,73 @@ import { filterIssuesByQuery, highlightText, extractContext, escapeRegExp } from
   <div id="search-results" class="search-results"></div>
 </div>
 
-<script define:vars={{ 
-  BASE_PATH,
-  filterIssuesByQuery: filterIssuesByQuery.toString(), 
-  highlightText: highlightText.toString(), 
-  extractContext: extractContext.toString(), 
-  escapeRegExp: escapeRegExp.toString()
-}}>
+<script is:inline>
+  // 検索ユーティリティ関数を直接スクリプトに埋め込む
+  function filterIssuesByQuery(issues, query) {
+    if (!query || query.length < 2 || !Array.isArray(issues)) {
+      return [];
+    }
+    
+    const lowerQuery = query.toLowerCase();
+    
+    return issues.filter(issue => 
+      (issue.title && issue.title.toLowerCase().includes(lowerQuery)) || 
+      (issue.body && issue.body.toLowerCase().includes(lowerQuery))
+    );
+  }
+
+  function highlightText(text, query) {
+    if (!text || !query) return '';
+    
+    try {
+      const regex = new RegExp(`(${escapeRegExp(query)})`, 'gi');
+      return text.replace(regex, '<mark class="search-highlight">$1</mark>');
+    } catch (error) {
+      console.error('ハイライト処理でエラーが発生しました:', error);
+      return text;
+    }
+  }
+
+  function extractContext(text, query, contextLength = 50) {
+    if (!text || !query) return '';
+    
+    try {
+      const lowerText = text.toLowerCase();
+      const lowerQuery = query.toLowerCase();
+      const matchIndex = lowerText.indexOf(lowerQuery);
+      
+      if (matchIndex >= 0) {
+        const startPos = Math.max(0, matchIndex - contextLength);
+        const endPos = Math.min(text.length, matchIndex + lowerQuery.length + contextLength);
+        let excerpt = text.substring(startPos, endPos);
+        
+        // 前後が切れている場合は省略記号を追加
+        if (startPos > 0) excerpt = '...' + excerpt;
+        if (endPos < text.length) excerpt = excerpt + '...';
+        
+        return excerpt;
+      }
+      
+      // 本文にキーワードが含まれない場合は先頭を表示
+      return text.substring(0, 100) + (text.length > 100 ? '...' : '');
+    } catch (error) {
+      console.error('コンテキスト抽出でエラーが発生しました:', error);
+      return text.substring(0, 100) + (text.length > 100 ? '...' : '');
+    }
+  }
+
+  function escapeRegExp(string) {
+    if (!string) return '';
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
   // クライアントサイド検索機能
   document.addEventListener('DOMContentLoaded', async () => {
     try {
-      // 文字列から関数を復元
-      const filterIssuesByQueryFn = new Function('return ' + filterIssuesByQuery)();
-      const highlightTextFn = new Function('return ' + highlightText)();
-      const extractContextFn = new Function('return ' + extractContext)();
-      const escapeRegExpFn = new Function('return ' + escapeRegExp)();
-      
       const searchInput = document.getElementById('search-input');
       const searchResults = document.getElementById('search-results');
       let issues = [];
+      const BASE_PATH = '/starlight-issue-wiki'; // または適切なパスを設定
 
       // GitHub APIからissueデータを取得
       async function fetchIssues() {
@@ -60,20 +106,20 @@ import { filterIssuesByQuery, highlightText, extractContext, escapeRegExp } from
         }
 
         const lowerQuery = query.toLowerCase();
-        const matches = filterIssuesByQueryFn(issues, query);
+        const matches = filterIssuesByQuery(issues, query);
 
         if (matches.length === 0) {
           searchResults.innerHTML = '<div class="no-results">検索結果がありません</div>';
         } else {
           searchResults.innerHTML = matches.slice(0, 5).map(issue => {
             // タイトル内のキーワードをハイライト
-            const highlightedTitle = highlightTextFn(issue.title, lowerQuery);
+            const highlightedTitle = highlightText(issue.title, lowerQuery);
             
             // 本文の関連箇所を抽出してハイライト
             let excerptHtml = '';
             if (issue.body) {
-              const excerpt = extractContextFn(issue.body, lowerQuery);
-              excerptHtml = highlightTextFn(excerpt, lowerQuery);
+              const excerpt = extractContext(issue.body, lowerQuery);
+              excerptHtml = highlightText(excerpt, lowerQuery);
             }
             
             return `
