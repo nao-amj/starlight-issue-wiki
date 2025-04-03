@@ -1,7 +1,8 @@
 ---
 // 検索バーコンポーネント
 import { BASE_PATH } from '../config';
-import * as searchModule from '../lib/search.js';
+// 検索機能のインポート
+import { filterIssuesByQuery, highlightText, extractContext, escapeRegExp } from '../lib/search.js';
 ---
 
 <div class="search-container">
@@ -18,11 +19,21 @@ import * as searchModule from '../lib/search.js';
   <div id="search-results" class="search-results"></div>
 </div>
 
-<script define:vars={{ BASE_PATH, searchModule }}>
+<script define:vars={{ 
+  BASE_PATH,
+  filterIssuesByQuery: filterIssuesByQuery.toString(), 
+  highlightText: highlightText.toString(), 
+  extractContext: extractContext.toString(), 
+  escapeRegExp: escapeRegExp.toString()
+}}>
   // クライアントサイド検索機能
   document.addEventListener('DOMContentLoaded', async () => {
     try {
-      const { filterIssuesByQuery, highlightText, extractContext, escapeRegExp } = searchModule;
+      // 文字列から関数を復元
+      const filterIssuesByQueryFn = new Function('return ' + filterIssuesByQuery)();
+      const highlightTextFn = new Function('return ' + highlightText)();
+      const extractContextFn = new Function('return ' + extractContext)();
+      const escapeRegExpFn = new Function('return ' + escapeRegExp)();
       
       const searchInput = document.getElementById('search-input');
       const searchResults = document.getElementById('search-results');
@@ -49,20 +60,20 @@ import * as searchModule from '../lib/search.js';
         }
 
         const lowerQuery = query.toLowerCase();
-        const matches = filterIssuesByQuery(issues, query);
+        const matches = filterIssuesByQueryFn(issues, query);
 
         if (matches.length === 0) {
           searchResults.innerHTML = '<div class="no-results">検索結果がありません</div>';
         } else {
           searchResults.innerHTML = matches.slice(0, 5).map(issue => {
             // タイトル内のキーワードをハイライト
-            const highlightedTitle = highlightText(issue.title, lowerQuery);
+            const highlightedTitle = highlightTextFn(issue.title, lowerQuery);
             
             // 本文の関連箇所を抽出してハイライト
             let excerptHtml = '';
             if (issue.body) {
-              const excerpt = extractContext(issue.body, lowerQuery);
-              excerptHtml = highlightText(excerpt, lowerQuery);
+              const excerpt = extractContextFn(issue.body, lowerQuery);
+              excerptHtml = highlightTextFn(excerpt, lowerQuery);
             }
             
             return `
@@ -111,7 +122,7 @@ import * as searchModule from '../lib/search.js';
       // 初期ロード
       fetchIssues();
     } catch (error) {
-      console.error('検索モジュールの読み込みに失敗しました:', error);
+      console.error('検索機能の初期化に失敗しました:', error);
     }
   });
 </script>
