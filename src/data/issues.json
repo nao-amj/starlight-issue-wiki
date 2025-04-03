@@ -1,5 +1,25 @@
 [
   {
+    "number": 14,
+    "title": "Zettelkasten",
+    "body": "# Zettelkasten\n\nZettelkastenは、ドイツの社会学者ニクラス・ルーマンが開発した知識管理手法です。「メモ箱」を意味するこの方法は、知識の蓄積と相互参照を促進します。\n\n## 基本原則\n\n1. **アトミックなノート**: 各ノートは1つのアイデアだけを含む\n2. **永続的なIDの使用**: 各ノートに固有のIDを付与\n3. **相互リンク**: ノート間を豊富にリンク\n4. **自分の言葉で書く**: 理解したことを自分の言葉で表現\n5. **発見可能性の確保**: タグや索引で見つけやすくする\n\n## デジタルZettelkasten\n\n現代では、多くのデジタルツールがZettelkastenの実装をサポートしています：\n\n- [[Obsidian]] - マークダウンベースのZettelkastenツール\n- [[Roam Research]] - 双方向リンクに特化したツール\n- [[Logseq]] - オープンソースの知識ベース\n- **GitWiki Hub** - GitHubのissueを活用したZettelkasten（このプロジェクト）\n\n## メリット\n\n- 創造的な発想を促進する\n- 知識の関連性を視覚化できる\n- 長期的な知識の蓄積に適している\n- 思考プロセスを外在化できる\n\n## 使用例\n\nZettelkastenは以下のような用途に適しています：\n\n- 研究ノート\n- 個人的な知識ベース\n- 創作活動のアイデア管理\n- プロジェクト管理\n\n## 関連情報\n\n- #knowledge-management\n- #note-taking\n- #productivity\n\n---\n\n詳細な使い方については [[Zettelkasten機能の使い方]] をご覧ください。",
+    "html_url": "https://github.com/nao-amj/starlight-issue-wiki/issues/14",
+    "created_at": "2025-04-03T06:18:36Z",
+    "updated_at": "2025-04-03T06:18:36Z",
+    "labels": [
+      {
+        "name": "documentation",
+        "color": "0075ca",
+        "description": "Improvements or additions to documentation"
+      },
+      {
+        "name": "wiki",
+        "color": "ededed",
+        "description": null
+      }
+    ]
+  },
+  {
     "number": 13,
     "title": "Zettelkasten機能の使い方",
     "body": "# Zettelkasten機能の使い方\n\nこのページでは、GitWiki Hubに追加された[[Zettelkasten]]機能の使い方を説明します。\n\n## 双方向リンク\n\n二重角括弧 `[[ノート名]]` を使用すると、他のノートへの双方向リンクが作成されます。例えば：\n\n- [[GitWiki Hub 機能紹介]] - 基本機能の紹介ページへのリンク\n- [[ようこそGitWiki Hubへ]] - Welcomeページへのリンク\n\nリンク先のページには自動的にバックリンク（「参照元」）として、このページへのリンクが表示されます。\n\n## タグ機能\n\n`#` 記号を使ってタグを付けることができます。例えば：\n\n- #zettelkasten\n- #wiki\n- #tutorial\n\nGitHubのラベルもタグとして認識されます。\n\n## グラフビジュアライゼーション\n\n各ページにはノート間のつながりを示す小さなグラフが表示されます。また、上部メニューから「知識グラフ」を選択すると、Wiki全体のグラフを表示できます。\n\n## メモの取り方のポイント\n\nZettelkastenの効果的な使い方：\n\n1. **アトミックな記述**: 1つのノートには1つの概念やアイデアを書く\n2. **豊富な相互リンク**: 関連するノートへのリンクをたくさん作る\n3. **自分の言葉で書く**: コピーではなく、自分の理解を表現する\n4. **タグで整理**: 適切なタグで分類して見つけやすくする\n\n## 関連情報\n\n- #personal-knowledge-management\n- #notes\n- #digital-garden\n\n---\n\n*このページ自体がZettelkasten機能のデモとして機能しています。双方向リンクやタグがどのように機能するか確認してください。*",
