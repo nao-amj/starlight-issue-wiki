@@ -1,0 +1,483 @@
+---
+// Zettelkasten設定パネル
+import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
+---
+
+<div class="settings-icon" id="settings-toggle" aria-label="設定">
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="3"></circle>
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+  </svg>
+</div>
+
+<div class="settings-panel" id="settings-panel">
+  <div class="settings-header">
+    <h2>設定</h2>
+    <button class="close-button" id="close-settings" aria-label="閉じる">✕</button>
+  </div>
+  
+  <div class="settings-section">
+    <h3>Zettelkastenモード</h3>
+    <p>メモ同士のリンクを自動で検出し、ナレッジベースのように利用できます。</p>
+    
+    <div class="setting-item">
+      <label class="switch">
+        <input type="checkbox" id="zettelkasten-enabled">
+        <span class="slider"></span>
+      </label>
+      <span class="setting-label">Zettelkastenモードを有効にする</span>
+    </div>
+    
+    <div class="sub-settings" id="zettelkasten-sub-settings">
+      <div class="setting-item">
+        <label class="switch">
+          <input type="checkbox" id="autolink-keywords">
+          <span class="slider"></span>
+        </label>
+        <span class="setting-label">キーワードを自動的にリンクする</span>
+      </div>
+      
+      <div class="setting-item">
+        <label class="switch">
+          <input type="checkbox" id="highlight-bidirectional">
+          <span class="slider"></span>
+        </label>
+        <span class="setting-label">双方向リンクを強調表示する</span>
+      </div>
+      
+      <div class="setting-item">
+        <label class="switch">
+          <input type="checkbox" id="show-backlinks">
+          <span class="slider"></span>
+        </label>
+        <span class="setting-label">バックリンク一覧を表示する</span>
+      </div>
+      
+      <div class="setting-item slider-container">
+        <label for="keyword-min-length" class="slider-label">
+          自動リンクする最小キーワード長: <span id="keyword-length-value">3</span>
+        </label>
+        <input type="range" id="keyword-min-length" min="2" max="8" value="3" class="range-slider">
+      </div>
+    </div>
+  </div>
+  
+  <div class="settings-footer">
+    <button class="save-button" id="save-settings">設定を保存</button>
+    <button class="reset-button" id="reset-settings">初期値に戻す</button>
+  </div>
+</div>
+
+<style>
+  .settings-icon {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background-color: var(--color-primary);
+    color: white;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 100;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s;
+  }
+  
+  .settings-icon:hover {
+    transform: scale(1.1);
+  }
+  
+  .settings-panel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 500px;
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    padding: 1.5rem;
+    z-index: 1000;
+    display: none;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  
+  .dark .settings-panel {
+    background-color: #222;
+    color: #eee;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  }
+  
+  .settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .dark .settings-header {
+    border-bottom-color: #444;
+  }
+  
+  .settings-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+  }
+  
+  .close-button {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: #666;
+  }
+  
+  .dark .close-button {
+    color: #aaa;
+  }
+  
+  .close-button:hover {
+    color: #333;
+  }
+  
+  .dark .close-button:hover {
+    color: #fff;
+  }
+  
+  .settings-section {
+    margin-bottom: 2rem;
+  }
+  
+  .settings-section h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.2rem;
+  }
+  
+  .settings-section p {
+    color: #666;
+    margin: 0 0 1rem 0;
+    font-size: 0.9rem;
+  }
+  
+  .dark .settings-section p {
+    color: #aaa;
+  }
+  
+  .setting-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  
+  .setting-label {
+    margin-left: 1rem;
+  }
+  
+  .sub-settings {
+    margin-left: 1.5rem;
+    margin-top: 1rem;
+    padding-left: 1rem;
+    border-left: 2px solid #eee;
+  }
+  
+  .dark .sub-settings {
+    border-left-color: #444;
+  }
+  
+  /* トグルスイッチのスタイル */
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+  
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 24px;
+  }
+  
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+  }
+  
+  input:checked + .slider {
+    background-color: var(--color-primary);
+  }
+  
+  input:focus + .slider {
+    box-shadow: 0 0 1px var(--color-primary);
+  }
+  
+  input:checked + .slider:before {
+    transform: translateX(24px);
+  }
+  
+  /* スライダーのスタイル */
+  .slider-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .slider-label {
+    margin-bottom: 0.5rem;
+    width: 100%;
+  }
+  
+  .range-slider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 8px;
+    border-radius: 5px;
+    background: #d3d3d3;
+    outline: none;
+  }
+  
+  .range-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    cursor: pointer;
+  }
+  
+  .range-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    cursor: pointer;
+  }
+  
+  /* フッターのスタイル */
+  .settings-footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #eee;
+  }
+  
+  .dark .settings-footer {
+    border-top-color: #444;
+  }
+  
+  .save-button, .reset-button {
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+  
+  .save-button {
+    background-color: var(--color-primary);
+    color: white;
+    border: none;
+  }
+  
+  .save-button:hover {
+    background-color: var(--color-primary-dark, #4a5fdd);
+  }
+  
+  .reset-button {
+    background-color: transparent;
+    color: #666;
+    border: 1px solid #ccc;
+  }
+  
+  .dark .reset-button {
+    color: #ccc;
+    border-color: #555;
+  }
+  
+  .reset-button:hover {
+    background-color: #f5f5f5;
+    color: #333;
+  }
+  
+  .dark .reset-button:hover {
+    background-color: #333;
+    color: #eee;
+  }
+  
+  /* モバイル向け調整 */
+  @media (max-width: 640px) {
+    .settings-panel {
+      width: 95%;
+      padding: 1rem;
+    }
+    
+    .settings-icon {
+      bottom: 1rem;
+      right: 1rem;
+    }
+  }
+</style>
+
+<script is:inline>
+  document.addEventListener('DOMContentLoaded', () => {
+    const toggleButton = document.getElementById('settings-toggle');
+    const settingsPanel = document.getElementById('settings-panel');
+    const closeButton = document.getElementById('close-settings');
+    const saveButton = document.getElementById('save-settings');
+    const resetButton = document.getElementById('reset-settings');
+    
+    // 設定フォーム要素
+    const zettelkastenEnabled = document.getElementById('zettelkasten-enabled');
+    const autolinkKeywords = document.getElementById('autolink-keywords');
+    const highlightBidirectional = document.getElementById('highlight-bidirectional');
+    const showBacklinks = document.getElementById('show-backlinks');
+    const keywordMinLength = document.getElementById('keyword-min-length');
+    const keywordLengthValue = document.getElementById('keyword-length-value');
+    const subSettings = document.getElementById('zettelkasten-sub-settings');
+    
+    // デフォルト設定（設定がない場合用）
+    const defaultConfig = {
+      enabled: false,
+      autoLinkKeywords: true,
+      highlightBidirectional: true,
+      showBacklinks: true,
+      keywordMinLength: 3
+    };
+    
+    // 設定パネルの表示・非表示
+    if (toggleButton && settingsPanel) {
+      toggleButton.addEventListener('click', () => {
+        settingsPanel.style.display = 'block';
+        loadSettings();
+      });
+    }
+    
+    if (closeButton) {
+      closeButton.addEventListener('click', () => {
+        settingsPanel.style.display = 'none';
+      });
+    }
+    
+    // サブ設定の表示・非表示を切り替え
+    if (zettelkastenEnabled && subSettings) {
+      zettelkastenEnabled.addEventListener('change', () => {
+        subSettings.style.display = zettelkastenEnabled.checked ? 'block' : 'none';
+      });
+    }
+    
+    // スライダーの値を表示
+    if (keywordMinLength && keywordLengthValue) {
+      keywordMinLength.addEventListener('input', () => {
+        keywordLengthValue.textContent = keywordMinLength.value;
+      });
+    }
+    
+    // 設定を保存
+    if (saveButton) {
+      saveButton.addEventListener('click', () => {
+        saveSettings();
+        settingsPanel.style.display = 'none';
+        // 設定が変更されたことを通知
+        window.dispatchEvent(new CustomEvent('zettelkasten-settings-changed'));
+      });
+    }
+    
+    // 設定をリセット
+    if (resetButton) {
+      resetButton.addEventListener('click', () => {
+        resetSettings();
+      });
+    }
+    
+    // 設定を読み込み
+    function loadSettings() {
+      try {
+        let config = defaultConfig;
+        const savedConfig = localStorage.getItem('zettelkastenConfig');
+        
+        if (savedConfig) {
+          config = JSON.parse(savedConfig);
+        }
+        
+        zettelkastenEnabled.checked = config.enabled;
+        autolinkKeywords.checked = config.autoLinkKeywords;
+        highlightBidirectional.checked = config.highlightBidirectional;
+        showBacklinks.checked = config.showBacklinks;
+        keywordMinLength.value = config.keywordMinLength;
+        keywordLengthValue.textContent = config.keywordMinLength;
+        
+        subSettings.style.display = config.enabled ? 'block' : 'none';
+      } catch (error) {
+        console.error('設定の読み込みに失敗しました:', error);
+      }
+    }
+    
+    // 設定を保存
+    function saveSettings() {
+      try {
+        const config = {
+          enabled: zettelkastenEnabled.checked,
+          autoLinkKeywords: autolinkKeywords.checked,
+          highlightBidirectional: highlightBidirectional.checked,
+          showBacklinks: showBacklinks.checked,
+          keywordMinLength: parseInt(keywordMinLength.value, 10)
+        };
+        
+        localStorage.setItem('zettelkastenConfig', JSON.stringify(config));
+        
+        // 保存成功メッセージを表示
+        const saveMessage = document.createElement('div');
+        saveMessage.className = 'save-message';
+        saveMessage.textContent = '設定を保存しました';
+        document.body.appendChild(saveMessage);
+        
+        setTimeout(() => {
+          saveMessage.remove();
+        }, 2000);
+      } catch (error) {
+        console.error('設定の保存に失敗しました:', error);
+      }
+    }
+    
+    // 設定をリセット
+    function resetSettings() {
+      zettelkastenEnabled.checked = defaultConfig.enabled;
+      autolinkKeywords.checked = defaultConfig.autoLinkKeywords;
+      highlightBidirectional.checked = defaultConfig.highlightBidirectional;
+      showBacklinks.checked = defaultConfig.showBacklinks;
+      keywordMinLength.value = defaultConfig.keywordMinLength;
+      keywordLengthValue.textContent = defaultConfig.keywordMinLength;
+      
+      subSettings.style.display = defaultConfig.enabled ? 'block' : 'none';
+    }
+  });
+</script>
