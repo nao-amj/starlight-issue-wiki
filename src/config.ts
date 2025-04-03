@@ -18,3 +18,21 @@ export const REPO_URL = `https://github.com/${REPO_OWNER}/${REPO_NAME}`;
 // サイト情報
 export const SITE_TITLE = 'GitWiki Hub';
 export const SITE_DESCRIPTION = 'GitHubのissueを使って管理するスマートなWikiプラットフォーム';
+
+// Zettelkasten設定
+export interface ZettelkastenConfig {
+  enabled: boolean;        // Zettelkastenモードを有効化するかどうか
+  autoLinkKeywords: boolean;  // キーワードを自動的にリンクするかどうか
+  highlightBidirectional: boolean; // 双方向リンクを強調表示するかどうか
+  showBacklinks: boolean;  // バックリンク一覧を表示するかどうか
+  keywordMinLength: number; // 自動リンクする最小キーワード長
+}
+
+// デフォルトのZettelkasten設定
+export const DEFAULT_ZETTELKASTEN_CONFIG: ZettelkastenConfig = {
+  enabled: false,
+  autoLinkKeywords: true,
+  highlightBidirectional: true,
+  showBacklinks: true,
+  keywordMinLength: 3
+};
