@@ -43,6 +43,11 @@ const recentIssues = [...issues]
 
 // 現在の時刻
 const now = new Date();
+
+// 人気のあるコンテンツ（ラベルの数が多いもの上位5件）
+const popularContent = [...issues]
+  .sort((a, b) => (b.labels?.length || 0) - (a.labels?.length || 0))
+  .slice(0, 5);
 ---
 
 <!DOCTYPE html>
@@ -63,7 +68,7 @@ const now = new Date();
           <a href={BASE_PATH + "/"} class="active">ホーム</a>
           <a href={`${BASE_PATH}/wiki/index`}>ページ一覧</a>
           <a href={`${BASE_PATH}/wiki/welcome`}>はじめに</a>
-          <a href={`${BASE_PATH}/zettelkasten`} class="special-link">Zettelkasten版</a>
+          <a href={`${BASE_PATH}/zettelkasten.html`} class="special-link">Zettelkasten版</a>
           <a href={REPO_URL}>GitHub</a>
         </nav>
       </div>
@@ -74,6 +79,10 @@ const now = new Date();
     <div class="container">
       <h1>GitWiki Hub</h1>
       <p>GitHubのissueを動的に取得してWikiとして表示するモダンなWebアプリケーション</p>
+      <div class="search-container">
+        <input type="text" id="search-input" placeholder="キーワードで検索..." class="search-input">
+        <button id="search-button" class="search-button">検索</button>
+      </div>
       <div class="hero-buttons">
         <a href={`${BASE_PATH}/wiki/welcome`} class="hero-button primary">はじめてみる</a>
         <a href={REPO_URL} class="hero-button secondary">GitHub</a>
@@ -82,30 +91,8 @@ const now = new Date();
   </div>
 
   <main class="container">
-    <div class="feature-section">
-      <h2>主な機能</h2>
-      <div class="feature-grid">
-        <div class="feature-card">
-          <h3>Markdownサポート</h3>
-          <p>GitHubのMarkdown記法をそのまま利用可能。コード、表、リスト、画像など様々な形式のコンテンツを表現できます。</p>
-        </div>
-        <div class="feature-card">
-          <h3>カテゴリ分類</h3>
-          <p>GitHubのラベル機能を活用して、コンテンツをカテゴリ別に分類できます。</p>
-        </div>
-        <div class="feature-card">
-          <h3>自動デプロイ</h3>
-          <p>GitHubのissueに変更があると、自動的にサイトが更新されます。面倒なデプロイ手順は不要です。</p>
-        </div>
-        <div class="feature-card">
-          <h3>レスポンシブデザイン</h3>
-          <p>どのデバイスでも快適に閲覧できるレスポンシブなデザインを採用しています。</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="content-section">
-      <div class="timeline">
+    <div class="dashboard-layout">
+      <div class="timeline-section">
         <h2>最近の更新</h2>
         <ul class="timeline-list">
           {recentIssues.map(issue => {
@@ -141,31 +128,63 @@ const now = new Date();
         </div>
       </div>
 
-      <div class="categories">
-        <h2>カテゴリ</h2>
-        <div class="categories-grid">
-          {categories.map(category => (
-            <div class="category-card">
-              <h3>{category}</h3>
-              <p>{categorizedIssues[category].length} ページ</p>
-              <ul class="category-list">
-                {categorizedIssues[category].slice(0, 3).map(issue => {
-                  const slug = generateSlug(issue.title);
-                  return (
-                    <li>
-                      <a href={`${BASE_PATH}/wiki/${slug}`}>{issue.title}</a>
-                    </li>
-                  );
-                })}
-                {categorizedIssues[category].length > 3 && (
-                  <li class="more-link">
-                    <a href={`${BASE_PATH}/category/${category}`}>もっと見る...</a>
-                  </li>
-                )}
-              </ul>
-            </div>
-          ))}
+      <div class="sidebar-section">
+        <div class="popular-content">
+          <h2>人気のコンテンツ</h2>
+          <ul class="popular-list">
+            {popularContent.map(issue => {
+              const slug = generateSlug(issue.title);
+              return (
+                <li class="popular-item">
+                  <a href={`${BASE_PATH}/wiki/${slug}`}>{issue.title}</a>
+                  <div class="popular-labels">
+                    {issue.labels?.slice(0, 3).map(label => (
+                      <span class="popular-label" style={`background-color: #${label.color}`}>
+                        {label.name}
+                      </span>
+                    ))}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         </div>
+
+        <div class="categories-widget">
+          <h2>カテゴリー</h2>
+          <ul class="categories-list">
+            {categories.map(category => (
+              <li class="category-item">
+                <a href={`${BASE_PATH}/category/${category}`}>
+                  {category}
+                  <span class="category-count">{categorizedIssues[category].length}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="quick-actions">
+      <h2>クイックアクセス</h2>
+      <div class="action-buttons">
+        <a href={`${BASE_PATH}/wiki/welcome`} class="action-button">
+          <span class="action-icon">📚</span>
+          <span class="action-text">はじめてみる</span>
+        </a>
+        <a href={`${BASE_PATH}/wiki/index`} class="action-button">
+          <span class="action-icon">📋</span>
+          <span class="action-text">ページ一覧</span>
+        </a>
+        <a href={`${BASE_PATH}/zettelkasten.html`} class="action-button">
+          <span class="action-icon">🧠</span>
+          <span class="action-text">Zettelkasten版</span>
+        </a>
+        <a href={REPO_URL + "/issues/new"} class="action-button">
+          <span class="action-icon">✏️</span>
+          <span class="action-text">新規ページ作成</span>
+        </a>
       </div>
     </div>
   </main>
@@ -175,6 +194,28 @@ const now = new Date();
       <p>© 2025 Starlight Issue Wiki</p>
     </div>
   </footer>
+
+  <script>
+    // 検索機能
+    document.addEventListener('DOMContentLoaded', () => {
+      const searchInput = document.getElementById('search-input');
+      const searchButton = document.getElementById('search-button');
+
+      const handleSearch = () => {
+        const query = searchInput.value.trim();
+        if (query) {
+          window.location.href = `${BASE_PATH}/search?q=${encodeURIComponent(query)}`;
+        }
+      };
+
+      searchButton.addEventListener('click', handleSearch);
+      searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          handleSearch();
+        }
+      });
+    });
+  </script>
 
   <style>
     body {
@@ -248,6 +289,32 @@ const now = new Date();
       margin-bottom: 2rem;
       opacity: 0.9;
     }
+    .search-container {
+      max-width: 600px;
+      margin: 0 auto 2rem;
+      display: flex;
+      gap: 0.5rem;
+    }
+    .search-input {
+      flex-grow: 1;
+      padding: 0.8rem 1rem;
+      border: none;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+    .search-button {
+      background-color: #ffeb3b;
+      color: #333;
+      border: none;
+      border-radius: 4px;
+      padding: 0.8rem 1.5rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .search-button:hover {
+      background-color: #ffd700;
+    }
     .hero-buttons {
       display: flex;
       gap: 1rem;
@@ -280,51 +347,24 @@ const now = new Date();
     main {
       padding: 3rem 0;
     }
-    .feature-section {
+
+    .dashboard-layout {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 2rem;
       margin-bottom: 3rem;
     }
-    .feature-section h2 {
-      text-align: center;
-      margin-bottom: 2rem;
-      font-size: 2rem;
-      color: #333;
-    }
-    .feature-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-      gap: 2rem;
-    }
-    .feature-card {
-      background-color: white;
-      padding: 1.5rem;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-      transition: transform 0.3s, box-shadow 0.3s;
-    }
-    .feature-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
-    }
-    .feature-card h3 {
-      color: #4d1a9e;
-      margin-top: 0;
-      margin-bottom: 0.5rem;
-    }
-    .feature-card p {
-      margin: 0;
-      color: #666;
-    }
-    .content-section {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 2rem;
-    }
-    .timeline h2,
-    .categories h2 {
+    
+    .timeline-section h2,
+    .sidebar-section h2,
+    .quick-actions h2 {
       font-size: 1.5rem;
       margin-bottom: 1.5rem;
       color: #333;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid #eee;
     }
+    
     .timeline-list {
       list-style: none;
       padding: 0;
@@ -369,6 +409,7 @@ const now = new Date();
       border-radius: 20px;
       color: #333;
     }
+    
     .view-all {
       margin-top: 1.5rem;
       text-align: right;
@@ -381,49 +422,124 @@ const now = new Date();
     .view-all a:hover {
       text-decoration: underline;
     }
-    .categories-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 1rem;
-    }
-    .category-card {
+    
+    .popular-content,
+    .categories-widget {
       background-color: white;
-      padding: 1.2rem;
+      padding: 1.5rem;
       border-radius: 8px;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      margin-bottom: 2rem;
     }
-    .category-card h3 {
-      margin-top: 0;
-      margin-bottom: 0.5rem;
-      color: #4d1a9e;
-      font-size: 1.1rem;
-    }
-    .category-card p {
-      margin-top: 0;
-      margin-bottom: 1rem;
-      color: #888;
-      font-size: 0.9rem;
-    }
-    .category-list {
+    
+    .popular-list,
+    .categories-list {
       list-style: none;
       padding: 0;
       margin: 0;
     }
-    .category-list li {
-      margin-bottom: 0.5rem;
+    
+    .popular-item {
+      margin-bottom: 1rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid #eee;
     }
-    .category-list a {
-      color: #333;
-      text-decoration: none;
-      font-size: 0.9rem;
+    
+    .popular-item:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
     }
-    .category-list a:hover {
+    
+    .popular-item a {
       color: #4d1a9e;
+      text-decoration: none;
+      font-weight: 500;
+      display: block;
+      margin-bottom: 0.3rem;
+    }
+    
+    .popular-item a:hover {
       text-decoration: underline;
     }
-    .more-link {
-      font-style: italic;
+    
+    .popular-labels {
+      display: flex;
+      gap: 0.3rem;
     }
+    
+    .popular-label {
+      font-size: 0.65rem;
+      padding: 0.1rem 0.4rem;
+      border-radius: 20px;
+      color: #333;
+    }
+    
+    .category-item {
+      margin-bottom: 0.5rem;
+    }
+    
+    .category-item a {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem;
+      text-decoration: none;
+      color: #333;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+    
+    .category-item a:hover {
+      background-color: #f5f5f5;
+      color: #4d1a9e;
+    }
+    
+    .category-count {
+      background-color: #eee;
+      padding: 0.1rem 0.5rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      color: #666;
+    }
+    
+    .quick-actions {
+      margin-top: 2rem;
+    }
+    
+    .action-buttons {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    
+    .action-button {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      transition: all 0.3s;
+      text-decoration: none;
+      color: #333;
+    }
+    
+    .action-button:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .action-icon {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .action-text {
+      font-weight: 500;
+    }
+    
     footer {
       background-color: #f5f5f5;
       padding: 2rem 0;
@@ -443,7 +559,7 @@ const now = new Date();
         justify-content: space-between;
         flex-wrap: wrap;
       }
-      .content-section {
+      .dashboard-layout {
         grid-template-columns: 1fr;
       }
       .timeline-meta {
@@ -454,6 +570,12 @@ const now = new Date();
       }
       .hero p {
         font-size: 1rem;
+      }
+      .action-buttons {
+        flex-wrap: wrap;
+      }
+      .action-button {
+        min-width: calc(50% - 1rem);
       }
     }
   </style>
