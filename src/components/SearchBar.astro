@@ -17,13 +17,12 @@ import { BASE_PATH } from '../config';
   <div id="search-results" class="search-results"></div>
 </div>
 
-<script src="../lib/search.js"></script>
-
 <script define:vars={{ BASE_PATH }}>
   // クライアントサイド検索機能
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('DOMContentLoaded', async () => {
     // 検索ユーティリティをロード
-    import('../lib/search.js').then(module => {
+    try {
+      const module = await import('../lib/search.js');
       const { filterIssuesByQuery, highlightText, extractContext, escapeRegExp } = module;
       
       const searchInput = document.getElementById('search-input');
@@ -36,6 +35,7 @@ import { BASE_PATH } from '../config';
           const response = await fetch('https://api.github.com/repos/nao-amj/starlight-issue-wiki/issues?state=all&per_page=100');
           if (!response.ok) throw new Error('GitHub API error');
           issues = await response.json();
+          console.log(`取得したIssue数: ${issues.length}`);
         } catch (error) {
           console.error('Error fetching issues:', error);
         }
@@ -111,7 +111,9 @@ import { BASE_PATH } from '../config';
 
       // 初期ロード
       fetchIssues();
-    });
+    } catch (error) {
+      console.error('検索モジュールの読み込みに失敗しました:', error);
+    }
   });
 </script>
 
