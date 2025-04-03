@@ -28,12 +28,14 @@ const { title, description = 'GitHubのIssueを使って管理するWikiサイ�
     <div class="container">
       <div class="header-content">
         <h1><a href={BASE_PATH + "/"} class="title-link">GitWiki Hub</a></h1>
-        <nav>
-          <a href={BASE_PATH + "/"}>ホーム</a>
-          <a href={`${BASE_PATH}/wiki/1`}>はじめに</a>
-          <a href={REPO_URL}>GitHub</a>
+        <div class="nav-container">
+          <nav>
+            <a href={BASE_PATH + "/"}>ホーム</a>
+            <a href={`${BASE_PATH}/wiki/1`}>はじめに</a>
+            <a href={REPO_URL}>GitHub</a>
+          </nav>
           <button id="settings-toggle-btn" class="settings-toggle-btn">設定</button>
-        </nav>
+        </div>
       </div>
     </div>
   </header>
@@ -82,6 +84,13 @@ const { title, description = 'GitHubのIssueを使って管理するWikiサイ�
       color: white !important;
       text-decoration: none;
     }
+    
+    /* ナビゲーションとボタンを整列するためのコンテナ */
+    .nav-container {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
 
     /* 設定ボタンのスタイル */
     .settings-toggle-btn {
@@ -93,6 +102,7 @@ const { title, description = 'GitHubのIssueを使って管理するWikiサイ�
       font-weight: 500;
       cursor: pointer;
       transition: all 0.2s;
+      white-space: nowrap;
     }
 
     .settings-toggle-btn:hover {
@@ -103,6 +113,34 @@ const { title, description = 'GitHubのIssueを使って管理するWikiサイ�
     @keyframes fadeInOut {
       0%, 100% { opacity: 0; }
       10%, 90% { opacity: 1; }
+    }
+    
+    /* スマホ表示の改善 */
+    @media (max-width: 768px) {
+      .header-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+      }
+      
+      .nav-container {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+      }
+      
+      nav {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        max-width: calc(100% - 80px);
+        padding-bottom: 0.5rem;
+      }
+      
+      nav a {
+        white-space: nowrap;
+      }
     }
   </style>
 
@@ -131,6 +169,8 @@ const { title, description = 'GitHubのIssueを使って管理するWikiサイ�
             const settingsPanel = document.getElementById('settings-panel');
             if (settingsPanel) {
               settingsPanel.style.display = 'block';
+              // イベント発火して設定を読み込む
+              window.dispatchEvent(new CustomEvent('settings-panel-open'));
             }
           });
         }
@@ -143,6 +183,7 @@ const { title, description = 'GitHubのIssueを使って管理するWikiサイ�
             const settingsPanel = document.getElementById('settings-panel');
             if (settingsPanel) {
               settingsPanel.style.display = 'block';
+              window.dispatchEvent(new CustomEvent('settings-panel-open'));
             }
           });
         }
