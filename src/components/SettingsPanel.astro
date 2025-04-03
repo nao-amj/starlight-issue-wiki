@@ -3,13 +3,6 @@
 import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
 ---
 
-<div class="settings-icon" id="settings-toggle" aria-label="設定">
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="12" cy="12" r="3"></circle>
-    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-  </svg>
-</div>
-
 <div class="settings-panel" id="settings-panel">
   <div class="settings-header">
     <h2>設定</h2>
@@ -69,28 +62,6 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
 </div>
 
 <style>
-  .settings-icon {
-    position: fixed;
-    bottom: 2rem;
-    right: 2rem;
-    background-color: var(--color-primary);
-    color: white;
-    width: 3rem;
-    height: 3rem;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    z-index: 100;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-    transition: transform 0.2s;
-  }
-  
-  .settings-icon:hover {
-    transform: scale(1.1);
-  }
-  
   .settings-panel {
     position: fixed;
     top: 50%;
@@ -339,17 +310,11 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
       width: 95%;
       padding: 1rem;
     }
-    
-    .settings-icon {
-      bottom: 1rem;
-      right: 1rem;
-    }
   }
 </style>
 
 <script is:inline>
   document.addEventListener('DOMContentLoaded', () => {
-    const toggleButton = document.getElementById('settings-toggle');
     const settingsPanel = document.getElementById('settings-panel');
     const closeButton = document.getElementById('close-settings');
     const saveButton = document.getElementById('save-settings');
@@ -373,14 +338,7 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
       keywordMinLength: 3
     };
     
-    // 設定パネルの表示・非表示
-    if (toggleButton && settingsPanel) {
-      toggleButton.addEventListener('click', () => {
-        settingsPanel.style.display = 'block';
-        loadSettings();
-      });
-    }
-    
+    // 設定パネルを閉じる
     if (closeButton) {
       closeButton.addEventListener('click', () => {
         settingsPanel.style.display = 'none';
@@ -408,6 +366,9 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
         settingsPanel.style.display = 'none';
         // 設定が変更されたことを通知
         window.dispatchEvent(new CustomEvent('zettelkasten-settings-changed'));
+        setTimeout(() => {
+          location.reload();
+        }, 300);
       });
     }
     
@@ -479,5 +440,11 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
       
       subSettings.style.display = defaultConfig.enabled ? 'block' : 'none';
     }
+    
+    // 設定パネルが開かれたときに設定を読み込む
+    window.addEventListener('settings-panel-open', loadSettings);
+    
+    // 初期ロード時にも設定を読み込む
+    loadSettings();
   });
 </script>
