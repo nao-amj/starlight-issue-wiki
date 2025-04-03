@@ -3,7 +3,6 @@ import { BASE_PATH, SITE_TITLE, SITE_DESCRIPTION, REPO_URL } from '../config';
 import SearchBar from '../components/SearchBar.astro';
 import TimelineView from '../components/TimelineView.astro';
 import CustomFooter from '../components/CustomFooter.astro';
-import ExportForm from '../components/ExportForm.astro';
 import { fetchIssues, groupIssuesByCategory, sortIssuesByDate } from '../lib/api.js';
 
 // Issueデータを取得
@@ -98,9 +97,6 @@ const featuredContent = sortIssuesByDate(issues).slice(0, 6);
         <div class="text-center mt-4">
           <a href={`${BASE_PATH}/wiki`} class="button">すべてのページを見る</a>
         </div>
-
-        <!-- Noteエクスポート機能 -->
-        <ExportForm issues={issues} />
       </div>
       
       <div class="sidebar">
