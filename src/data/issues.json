@@ -1,5 +1,23 @@
 [
   {
+    "number": 16,
+    "title": "双方向リンクテスト",
+    "body": "このissueは双方向リンクのテスト用です。\n\n[[Zettelkastenモードテスト]] へのリンクを作成することで、双方向リンクを形成します。\n\nまたこのページからは #15 へのリンクも作成しています（別の記法でもリンクできるか）。\n\nこのリンクは、双方向リンクとして強調表示されるはずです。",
+    "html_url": "https://github.com/nao-amj/starlight-issue-wiki/issues/16",
+    "created_at": "2025-04-03T08:56:14Z",
+    "updated_at": "2025-04-03T08:56:14Z",
+    "labels": []
+  },
+  {
+    "number": 15,
+    "title": "Zettelkastenモードテスト",
+    "body": "このissueはZettelkastenモードのテスト用です。\n\n## 機能テスト\n\n### 自動キーワードリンク\nこのテキストには他のページのタイトルが含まれています。自動的にリンクされるはずです。\n\n### Wiki形式のリンク\n[[はじめに]] へのリンクを作成してみます。\n\n### 双方向リンクのテスト\n次のページで双方向リンクを作成することで、このページからのリンクと合わせて双方向リンクになります。\n\n### バックリンクのテスト\nこのページへのリンクを含むページがあれば、バックリンクとして表示されるはずです。",
+    "html_url": "https://github.com/nao-amj/starlight-issue-wiki/issues/15",
+    "created_at": "2025-04-03T08:56:08Z",
+    "updated_at": "2025-04-03T08:56:08Z",
+    "labels": []
+  },
+  {
     "number": 14,
     "title": "Zettelkasten",
     "body": "# Zettelkasten\n\nZettelkastenは、ドイツの社会学者ニクラス・ルーマンが開発した知識管理手法です。「メモ箱」を意味するこの方法は、知識の蓄積と相互参照を促進します。\n\n## 基本原則\n\n1. **アトミックなノート**: 各ノートは1つのアイデアだけを含む\n2. **永続的なIDの使用**: 各ノートに固有のIDを付与\n3. **相互リンク**: ノート間を豊富にリンク\n4. **自分の言葉で書く**: 理解したことを自分の言葉で表現\n5. **発見可能性の確保**: タグや索引で見つけやすくする\n\n## デジタルZettelkasten\n\n現代では、多くのデジタルツールがZettelkastenの実装をサポートしています：\n\n- [[Obsidian]] - マークダウンベースのZettelkastenツール\n- [[Roam Research]] - 双方向リンクに特化したツール\n- [[Logseq]] - オープンソースの知識ベース\n- **GitWiki Hub** - GitHubのissueを活用したZettelkasten（このプロジェクト）\n\n## メリット\n\n- 創造的な発想を促進する\n- 知識の関連性を視覚化できる\n- 長期的な知識の蓄積に適している\n- 思考プロセスを外在化できる\n\n## 使用例\n\nZettelkastenは以下のような用途に適しています：\n\n- 研究ノート\n- 個人的な知識ベース\n- 創作活動のアイデア管理\n- プロジェクト管理\n\n## 関連情報\n\n- #knowledge-management\n- #note-taking\n- #productivity\n\n---\n\n詳細な使い方については [[Zettelkasten機能の使い方]] をご覧ください。",
