@@ -264,7 +264,7 @@ export function applyZettelkastenLinks(
   return result;
 }
 
-// WikiリンクをHTMLリンクに変換する関数
+// WikiリンクをHTMLリンクに変換する関数（純粋な正規表現ベース）
 export function convertWikiLinksToHtml(
   body: string, 
   issues: GitHubIssue[], 
@@ -274,86 +274,30 @@ export function convertWikiLinksToHtml(
   const config = loadZettelkastenSettings();
   if (!config.enabled) return body;
   
-  // 外部のHTMLタグを邪魔しないようにするため、テキストノードのみで検索
-  const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = body;
-  
-  // テキストノードを再帰的に処理
-  function processNode(node) {
-    if (node.nodeType === Node.TEXT_NODE) {
-      const regex = /\[\[(.*?)\]\]/g;
-      let newHTML = '';
-      let lastIndex = 0;
-      let match;
-      
-      const text = node.textContent;
-      
-      // テキスト内のすべてのwikiリンクを処理
-      while ((match = regex.exec(text)) !== null) {
-        // リンク前のテキスト
-        newHTML += text.substring(lastIndex, match.index);
-        
-        const linkedTitle = match[1].trim();
-        
-        // タイトルから対応するIssueを探す
-        const linkedIssue = issues.find(issue => 
-          issue.title.toLowerCase() === linkedTitle.toLowerCase() ||
-          issue.title.toLowerCase().includes(linkedTitle.toLowerCase())
-        );
-        
-        if (linkedIssue) {
-          // 双方向リンクかどうかを確認
-          const isBidirectional = bidirectionalLinks.has(currentIssueNumber) && 
-            bidirectionalLinks.get(currentIssueNumber)?.includes(linkedIssue.number);
-          
-          const linkClass = isBidirectional && config.highlightBidirectional
-            ? 'wiki-link bidirectional' 
-            : 'wiki-link';
-          
-          newHTML += `<a href="${BASE_PATH}/wiki/${linkedIssue.number}" class="${linkClass}" 
-                      data-issue="${linkedIssue.number}">${linkedTitle}</a>`;
-        } else {
-          // 対応するIssueが見つからない場合は未リンクとして表示
-          newHTML += `<span class="wiki-link-unlinked">${linkedTitle}</span>`;
-        }
-        
-        lastIndex = match.index + match[0].length;
-      }
-      
-      // 残りのテキスト
-      if (lastIndex < text.length) {
-        newHTML += text.substring(lastIndex);
-      }
-      
-      if (newHTML) {
-        const tempSpan = document.createElement('span');
-        tempSpan.innerHTML = newHTML;
-        
-        // 元のテキストノードを置き換え
-        const fragment = document.createDocumentFragment();
-        while (tempSpan.firstChild) {
-          fragment.appendChild(tempSpan.firstChild);
-        }
-        
-        node.parentNode.replaceChild(fragment, node);
-      }
-    } else if (node.nodeType === Node.ELEMENT_NODE) {
-      // スクリプトとスタイル要素は処理しない
-      if (node.tagName !== 'SCRIPT' && node.tagName !== 'STYLE') {
-        // 子ノードを再帰的に処理
-        const childNodes = Array.from(node.childNodes);
-        childNodes.forEach(child => processNode(child));
-      }
-    }
-  }
-  
-  try {
-    // すべての子ノードを処理
-    Array.from(tempDiv.childNodes).forEach(node => processNode(node));
+  // 正規表現で[[...]]形式のリンクを検索して置換
+  return body.replace(/\[\[(.*?)\]\]/g, (match, linkedTitle) => {
+    linkedTitle = linkedTitle.trim();
     
-    return tempDiv.innerHTML;
-  } catch (error) {
-    console.error('WikiリンクのHTML変換でエラーが発生しました:', error);
-    return body;
-  }
+    // タイトルから対応するIssueを探す
+    const linkedIssue = issues.find(issue => 
+      issue.title.toLowerCase() === linkedTitle.toLowerCase() ||
+      issue.title.toLowerCase().includes(linkedTitle.toLowerCase())
+    );
+    
+    if (linkedIssue) {
+      // 双方向リンクかどうかを確認
+      const isBidirectional = bidirectionalLinks.has(currentIssueNumber) && 
+        bidirectionalLinks.get(currentIssueNumber)?.includes(linkedIssue.number);
+      
+      const linkClass = isBidirectional && config.highlightBidirectional
+        ? 'wiki-link bidirectional' 
+        : 'wiki-link';
+      
+      return `<a href="${BASE_PATH}/wiki/${linkedIssue.number}" class="${linkClass}" 
+               data-issue="${linkedIssue.number}">${linkedTitle}</a>`;
+    }
+    
+    // 対応するIssueが見つからない場合は未リンクとして表示
+    return `<span class="wiki-link-unlinked">${linkedTitle}</span>`;
+  });
 }
