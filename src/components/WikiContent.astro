@@ -1,14 +1,32 @@
 ---
+import { findBacklinks, loadZettelkastenSettings } from '../lib/zettelkasten';
+import BacklinkList from './BacklinkList.astro';
+import type { GitHubIssue } from '../data/types';
+
 export interface Props {
   content: string;
   issueUrl: string;
+  currentIssue: GitHubIssue;
+  allIssues: GitHubIssue[];
 }
 
-const { content, issueUrl } = Astro.props;
+const { content, issueUrl, currentIssue, allIssues } = Astro.props;
+
+// Zettelkasten設定を読み込み
+const zettelkastenConfig = loadZettelkastenSettings();
+
+// バックリンクを検索
+const backlinks = zettelkastenConfig.enabled && zettelkastenConfig.showBacklinks
+  ? findBacklinks(currentIssue.number, allIssues)
+  : [];
 ---
 
 <div class="wiki-content">
   <div class="content" set:html={content} />
+  
+  {zettelkastenConfig.enabled && zettelkastenConfig.showBacklinks && (
+    <BacklinkList backlinks={backlinks} currentIssueNumber={currentIssue.number} />
+  )}
   
   <div class="edit-links">
     <a href={issueUrl} target="_blank" rel="noopener noreferrer">
@@ -34,6 +52,35 @@ const { content, issueUrl } = Astro.props;
     overflow-x: auto;
   }
   
+  /* Zettelkastenモード用のスタイル */
+  .content :global(.wiki-link) {
+    text-decoration: none;
+    border-bottom: 1px dashed var(--color-primary, #4f6df5);
+    color: var(--color-primary, #4f6df5);
+    transition: all 0.2s;
+  }
+  
+  .content :global(.wiki-link:hover) {
+    background-color: rgba(79, 109, 245, 0.1);
+    border-bottom-style: solid;
+  }
+  
+  .content :global(.wiki-link.bidirectional) {
+    border-bottom: 2px solid var(--color-success, #0fa968);
+    color: var(--color-success, #0fa968);
+    font-weight: 500;
+  }
+  
+  .content :global(.wiki-link.bidirectional:hover) {
+    background-color: rgba(15, 169, 104, 0.1);
+  }
+  
+  .content :global(.wiki-link-unlinked) {
+    text-decoration: none;
+    border-bottom: 1px dotted #999;
+    color: #666;
+  }
+  
   .edit-links {
     margin-top: 2rem;
     padding-top: 1rem;
@@ -50,3 +97,15 @@ const { content, issueUrl } = Astro.props;
     text-decoration: underline;
   }
 </style>
+
+<script is:inline>
+  // Zettelkasten設定の変更を検知してページをリロード
+  document.addEventListener('DOMContentLoaded', () => {
+    window.addEventListener('zettelkasten-settings-changed', () => {
+      // 設定変更後に少し待ってからリロード
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    });
+  });
+</script>
