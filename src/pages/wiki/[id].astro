@@ -1,18 +1,22 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import WikiContent from '../../components/WikiContent.astro';
 import { BASE_PATH, REPO_URL } from '../../config';
 import { marked } from 'marked';
+import { extractKeywords, findBidirectionalLinks, applyZettelkastenLinks, convertWikiLinksToHtml, loadZettelkastenSettings } from '../../lib/zettelkasten';
 
 export async function getStaticPaths() {
   // GitHub API からIssueを取得する関数
   async function fetchIssues() {
     try {
-      // GitHub APIを使用してissueを取得
-      const response = await fetch('https://api.github.com/repos/nao-amj/starlight-issue-wiki/issues');
+      // GitHub APIを使用してissueを取得（プルリクエストを除外）
+      const response = await fetch('https://api.github.com/repos/nao-amj/starlight-issue-wiki/issues?state=all&per_page=100');
       if (!response.ok) {
         throw new Error(`GitHub API error: ${response.status}`);
       }
-      return await response.json();
+      const allItems = await response.json();
+      // プルリクエストを除外する
+      return allItems.filter(item => !item.pull_request);
     } catch (error) {
       console.error('Error fetching issues:', error);
       return [];
@@ -24,16 +28,44 @@ export async function getStaticPaths() {
   return issues.map(issue => {
     return {
       params: { id: issue.number.toString() },
-      props: { issue }
+      props: { issue, allIssues: issues }
     };
   });
 }
 
-const { issue } = Astro.props;
-const { title, body, created_at, updated_at, html_url, labels } = issue;
+const { issue, allIssues } = Astro.props;
+const { title, body, created_at, updated_at, html_url, labels, number } = issue;
 
-// Markdownをパース
-const htmlContent = marked.parse(body);
+// Zettelkasten設定を読み込み
+const zettelkastenConfig = loadZettelkastenSettings();
+
+// 処理されたコンテンツを生成
+let processedContent = body;
+
+if (zettelkastenConfig.enabled) {
+  // キーワードを抽出
+  const keywords = extractKeywords(allIssues);
+  
+  // 双方向リンクを検出
+  const bidirectionalLinks = findBidirectionalLinks(allIssues);
+  
+  // Zettelkastenリンクを適用
+  if (zettelkastenConfig.autoLinkKeywords) {
+    processedContent = applyZettelkastenLinks(processedContent, keywords, number);
+  }
+  
+  // MarkdownをHTMLに変換
+  let htmlContent = marked.parse(processedContent);
+  
+  // WikiリンクをHTMLリンクに変換
+  htmlContent = convertWikiLinksToHtml(htmlContent, allIssues, bidirectionalLinks, number);
+  
+  // 最終的なHTMLコンテンツ
+  processedContent = htmlContent;
+} else {
+  // 通常のMarkdown変換
+  processedContent = marked.parse(processedContent);
+}
 
 // メタデータ
 const createdDate = new Date(created_at).toLocaleDateString('ja-JP', {
@@ -60,7 +92,7 @@ const pageTitle = `${title} (#${issue.number})`;
         
         <div class="issue-labels">
           {labels && labels.map(label => (
-            <a href={`${BASE_PATH}/category/${label.name.toLowerCase()}`} class="tag" 
+            <a href={`${BASE_PATH}/category/${encodeURIComponent(label.name.toLowerCase())}`} class="tag" 
                style={`background-color: #${label.color}20; color: #${label.color}; border: 1px solid #${label.color}40;`}>
               {label.name}
             </a>
@@ -78,16 +110,19 @@ const pageTitle = `${title} (#${issue.number})`;
         </div>
       </div>
       
-      <div class="wiki-content">
-        <div set:html={htmlContent} />
-      </div>
+      <WikiContent 
+        content={processedContent} 
+        issueUrl={html_url} 
+        currentIssue={issue}
+        allIssues={allIssues}
+      />
     </div>
 
     <div class="sidebar">
       <div class="toc-panel">
         <h2>目次</h2>
-        <!-- 目次はクライアントサイドJSで生成するか、Markdownパース時に抽出できます -->
-        <div class="toc-placeholder">
+        <!-- 目次はクライアントサイドJSで生成 -->
+        <div class="toc-placeholder" id="toc-container">
           <!-- 目次プレースホルダー -->
         </div>
       </div>
@@ -120,10 +155,19 @@ const pageTitle = `${title} (#${issue.number})`;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   }
 
+  .dark .content-panel {
+    background: #222;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
   .wiki-header {
     margin-bottom: 2rem;
     border-bottom: 1px solid #eee;
     padding-bottom: 1rem;
+  }
+  
+  .dark .wiki-header {
+    border-bottom-color: #444;
   }
   
   .issue-labels {
@@ -142,6 +186,12 @@ const pageTitle = `${title} (#${issue.number})`;
     text-decoration: none;
     line-height: 1.2;
     white-space: nowrap;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  
+  .tag:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
   
   .issue-meta {
@@ -152,55 +202,16 @@ const pageTitle = `${title} (#${issue.number})`;
     color: #666;
   }
   
+  .dark .issue-meta {
+    color: #aaa;
+  }
+  
   .issue-link {
     color: var(--color-primary);
     text-decoration: none;
   }
   
   .issue-link:hover {
-    text-decoration: underline;
-  }
-  
-  .wiki-content {
-    line-height: 1.6;
-  }
-  
-  .wiki-content :global(h2) {
-    margin-top: 2rem;
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid #eee;
-  }
-  
-  .wiki-content :global(h3) {
-    margin-top: 1.5rem;
-    margin-bottom: 0.75rem;
-  }
-  
-  .wiki-content :global(ul),
-  .wiki-content :global(ol) {
-    padding-left: 1.5rem;
-  }
-  
-  .wiki-content :global(pre) {
-    padding: 1rem;
-    background-color: #f5f5f5;
-    border-radius: 0.5rem;
-    overflow-x: auto;
-  }
-  
-  .wiki-content :global(img) {
-    max-width: 100%;
-    height: auto;
-    border-radius: 0.5rem;
-  }
-  
-  .wiki-content :global(a) {
-    color: var(--color-primary);
-    text-decoration: none;
-  }
-  
-  .wiki-content :global(a:hover) {
     text-decoration: underline;
   }
 
@@ -217,12 +228,21 @@ const pageTitle = `${title} (#${issue.number})`;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   }
 
+  .dark .sidebar > div {
+    background: #222;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
   .sidebar h2 {
     margin-top: 0;
     font-size: 1.2rem;
     margin-bottom: 1rem;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid #eee;
+  }
+
+  .dark .sidebar h2 {
+    border-bottom-color: #444;
   }
 
   .sidebar ul {
@@ -248,6 +268,10 @@ const pageTitle = `${title} (#${issue.number})`;
     background-color: #f5f5f5;
   }
 
+  .dark .sidebar a:hover {
+    background-color: #333;
+  }
+
   /* レスポンシブデザイン */
   @media (max-width: 768px) {
     .wiki-container {
@@ -259,3 +283,42 @@ const pageTitle = `${title} (#${issue.number})`;
     }
   }
 </style>
+
+<script is:inline>
+  // 目次の自動生成
+  document.addEventListener('DOMContentLoaded', () => {
+    const tocContainer = document.getElementById('toc-container');
+    const wikiContent = document.querySelector('.wiki-content');
+    
+    if (tocContainer && wikiContent) {
+      // 見出しを取得
+      const headings = wikiContent.querySelectorAll('h2, h3, h4');
+      
+      if (headings.length > 0) {
+        const tocList = document.createElement('ul');
+        tocList.className = 'toc-list';
+        
+        headings.forEach((heading, index) => {
+          // 見出しにIDを追加（なければ）
+          if (!heading.id) {
+            heading.id = `heading-${index}`;
+          }
+          
+          const listItem = document.createElement('li');
+          listItem.className = `toc-item toc-${heading.tagName.toLowerCase()}`;
+          
+          const link = document.createElement('a');
+          link.href = `#${heading.id}`;
+          link.textContent = heading.textContent;
+          
+          listItem.appendChild(link);
+          tocList.appendChild(listItem);
+        });
+        
+        tocContainer.appendChild(tocList);
+      } else {
+        tocContainer.innerHTML = '<p class="toc-empty">目次がありません</p>';
+      }
+    }
+  });
+</script>
