@@ -14,7 +14,7 @@ import { BASE_PATH } from '../config';
       aria-label="検索"
     />
   </div>
-  <div id="search-results" class="search-results"></div>
+  <div id="search-results" class="search-results" role="listbox" tabindex="-1"></div>
 </div>
 
 <script is:inline>
@@ -74,7 +74,7 @@ import { BASE_PATH } from '../config';
 
   function escapeRegExp(string) {
     if (!string) return '';
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\\\$&');
   }
 
   // タグカラーの最適化
@@ -126,6 +126,7 @@ import { BASE_PATH } from '../config';
       const searchInput = document.getElementById('search-input');
       const searchResults = document.getElementById('search-results');
       let issues = [];
+      let selectedResultIndex = -1;
       const BASE_PATH = '/starlight-issue-wiki'; // または適切なパスを設定
 
       // GitHub APIからissueデータを取得
@@ -133,11 +134,32 @@ import { BASE_PATH } from '../config';
         try {
           const response = await fetch('https://api.github.com/repos/nao-amj/starlight-issue-wiki/issues?state=all&per_page=100');
           if (!response.ok) throw new Error('GitHub API error');
-          issues = await response.json();
+          const allItems = await response.json();
+          // プルリクエストを除外する
+          issues = allItems.filter(item => !item.pull_request);
           console.log(`取得したIssue数: ${issues.length}`);
         } catch (error) {
           console.error('Error fetching issues:', error);
         }
+      }
+
+      // 検索結果のアイテムにフォーカスを設定
+      function setFocusOnResult(index) {
+        const resultItems = searchResults.querySelectorAll('.search-result-item');
+        if (resultItems.length === 0) return;
+        
+        // 前の選択をクリア
+        resultItems.forEach(item => {
+          item.classList.remove('search-result-selected');
+          item.setAttribute('aria-selected', 'false');
+        });
+        
+        // 新しい選択を設定
+        selectedResultIndex = (index + resultItems.length) % resultItems.length;
+        const selectedItem = resultItems[selectedResultIndex];
+        selectedItem.classList.add('search-result-selected');
+        selectedItem.setAttribute('aria-selected', 'true');
+        selectedItem.focus();
       }
 
       // 検索機能
@@ -145,6 +167,7 @@ import { BASE_PATH } from '../config';
         if (!query || query.length < 2) {
           searchResults.innerHTML = '';
           searchResults.style.display = 'none';
+          selectedResultIndex = -1;
           return;
         }
 
@@ -154,7 +177,7 @@ import { BASE_PATH } from '../config';
         if (matches.length === 0) {
           searchResults.innerHTML = '<div class="no-results">検索結果がありません</div>';
         } else {
-          searchResults.innerHTML = matches.slice(0, 5).map(issue => {
+          searchResults.innerHTML = matches.slice(0, 5).map((issue, index) => {
             // タイトル内のキーワードをハイライト
             const highlightedTitle = highlightText(issue.title, lowerQuery);
             
@@ -180,7 +203,12 @@ import { BASE_PATH } from '../config';
               : '';
             
             return `
-              <a href="${BASE_PATH}/wiki/${issue.number}" class="search-result-item">
+              <a href="${BASE_PATH}/wiki/${issue.number}" 
+                 class="search-result-item" 
+                 role="option" 
+                 id="search-result-${index}" 
+                 aria-selected="false" 
+                 tabindex="-1">
                 <div class="search-result-content">
                   <div class="search-result-header">
                     <div class="search-result-title">${highlightedTitle}</div>
@@ -198,6 +226,7 @@ import { BASE_PATH } from '../config';
         }
 
         searchResults.style.display = 'block';
+        selectedResultIndex = -1; // 選択をリセット
       }
 
       // イベントリスナー
@@ -208,6 +237,61 @@ import { BASE_PATH } from '../config';
 
         searchInput.addEventListener('focus', () => {
           if (issues.length === 0) fetchIssues();
+        });
+
+        // キーボードナビゲーション
+        searchInput.addEventListener('keydown', (e) => {
+          if (!searchResults.style.display || searchResults.style.display === 'none') return;
+          
+          const resultItems = searchResults.querySelectorAll('.search-result-item');
+          if (resultItems.length === 0) return;
+          
+          switch (e.key) {
+            case 'ArrowDown':
+              e.preventDefault(); // デフォルトの動作を防止
+              setFocusOnResult(selectedResultIndex + 1);
+              break;
+              
+            case 'ArrowUp':
+              e.preventDefault(); // デフォルトの動作を防止
+              setFocusOnResult(selectedResultIndex - 1);
+              break;
+              
+            case 'Enter':
+              if (selectedResultIndex >= 0 && selectedResultIndex < resultItems.length) {
+                e.preventDefault();
+                resultItems[selectedResultIndex].click();
+              }
+              break;
+              
+            case 'Escape':
+              searchResults.style.display = 'none';
+              searchInput.focus();
+              break;
+          }
+        });
+
+        // 検索結果内でのキーボードナビゲーション
+        searchResults.addEventListener('keydown', (e) => {
+          const resultItems = searchResults.querySelectorAll('.search-result-item');
+          if (resultItems.length === 0) return;
+          
+          switch (e.key) {
+            case 'ArrowDown':
+              e.preventDefault();
+              setFocusOnResult(selectedResultIndex + 1);
+              break;
+              
+            case 'ArrowUp':
+              e.preventDefault();
+              setFocusOnResult(selectedResultIndex - 1);
+              break;
+              
+            case 'Escape':
+              searchResults.style.display = 'none';
+              searchInput.focus();
+              break;
+          }
         });
 
         // クリック以外の場所をクリックしたら結果を非表示
@@ -300,6 +384,7 @@ import { BASE_PATH } from '../config';
     text-decoration: none;
     color: #333;
     transition: all 0.2s;
+    outline: none;
   }
 
   .dark .search-result-item {
@@ -315,6 +400,19 @@ import { BASE_PATH } from '../config';
     background-color: rgba(79, 109, 245, 0.05);
     text-decoration: none;
     transform: translateY(-2px);
+  }
+
+  .search-result-selected,
+  .search-result-item:focus {
+    background-color: rgba(79, 109, 245, 0.1);
+    box-shadow: 0 0 0 2px #4f6df5;
+    outline: none;
+    transform: translateY(-2px);
+  }
+
+  .dark .search-result-selected,
+  .dark .search-result-item:focus {
+    background-color: rgba(79, 109, 245, 0.2);
   }
 
   .search-result-content {
