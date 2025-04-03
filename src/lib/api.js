@@ -4,7 +4,7 @@
 import { REPO_OWNER, REPO_NAME } from '../config';
 
 /**
- * GitHubのIssue一覧を取得する
+ * GitHubのIssue一覧を取得する (プルリクエストを除外)
  * @param {Object} options - 取得オプション
  * @param {string} options.state - Issueの状態 ('all', 'open', 'closed')
  * @param {number} options.perPage - 1ページあたりの取得数
@@ -12,6 +12,7 @@ import { REPO_OWNER, REPO_NAME } from '../config';
  */
 export async function fetchIssues({ state = 'all', perPage = 100 } = {}) {
   try {
+    // プルリクエストを除外するパラメータを追加
     const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues?state=${state}&per_page=${perPage}`;
     const response = await fetch(url);
     
@@ -19,7 +20,10 @@ export async function fetchIssues({ state = 'all', perPage = 100 } = {}) {
       throw new Error(`GitHub API error: ${response.status}`);
     }
     
-    return await response.json();
+    const issues = await response.json();
+    
+    // プルリクエスト（pull_request プロパティがあるもの）を除外
+    return issues.filter(issue => !issue.pull_request);
   } catch (error) {
     console.error('Error fetching issues:', error);
     return [];
@@ -40,7 +44,15 @@ export async function fetchIssueById(issueNumber) {
       throw new Error(`GitHub API error: ${response.status}`);
     }
     
-    return await response.json();
+    const issue = await response.json();
+    
+    // プルリクエストの場合はnullを返す
+    if (issue.pull_request) {
+      console.warn(`Issue #${issueNumber} is a pull request, skipping`);
+      return null;
+    }
+    
+    return issue;
   } catch (error) {
     console.error(`Error fetching issue #${issueNumber}:`, error);
     return null;
@@ -56,6 +68,9 @@ export function groupIssuesByCategory(issues) {
   const categories = {};
   
   issues.forEach(issue => {
+    // プルリクエストは除外
+    if (issue.pull_request) return;
+    
     if (issue.labels && issue.labels.length > 0) {
       issue.labels.forEach(label => {
         if (!categories[label.name]) {
@@ -87,7 +102,10 @@ export function groupIssuesByCategory(issues) {
  * @returns {Array} ソートされたIssue配列
  */
 export function sortIssuesByDate(issues, order = 'desc', dateField = 'updated_at') {
-  return [...issues].sort((a, b) => {
+  // プルリクエストを除外してからソート
+  const filteredIssues = issues.filter(issue => !issue.pull_request);
+  
+  return filteredIssues.sort((a, b) => {
     const dateA = new Date(a[dateField]).getTime();
     const dateB = new Date(b[dateField]).getTime();
     return order === 'asc' ? dateA - dateB : dateB - dateA;
