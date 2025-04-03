@@ -4,6 +4,7 @@ import { BASE_PATH, SITE_TITLE, SITE_DESCRIPTION, REPO_URL } from '../config';
 import { formatDistance } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import SearchBar from '../components/SearchBar.astro';
+import SettingsPanel from '../components/SettingsPanel.astro';
 
 // issueのデータを取得
 const issues = await getIssues();
@@ -62,18 +63,22 @@ const popularContent = [...filteredIssues]
   <title>{SITE_TITLE}</title>
   <meta name="description" content={SITE_DESCRIPTION}>
   <link rel="stylesheet" href={`${BASE_PATH}/styles/global.css`}>
+  <link rel="stylesheet" href={`${BASE_PATH}/styles/zettelkasten.css`}>
 </head>
 <body>
   <header>
     <div class="container">
       <div class="header-content">
-        <h1><a href={BASE_PATH + "/"}>Starlight Issue Wiki</a></h1>
-        <nav>
-          <a href={BASE_PATH + "/"} class="active">ホーム</a>
-          <a href={`${BASE_PATH}/wiki/index`}>ページ一覧</a>
-          <a href={`${BASE_PATH}/wiki/welcome`}>はじめに</a>
-          <a href={REPO_URL}>GitHub</a>
-        </nav>
+        <h1><a href={BASE_PATH + "/"} class="title-link">GitWiki Hub</a></h1>
+        <div class="nav-container">
+          <nav>
+            <a href={BASE_PATH + "/"} class="active">ホーム</a>
+            <a href={`${BASE_PATH}/wiki/index`}>ページ一覧</a>
+            <a href={`${BASE_PATH}/wiki/welcome`}>はじめに</a>
+            <a href={REPO_URL}>GitHub</a>
+          </nav>
+          <button id="settings-toggle-btn" class="settings-toggle-btn">設定</button>
+        </div>
       </div>
     </div>
   </header>
@@ -115,9 +120,11 @@ const popularContent = [...filteredIssues]
                   </h3>
                   <div class="timeline-labels">
                     {issue.labels?.map(label => (
-                      <span class="timeline-label" style={`background-color: #${label.color}`}>
+                      <a href={`${BASE_PATH}/category/${encodeURIComponent(label.name)}`} 
+                         class="timeline-label" 
+                         style={`background-color: #${label.color}`}>
                         {label.name}
-                      </span>
+                      </a>
                     ))}
                   </div>
                 </div>
@@ -131,27 +138,6 @@ const popularContent = [...filteredIssues]
       </div>
 
       <div class="sidebar-section">
-        <div class="popular-content">
-          <h2>人気のコンテンツ</h2>
-          <ul class="popular-list">
-            {popularContent.map(issue => {
-              const slug = generateSlug(issue.title);
-              return (
-                <li class="popular-item">
-                  <a href={`${BASE_PATH}/wiki/${issue.number}`}>{issue.title}</a>
-                  <div class="popular-labels">
-                    {issue.labels?.slice(0, 3).map(label => (
-                      <span class="popular-label" style={`background-color: #${label.color}`}>
-                        {label.name}
-                      </span>
-                    ))}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-
         <div class="categories-widget">
           <h2>カテゴリー</h2>
           <ul class="categories-list">
@@ -163,6 +149,29 @@ const popularContent = [...filteredIssues]
                 </a>
               </li>
             ))}
+          </ul>
+        </div>
+
+        <div class="popular-content">
+          <h2>人気のコンテンツ</h2>
+          <ul class="popular-list">
+            {popularContent.map(issue => {
+              const slug = generateSlug(issue.title);
+              return (
+                <li class="popular-item">
+                  <a href={`${BASE_PATH}/wiki/${issue.number}`}>{issue.title}</a>
+                  <div class="popular-labels">
+                    {issue.labels?.slice(0, 3).map(label => (
+                      <a href={`${BASE_PATH}/category/${encodeURIComponent(label.name)}`}
+                         class="popular-label" 
+                         style={`background-color: #${label.color}`}>
+                        {label.name}
+                      </a>
+                    ))}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </div>
       </div>
@@ -183,6 +192,10 @@ const popularContent = [...filteredIssues]
           <span class="action-icon">✏️</span>
           <span class="action-text">新規ページ作成</span>
         </a>
+        <a id="zettelkasten-settings-btn" class="action-button">
+          <span class="action-icon">🧠</span>
+          <span class="action-text">Zettelkasten設定</span>
+        </a>
       </div>
     </div>
   </main>
@@ -192,6 +205,12 @@ const popularContent = [...filteredIssues]
       <p>© 2025 Starlight Issue Wiki</p>
     </div>
   </footer>
+
+  <!-- Zettelkastenインディケーター -->
+  <div class="zettelkasten-indicator" title="Zettelkastenモード有効" id="zettelkasten-indicator">Z</div>
+
+  <!-- 設定パネル -->
+  <SettingsPanel />
 
   <style>
     body {
@@ -218,12 +237,17 @@ const popularContent = [...filteredIssues]
       justify-content: space-between;
       align-items: center;
     }
+    .nav-container {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
     header h1 {
       margin: 0;
       font-size: 1.5rem;
     }
     header h1 a {
-      color: white;
+      color: white !important;
       text-decoration: none;
     }
     nav {
@@ -259,6 +283,7 @@ const popularContent = [...filteredIssues]
     .hero h1 {
       font-size: 3rem;
       margin-bottom: 1rem;
+      color: white;
     }
     .hero p {
       font-size: 1.2rem;
@@ -357,12 +382,14 @@ const popularContent = [...filteredIssues]
       display: flex;
       gap: 0.5rem;
       margin-top: 0.5rem;
+      flex-wrap: wrap;
     }
     .timeline-label {
       font-size: 0.7rem;
       padding: 0.2rem 0.5rem;
       border-radius: 20px;
       color: #fff;
+      text-decoration: none;
     }
     
     .view-all {
@@ -421,6 +448,7 @@ const popularContent = [...filteredIssues]
     .popular-labels {
       display: flex;
       gap: 0.3rem;
+      flex-wrap: wrap;
     }
     
     .popular-label {
@@ -428,6 +456,7 @@ const popularContent = [...filteredIssues]
       padding: 0.1rem 0.4rem;
       border-radius: 20px;
       color: #fff;
+      text-decoration: none;
     }
     
     .category-item {
@@ -462,13 +491,12 @@ const popularContent = [...filteredIssues]
     }
     
     .action-buttons {
-      display: flex;
-      justify-content: space-between;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
       gap: 1rem;
     }
     
     .action-button {
-      flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -479,6 +507,7 @@ const popularContent = [...filteredIssues]
       transition: all 0.3s;
       text-decoration: none;
       color: #333;
+      cursor: pointer;
     }
     
     .action-button:hover {
@@ -508,16 +537,43 @@ const popularContent = [...filteredIssues]
       text-align: left;
     }
     
+    /* 設定ボタンのスタイル */
+    .settings-toggle-btn {
+      background-color: #4f6df5;
+      color: white;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 0.375rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .settings-toggle-btn:hover {
+      background-color: #3a5ad9;
+      transform: translateY(-1px);
+    }
+    
     /* レスポンシブデザイン */
     @media (max-width: 768px) {
       .header-content {
         flex-direction: column;
+        align-items: flex-start;
         gap: 1rem;
       }
-      nav {
+      .nav-container {
         width: 100%;
+        display: flex;
         justify-content: space-between;
-        flex-wrap: wrap;
+      }
+      nav {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        max-width: calc(100% - 80px);
+        padding-bottom: 0.5rem;
       }
       nav a {
         white-space: nowrap;
@@ -535,21 +591,63 @@ const popularContent = [...filteredIssues]
         font-size: 1rem;
       }
       .action-buttons {
-        flex-wrap: wrap;
-      }
-      .action-button {
-        min-width: calc(50% - 1rem);
+        grid-template-columns: repeat(auto-fill, minmax(100%, 1fr));
       }
     }
     
     @media (max-width: 480px) {
       .action-buttons {
-        flex-direction: column;
-      }
-      .action-button {
-        width: 100%;
+        grid-template-columns: 1fr;
       }
     }
   </style>
+
+  <script is:inline>
+    document.addEventListener('DOMContentLoaded', function() {
+      // 設定ボタンのイベントリスナー
+      const settingsBtn = document.getElementById('settings-toggle-btn');
+      const zettelkastenSettingsBtn = document.getElementById('zettelkasten-settings-btn');
+      
+      if (settingsBtn) {
+        settingsBtn.addEventListener('click', openSettingsPanel);
+      }
+      
+      if (zettelkastenSettingsBtn) {
+        zettelkastenSettingsBtn.addEventListener('click', openSettingsPanel);
+      }
+      
+      function openSettingsPanel() {
+        const settingsPanel = document.getElementById('settings-panel');
+        if (settingsPanel) {
+          settingsPanel.style.display = 'block';
+          window.dispatchEvent(new CustomEvent('settings-panel-open'));
+        }
+      }
+      
+      // Zettelkastenモードの設定を読み込み、適用する
+      try {
+        // ローカルストレージから設定を読み込み
+        const savedConfig = localStorage.getItem('zettelkastenConfig');
+        if (savedConfig) {
+          const config = JSON.parse(savedConfig);
+          
+          // Zettelkastenモードが有効ならbodyにクラスを追加
+          if (config.enabled) {
+            document.body.classList.add('zettelkasten-mode');
+          } else {
+            document.body.classList.remove('zettelkasten-mode');
+          }
+        }
+        
+        // Zettelkastenインディケーターのクリックイベント
+        const indicator = document.getElementById('zettelkasten-indicator');
+        if (indicator) {
+          indicator.addEventListener('click', openSettingsPanel);
+        }
+      } catch (error) {
+        console.error('Zettelkasten設定の読み込みに失敗しました:', error);
+      }
+    });
+  </script>
 </body>
 </html>
