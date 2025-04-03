@@ -57,11 +57,13 @@ export function extractKeywords(issues: GitHubIssue[]): Map<string, number> {
     }
     
     // ラベルをキーワードとして追加
-    issue.labels?.forEach(label => {
-      if (label.name && label.name.length >= minLength) {
-        keywordMap.set(label.name.toLowerCase(), issue.number);
-      }
-    });
+    if (issue.labels && Array.isArray(issue.labels)) {
+      issue.labels.forEach(label => {
+        if (label.name && label.name.length >= minLength) {
+          keywordMap.set(label.name.toLowerCase(), issue.number);
+        }
+      });
+    }
   });
   
   return keywordMap;
@@ -83,18 +85,22 @@ export function findBidirectionalLinks(issues: GitHubIssue[]): Map<number, numbe
     let match;
     
     if (issue.body) {
-      while ((match = wikiLinkRegex.exec(issue.body)) !== null) {
-        const linkedTitle = match[1].trim();
-        
-        // タイトルから対応するIssueを探す
-        const linkedIssue = issues.find(i => 
-          i.title.toLowerCase() === linkedTitle.toLowerCase() ||
-          i.title.toLowerCase().includes(linkedTitle.toLowerCase())
-        );
-        
-        if (linkedIssue && linkedIssue.number !== issue.number) {
-          mentionMap.get(issue.number)?.add(linkedIssue.number);
-        }
+      let matches = issue.body.match(wikiLinkRegex);
+      if (matches) {
+        matches.forEach(matchStr => {
+          // [[...]]から内部のテキストを抽出
+          const linkedTitle = matchStr.substring(2, matchStr.length - 2).trim();
+          
+          // タイトルから対応するIssueを探す
+          const linkedIssue = issues.find(i => 
+            i.title.toLowerCase() === linkedTitle.toLowerCase() ||
+            i.title.toLowerCase().includes(linkedTitle.toLowerCase())
+          );
+          
+          if (linkedIssue && linkedIssue.number !== issue.number) {
+            mentionMap.get(issue.number)?.add(linkedIssue.number);
+          }
+        });
       }
     }
   });
@@ -156,33 +162,30 @@ export function applyZettelkastenLinks(
   
   let processedBody = body;
   
-  // すでに[[...]]形式でリンクされている部分を除外してキーワードリンクをかける
-  const parts: string[] = [];
+  // すでに[[...]]形式でリンクされている部分を除外するために、文書をセグメント化
   const wikiLinkRegex = /\[\[(.*?)\]\]/g;
-  let lastIndex = 0;
-  let match;
   
-  while ((match = wikiLinkRegex.exec(processedBody)) !== null) {
-    // リンク前のテキスト部分を追加
-    const beforeLink = processedBody.substring(lastIndex, match.index);
-    parts.push(processKeywordLinks(beforeLink, keywords, currentIssueNumber));
-    
-    // リンク部分はそのまま追加
-    parts.push(match[0]);
-    
-    lastIndex = match.index + match[0].length;
-  }
+  // 一時的に[[...]]をプレースホルダーに置き換え
+  const placeholders: {original: string, replacement: string}[] = [];
+  let index = 0;
   
-  // 残りの部分を処理
-  if (lastIndex < processedBody.length) {
-    parts.push(processKeywordLinks(
-      processedBody.substring(lastIndex), 
-      keywords, 
-      currentIssueNumber
-    ));
-  }
+  // [[...]]を一時的に置き換え
+  processedBody = processedBody.replace(wikiLinkRegex, (match) => {
+    const placeholder = `__WIKILINK_${index}__`;
+    placeholders.push({original: match, replacement: placeholder});
+    index++;
+    return placeholder;
+  });
   
-  return parts.join('');
+  // キーワードリンクを適用
+  processedBody = processKeywordLinks(processedBody, keywords, currentIssueNumber);
+  
+  // プレースホルダーを元のWikiリンクに戻す
+  placeholders.forEach(({original, replacement}) => {
+    processedBody = processedBody.replace(replacement, original);
+  });
+  
+  return processedBody;
 }
 
 // キーワードをWikiリンクに変換
@@ -201,9 +204,22 @@ function processKeywordLinks(
     // 自分自身へのリンクは作成しない
     if (issueNumber === currentIssueNumber) continue;
     
-    // 単語境界を考慮してキーワードを見つける
-    const regex = new RegExp(`\\b(${escapeRegExp(keyword)})\\b`, 'gi');
-    processedText = processedText.replace(regex, `[[$1]]`);
+    try {
+      // 単語境界を考慮してキーワードを見つける
+      const regex = new RegExp(`\\b(${escapeRegExp(keyword)})\\b`, 'gi');
+      
+      // 最初の一致のみリンクに変換（複数の同じキーワードがあった場合に無限ループを防ぐ）
+      let matched = false;
+      processedText = processedText.replace(regex, (match, p1) => {
+        if (!matched) {
+          matched = true;
+          return `[[${p1}]]`;
+        }
+        return match;
+      });
+    } catch (e) {
+      console.error(`キーワード変換エラー: ${keyword}`, e);
+    }
   }
   
   return processedText;
