@@ -57,11 +57,56 @@ if (zettelkastenConfig.enabled) {
       processedContent = applyZettelkastenLinks(processedContent, keywords, number);
     }
     
-    // MarkdownをHTMLに変換
-    htmlContent = marked.parse(processedContent);
+    // マークダウン処理の準備: [[...]]を一時的に置換して保護
+    const wikiLinkPlaceholders = [];
+    let tempContent = processedContent.replace(/\[\[(.*?)\]\]/g, (match, content) => {
+      const placeholder = `__WIKILINK_${wikiLinkPlaceholders.length}__`;
+      wikiLinkPlaceholders.push({
+        placeholder,
+        original: match,
+        content
+      });
+      return placeholder;
+    });
     
-    // WikiリンクをHTMLリンクに変換（HTMLに変換した後に）
-    htmlContent = convertWikiLinksToHtml(htmlContent, allIssues, bidirectionalLinks, number);
+    // MarkdownをHTMLに変換
+    let processedHtml = marked.parse(tempContent);
+    
+    // プレースホルダーを元のWikiリンク形式に戻す
+    wikiLinkPlaceholders.forEach(item => {
+      processedHtml = processedHtml.replace(
+        item.placeholder, 
+        item.original
+      );
+    });
+    
+    // WikiリンクをHTMLリンクに変換
+    htmlContent = processedHtml.replace(/\[\[(.*?)\]\]/g, (match, linkText) => {
+      const linkedTitle = linkText.trim();
+      
+      // タイトルから対応するIssueを探す
+      const linkedIssue = allIssues.find(i => 
+        i.title.toLowerCase() === linkedTitle.toLowerCase() ||
+        i.title.toLowerCase().includes(linkedTitle.toLowerCase())
+      );
+      
+      if (linkedIssue) {
+        // 双方向リンクかどうかを確認
+        const isBidirectional = bidirectionalLinks.has(number) && 
+          bidirectionalLinks.get(number)?.includes(linkedIssue.number);
+        
+        const linkClass = isBidirectional && zettelkastenConfig.highlightBidirectional
+          ? 'wiki-link bidirectional' 
+          : 'wiki-link';
+        
+        return `<a href="${BASE_PATH}/wiki/${linkedIssue.number}" class="${linkClass}" 
+                 data-issue="${linkedIssue.number}">${linkedTitle}</a>`;
+      }
+      
+      // 対応するIssueが見つからない場合は未リンクとして表示
+      return `<span class="wiki-link-unlinked">${linkedTitle}</span>`;
+    });
+    
   } catch (error) {
     console.error('Zettelkasten処理でエラーが発生しました:', error);
     // エラー時は通常のMarkdown変換に戻る
