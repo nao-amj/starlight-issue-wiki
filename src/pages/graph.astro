@@ -1,0 +1,250 @@
+---
+import { getIssues } from '../lib/github';
+import { processZettelNotes } from '../lib/zettelkasten';
+import { BASE_PATH, SITE_TITLE } from '../config';
+import ZettelGraph from '../components/ZettelGraph.astro';
+import TagsList from '../components/TagsList.astro';
+
+// Get all issues and convert to ZettelNotes
+const issues = await getIssues();
+const allNotes = processZettelNotes(issues);
+
+const title = "知識グラフ";
+const description = `${title} - ${SITE_TITLE}`;
+---
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{title} - {SITE_TITLE}</title>
+  <meta name="description" content={description}>
+  <link rel="stylesheet" href={`${BASE_PATH}/styles/global.css`}>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <div class="header-content">
+        <h1><a href={BASE_PATH + "/"}>Starlight Issue Wiki</a></h1>
+        <nav>
+          <a href={BASE_PATH + "/"}>ホーム</a>
+          <a href={`${BASE_PATH}/wiki/index`}>ページ一覧</a>
+          <a href={`${BASE_PATH}/wiki/welcome`}>はじめに</a>
+          <a href={`${BASE_PATH}/graph`} class="active">知識グラフ</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="graph-page">
+      <h1>知識グラフ</h1>
+      <p class="graph-description">
+        これはWiki内のノート間の関連性を視覚化したものです。ノードをクリックするとそのページに移動します。
+        マウスホイールでズーム、ドラッグで移動できます。
+      </p>
+      
+      <div class="graph-filters">
+        <div class="filter-section">
+          <h2>タグでフィルター</h2>
+          <TagsList notes={allNotes} showCounts={true} layout="list" />
+        </div>
+      </div>
+      
+      <div class="graph-container">
+        <ZettelGraph notes={allNotes} height="600px" width="100%" />
+      </div>
+      
+      <div class="graph-legend">
+        <h2>凡例</h2>
+        <ul>
+          <li><span class="legend-color" style="background-color: #0075ca;"></span> documentation - ドキュメント関連</li>
+          <li><span class="legend-color" style="background-color: #ededed;"></span> wiki - Wiki コンテンツ</li>
+          <li><span class="legend-color" style="background-color: #a2eeef;"></span> feature - 機能の説明</li>
+          <li><span class="legend-color" style="background-color: #dddddd;"></span> untagged - タグなし</li>
+        </ul>
+      </div>
+      
+      <div class="graph-stats">
+        <h2>統計情報</h2>
+        <ul>
+          <li><strong>ノート数:</strong> {allNotes.length}</li>
+          <li><strong>タグ数:</strong> {Array.from(new Set(allNotes.flatMap(note => note.tags))).length}</li>
+          <li><strong>リンク数:</strong> {allNotes.reduce((acc, note) => acc + note.links.length, 0)}</li>
+        </ul>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>© 2025 Starlight Issue Wiki with Zettelkasten</p>
+    </div>
+  </footer>
+
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      margin: 0;
+      padding: 0;
+      line-height: 1.6;
+      color: #333;
+      background-color: #f9f9f9;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1rem;
+    }
+    header {
+      background-color: #4d1a9e;
+      color: white;
+      padding: 1rem 0;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+    header h1 a {
+      color: white;
+      text-decoration: none;
+    }
+    nav {
+      display: flex;
+      gap: 1.5rem;
+    }
+    nav a {
+      color: white;
+      text-decoration: none;
+      opacity: 0.9;
+      padding: 0.5rem;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+    nav a:hover {
+      opacity: 1;
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    nav a.active {
+      background-color: rgba(255, 255, 255, 0.2);
+      font-weight: 500;
+    }
+    main {
+      padding: 2rem 0;
+    }
+    .graph-page {
+      background-color: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+    .graph-page h1 {
+      margin-top: 0;
+      margin-bottom: 1rem;
+      color: #4d1a9e;
+    }
+    .graph-description {
+      margin-bottom: 2rem;
+      color: #666;
+    }
+    .graph-filters {
+      display: flex;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+    .filter-section {
+      flex: 1;
+    }
+    .filter-section h2 {
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.3rem;
+      border-bottom: 1px solid #eee;
+    }
+    .graph-container {
+      margin-bottom: 2rem;
+      border: 1px solid #eee;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .graph-legend {
+      margin-bottom: 2rem;
+    }
+    .graph-legend h2 {
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+    }
+    .graph-legend ul {
+      list-style: none;
+      padding: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .graph-legend li {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .legend-color {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 1px solid #ddd;
+    }
+    .graph-stats {
+      padding: 1rem;
+      background-color: #f9f9f9;
+      border-radius: 8px;
+    }
+    .graph-stats h2 {
+      font-size: 1.1rem;
+      margin-top: 0;
+      margin-bottom: 0.5rem;
+    }
+    .graph-stats ul {
+      list-style: none;
+      padding: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      margin: 0;
+    }
+    footer {
+      border-top: 1px solid #eee;
+      padding: 2rem 0;
+      text-align: center;
+      color: #666;
+      margin-top: 2rem;
+    }
+    
+    /* レスポンシブデザイン */
+    @media (max-width: 768px) {
+      .header-content {
+        flex-direction: column;
+        gap: 1rem;
+      }
+      nav {
+        width: 100%;
+        justify-content: space-between;
+        flex-wrap: wrap;
+      }
+      .graph-filters {
+        flex-direction: column;
+      }
+      .graph-legend ul,
+      .graph-stats ul {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+    }
+  </style>
+</body>
+</html>
