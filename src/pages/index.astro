@@ -8,8 +8,11 @@ import SearchBar from '../components/SearchBar.astro';
 // issueのデータを取得
 const issues = await getIssues();
 
+// プルリクエストを除外
+const filteredIssues = issues.filter(issue => !issue.pull_request);
+
 // カテゴリーごとのissue一覧を作成
-const categorizedIssues = issues.reduce((acc, issue) => {
+const categorizedIssues = filteredIssues.reduce((acc, issue) => {
   // ラベルでカテゴリわけ
   const labels = issue.labels || [];
   
@@ -38,7 +41,7 @@ const categorizedIssues = issues.reduce((acc, issue) => {
 const categories = Object.keys(categorizedIssues);
 
 // 最近の更新一覧を作成（最大5件）
-const recentIssues = [...issues]
+const recentIssues = [...filteredIssues]
   .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
   .slice(0, 5);
 
@@ -46,7 +49,7 @@ const recentIssues = [...issues]
 const now = new Date();
 
 // 人気のあるコンテンツ（ラベルの数が多いもの上位5件）
-const popularContent = [...issues]
+const popularContent = [...filteredIssues]
   .sort((a, b) => (b.labels?.length || 0) - (a.labels?.length || 0))
   .slice(0, 5);
 ---
@@ -69,7 +72,6 @@ const popularContent = [...issues]
           <a href={BASE_PATH + "/"} class="active">ホーム</a>
           <a href={`${BASE_PATH}/wiki/index`}>ページ一覧</a>
           <a href={`${BASE_PATH}/wiki/welcome`}>はじめに</a>
-          <a href={`${BASE_PATH}/zettelkasten.html`} class="special-link">Zettelkasten版</a>
           <a href={REPO_URL}>GitHub</a>
         </nav>
       </div>
@@ -155,7 +157,7 @@ const popularContent = [...issues]
           <ul class="categories-list">
             {categories.map(category => (
               <li class="category-item">
-                <a href={`${BASE_PATH}/category/${category}`}>
+                <a href={`${BASE_PATH}/category/${encodeURIComponent(category)}`}>
                   {category}
                   <span class="category-count">{categorizedIssues[category].length}</span>
                 </a>
@@ -176,10 +178,6 @@ const popularContent = [...issues]
         <a href={`${BASE_PATH}/wiki/index`} class="action-button">
           <span class="action-icon">📋</span>
           <span class="action-text">ページ一覧</span>
-        </a>
-        <a href={`${BASE_PATH}/zettelkasten.html`} class="action-button">
-          <span class="action-icon">🧠</span>
-          <span class="action-text">Zettelkasten版</span>
         </a>
         <a href={REPO_URL + "/issues/new"} class="action-button">
           <span class="action-icon">✏️</span>
@@ -364,7 +362,7 @@ const popularContent = [...issues]
       font-size: 0.7rem;
       padding: 0.2rem 0.5rem;
       border-radius: 20px;
-      color: #333;
+      color: #fff;
     }
     
     .view-all {
@@ -429,7 +427,7 @@ const popularContent = [...issues]
       font-size: 0.65rem;
       padding: 0.1rem 0.4rem;
       border-radius: 20px;
-      color: #333;
+      color: #fff;
     }
     
     .category-item {
@@ -505,6 +503,11 @@ const popularContent = [...issues]
       color: #888;
     }
     
+    /* 検索結果のスタイル修正 */
+    .search-wrapper :global(.search-results) {
+      text-align: left;
+    }
+    
     /* レスポンシブデザイン */
     @media (max-width: 768px) {
       .header-content {
@@ -515,6 +518,9 @@ const popularContent = [...issues]
         width: 100%;
         justify-content: space-between;
         flex-wrap: wrap;
+      }
+      nav a {
+        white-space: nowrap;
       }
       .dashboard-layout {
         grid-template-columns: 1fr;
@@ -533,6 +539,15 @@ const popularContent = [...issues]
       }
       .action-button {
         min-width: calc(50% - 1rem);
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .action-buttons {
+        flex-direction: column;
+      }
+      .action-button {
+        width: 100%;
       }
     }
   </style>
