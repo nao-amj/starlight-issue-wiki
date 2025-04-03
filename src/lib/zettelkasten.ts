@@ -4,6 +4,7 @@
 
 import type { GitHubIssue } from '../data/types';
 import { generateSlug } from './github';
+import { BASE_PATH } from '../config';
 
 // Zettelkasten note type extending GitHubIssue
 export interface ZettelNote extends GitHubIssue {
@@ -48,6 +49,9 @@ export function issueToZettelNote(issue: GitHubIssue): ZettelNote {
   const bodyText = issue.body || '';
   let match;
   
+  // Reset regex lastIndex to ensure proper matching
+  LINK_REGEX.lastIndex = 0;
+  
   while ((match = LINK_REGEX.exec(bodyText)) !== null) {
     links.push(match[1].trim());
   }
@@ -56,14 +60,18 @@ export function issueToZettelNote(issue: GitHubIssue): ZettelNote {
   const tags: string[] = [];
   let tagMatch;
   
+  // Reset regex lastIndex to ensure proper matching
+  TAG_REGEX.lastIndex = 0;
+  
   while ((tagMatch = TAG_REGEX.exec(bodyText)) !== null) {
     tags.push(tagMatch[1].trim());
   }
 
   // Add label names as tags
-  const labelTags = issue.labels
+  const labelTags = issue.labels && Array.isArray(issue.labels)
     ? issue.labels
-        .map(label => label.name)
+        .filter(label => label && typeof label === 'object' && 'name' in label)
+        .map(label => label.name as string)
         .filter(name => name && !tags.includes(name))
     : [];
   
@@ -91,35 +99,54 @@ export function processZettelNotes(issues: GitHubIssue[]): ZettelNote[] {
   // Create a map for easy lookup
   const noteMap = new Map<string, ZettelNote>();
   const slugMap = new Map<string, ZettelNote>();
+  const titleMap = new Map<string, ZettelNote>();
   
   notes.forEach(note => {
     noteMap.set(note.id, note);
     slugMap.set(note.slug, note);
-    // Also map by title for link resolution
-    slugMap.set(note.title.toLowerCase(), note);
+    // Also map by title (case-insensitive) for link resolution
+    if (note.title) {
+      titleMap.set(note.title.toLowerCase(), note);
+    }
   });
   
   // Process backlinks
   notes.forEach(note => {
     // For each link in this note
     note.links.forEach(link => {
-      // Normalize the link text to match against slugs or titles
+      // Normalize the link text
       const normalizedLink = link.toLowerCase();
       
-      // Try to find the target note by slug or title
-      const targetNote = slugMap.get(normalizedLink);
+      // Try to find the target note by title or slug
+      const targetNote = titleMap.get(normalizedLink) || slugMap.get(normalizedLink);
       
       if (targetNote) {
         // Extract some context around the link (the paragraph or sentence containing it)
         const bodyText = note.body || '';
         const linkPattern = new RegExp(`\\[\\[${link}\\]\\]`);
-        const paragraphs = bodyText.split('\n\n');
         
+        // Split by paragraphs
         let context = '';
+        const paragraphs = bodyText.split(/\n\s*\n/);
+        
         for (const paragraph of paragraphs) {
           if (paragraph.match(linkPattern)) {
-            context = paragraph.substring(0, 150) + (paragraph.length > 150 ? '...' : '');
+            // Truncate context if too long
+            context = paragraph.length > 150
+              ? paragraph.substring(0, 150) + '...'
+              : paragraph;
             break;
+          }
+        }
+        
+        // If no paragraph found, look for sentences
+        if (!context) {
+          const sentences = bodyText.match(/[^.!?]+[.!?]+/g) || [];
+          for (const sentence of sentences) {
+            if (sentence.match(linkPattern)) {
+              context = sentence.trim();
+              break;
+            }
           }
         }
         
@@ -128,7 +155,7 @@ export function processZettelNotes(issues: GitHubIssue[]): ZettelNote[] {
           id: note.id,
           title: note.title,
           slug: note.slug,
-          context
+          context: context || `Referenced in ${note.title}`
         });
       }
     });
@@ -141,24 +168,31 @@ export function processZettelNotes(issues: GitHubIssue[]): ZettelNote[] {
  * Replace wiki links [[link]] with HTML links
  */
 export function processWikiLinks(content: string, notes: ZettelNote[]): string {
+  // Create lookup maps for faster link resolution
+  const titleMap = new Map<string, ZettelNote>();
   const slugMap = new Map<string, ZettelNote>();
   
   notes.forEach(note => {
-    slugMap.set(note.title.toLowerCase(), note);
     slugMap.set(note.slug, note);
+    if (note.title) {
+      titleMap.set(note.title.toLowerCase(), note);
+    }
   });
+  
+  // Reset regex lastIndex to ensure proper matching
+  LINK_REGEX.lastIndex = 0;
   
   return content.replace(LINK_REGEX, (match, linkText) => {
     const normalizedLink = linkText.toLowerCase();
-    const targetNote = slugMap.get(normalizedLink);
+    const targetNote = titleMap.get(normalizedLink) || slugMap.get(normalizedLink);
     
     if (targetNote) {
-      return `<a href="${targetNote.slug}" class="wiki-link" data-note-id="${targetNote.id}">${linkText}</a>`;
+      return `<a href="${BASE_PATH}/wiki/${targetNote.slug}" class="wiki-link" data-note-id="${targetNote.id}">${linkText}</a>`;
     } else {
-      // Return a link to create a new note with this title
+      // Create a link for a new note
       const newNoteSlug = linkText.toLowerCase()
-        .replace(/[^\\w\\s-]/g, '')
-        .replace(/\\s+/g, '-')
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
         .replace(/^-+|-+$/g, '');
       
       return `<a href="#" class="wiki-link wiki-link-new" data-title="${linkText}">${linkText}</a>`;
@@ -170,8 +204,11 @@ export function processWikiLinks(content: string, notes: ZettelNote[]): string {
  * Process hashtags into clickable tags
  */
 export function processTags(content: string): string {
+  // Reset regex lastIndex to ensure proper matching
+  TAG_REGEX.lastIndex = 0;
+  
   return content.replace(TAG_REGEX, (match, tag) => {
-    return `<a href="/category/${tag}" class="tag-link">#${tag}</a>`;
+    return `<a href="${BASE_PATH}/category/${tag}" class="tag-link">#${tag}</a>`;
   });
 }
 
@@ -179,24 +216,27 @@ export function processTags(content: string): string {
  * Generate graph data for visualization
  */
 export function generateGraphData(notes: ZettelNote[]) {
-  const nodes = notes.map(note => ({
-    id: note.id,
-    label: note.title,
-    title: note.title,
-    slug: note.slug,
-    tags: note.tags,
-    group: note.tags.length > 0 ? note.tags[0] : 'untagged'
-  }));
+  const nodes = notes
+    .filter(note => note.number > 0) // Only include real issues
+    .map(note => ({
+      id: note.id,
+      label: note.title,
+      title: note.title,
+      slug: note.slug,
+      tags: note.tags,
+      group: note.tags.length > 0 ? note.tags[0] : 'untagged'
+    }));
   
   const edges: Array<{ from: string; to: string }> = [];
   
   notes.forEach(note => {
     note.links.forEach(link => {
-      // Find the target note by title or slug
+      // Normalize the link text
       const normalizedLink = link.toLowerCase();
       
+      // Find the target note by title or slug
       const targetNote = notes.find(
-        n => n.title.toLowerCase() === normalizedLink || n.slug === normalizedLink
+        n => (n.title && n.title.toLowerCase() === normalizedLink) || n.slug === normalizedLink
       );
       
       if (targetNote) {
