@@ -44,6 +44,7 @@ const featuredContent = sortIssuesByDate(issues).slice(0, 6);
           <a href={`${BASE_PATH}/wiki/1`}>はじめに</a>
           <a href={`${BASE_PATH}/wiki`}>ページ一覧</a>
           <a href={REPO_URL} target="_blank">GitHub</a>
+          <button id="theme-toggle" class="theme-toggle" aria-label="テーマ切り替え">🌙</button>
         </nav>
       </div>
     </div>
@@ -71,33 +72,6 @@ const featuredContent = sortIssuesByDate(issues).slice(0, 6);
 
         <h2>最近の更新</h2>
         <TimelineView issues={issues} limit={5} titleOnly={true} />
-        
-        <h2>GitWiki Hubについて</h2>
-        <p>
-          このサイトは、GitHubのIssueをWikiページとして表示する便利なアプリケーションです。
-          Astroフレームワークを使用して構築されており、シンプルで高速なWikiサイトを実現しています。
-        </p>
-        
-        <h3>特徴</h3>
-        <ul>
-          <li>GitHubのIssueがそのままWikiページになります</li>
-          <li>Markdownで簡単に編集できます</li>
-          <li>ラベルでカテゴリ分けができます</li>
-          <li>レスポンシブデザインで様々なデバイスに対応</li>
-          <li>インラインで簡単に検索できます</li>
-          <li>タイムラインビューでコンテンツを時系列で確認できます</li>
-        </ul>
-        
-        <h3>使い方</h3>
-        <ol>
-          <li>GitHubで<a href={`${REPO_URL}/issues/new`} target="_blank">新しいIssueを作成</a>する</li>
-          <li>ラベルでカテゴリを設定する</li>
-          <li>自動的にWikiに反映される</li>
-        </ol>
-        
-        <p>
-          詳しくは<a href={`${BASE_PATH}/wiki/1`}>はじめに</a>をご覧ください。
-        </p>
 
         <div class="issue-grid">
           {featuredContent.map(issue => (
@@ -392,6 +366,29 @@ const featuredContent = sortIssuesByDate(issues).slice(0, 6);
       transform: translateX(3px);
     }
     
+    /* テーマ切り替えボタン */
+    .theme-toggle {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.5rem;
+      cursor: pointer;
+      width: 2rem;
+      height: 2rem;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.2s;
+      background-color: rgba(255, 255, 255, 0.15);
+    }
+    
+    .theme-toggle:hover {
+      background-color: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+    }
+    
     /* レスポンシブデザイン */
     @media (max-width: 768px) {
       .content-grid {
@@ -421,15 +418,31 @@ const featuredContent = sortIssuesByDate(issues).slice(0, 6);
   <script>
     // ダークモード切り替え機能
     document.addEventListener('DOMContentLoaded', () => {
+      const toggleButton = document.getElementById('theme-toggle');
+      
       // ローカルストレージからユーザーの設定を取得
       const savedTheme = localStorage.getItem('theme');
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       
-      // テーマの設定（保存された設定があればそれを優先、なければシステム設定に従う）
-      if (savedTheme) {
-        document.documentElement.classList.toggle('dark-theme', savedTheme === 'dark');
-      } else if (prefersDark) {
-        document.documentElement.classList.add('dark-theme');
+      // テーマの初期設定
+      let isDarkTheme = savedTheme === 'dark' || (!savedTheme && prefersDark);
+      
+      // 初期状態を設定
+      document.documentElement.classList.toggle('dark-theme', isDarkTheme);
+      updateThemeToggleIcon(isDarkTheme);
+      
+      // テーマ切り替えボタンのクリックイベント
+      toggleButton.addEventListener('click', () => {
+        isDarkTheme = !isDarkTheme;
+        document.documentElement.classList.toggle('dark-theme', isDarkTheme);
+        localStorage.setItem('theme', isDarkTheme ? 'dark' : 'light');
+        updateThemeToggleIcon(isDarkTheme);
+      });
+      
+      // アイコン更新関数
+      function updateThemeToggleIcon(isDark) {
+        toggleButton.textContent = isDark ? '☀️' : '🌙';
+        toggleButton.setAttribute('aria-label', isDark ? 'ライトモードに切り替え' : 'ダークモードに切り替え');
       }
     });
   </script>
