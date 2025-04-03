@@ -9,14 +9,14 @@
  * @returns {Array} フィルタリングされたIssue配列
  */
 export function filterIssuesByQuery(issues, query) {
-  if (!query || query.length < 2) {
+  if (!query || query.length < 2 || !Array.isArray(issues)) {
     return [];
   }
   
   const lowerQuery = query.toLowerCase();
   
   return issues.filter(issue => 
-    issue.title.toLowerCase().includes(lowerQuery) || 
+    (issue.title && issue.title.toLowerCase().includes(lowerQuery)) || 
     (issue.body && issue.body.toLowerCase().includes(lowerQuery))
   );
 }
@@ -28,9 +28,15 @@ export function filterIssuesByQuery(issues, query) {
  * @returns {string} ハイライトされたHTML
  */
 export function highlightText(text, query) {
-  if (!text) return '';
-  const regex = new RegExp(`(${escapeRegExp(query)})`, 'gi');
-  return text.replace(regex, '<mark class="search-highlight">$1</mark>');
+  if (!text || !query) return '';
+  
+  try {
+    const regex = new RegExp(`(${escapeRegExp(query)})`, 'gi');
+    return text.replace(regex, '<mark class="search-highlight">$1</mark>');
+  } catch (error) {
+    console.error('ハイライト処理でエラーが発生しました:', error);
+    return text;
+  }
 }
 
 /**
@@ -41,26 +47,31 @@ export function highlightText(text, query) {
  * @returns {string} 抽出されたテキスト
  */
 export function extractContext(text, query, contextLength = 50) {
-  if (!text) return '';
+  if (!text || !query) return '';
   
-  const lowerText = text.toLowerCase();
-  const lowerQuery = query.toLowerCase();
-  const matchIndex = lowerText.indexOf(lowerQuery);
-  
-  if (matchIndex >= 0) {
-    const startPos = Math.max(0, matchIndex - contextLength);
-    const endPos = Math.min(text.length, matchIndex + lowerQuery.length + contextLength);
-    let excerpt = text.substring(startPos, endPos);
+  try {
+    const lowerText = text.toLowerCase();
+    const lowerQuery = query.toLowerCase();
+    const matchIndex = lowerText.indexOf(lowerQuery);
     
-    // 前後が切れている場合は省略記号を追加
-    if (startPos > 0) excerpt = '...' + excerpt;
-    if (endPos < text.length) excerpt = excerpt + '...';
+    if (matchIndex >= 0) {
+      const startPos = Math.max(0, matchIndex - contextLength);
+      const endPos = Math.min(text.length, matchIndex + lowerQuery.length + contextLength);
+      let excerpt = text.substring(startPos, endPos);
+      
+      // 前後が切れている場合は省略記号を追加
+      if (startPos > 0) excerpt = '...' + excerpt;
+      if (endPos < text.length) excerpt = excerpt + '...';
+      
+      return excerpt;
+    }
     
-    return excerpt;
+    // 本文にキーワードが含まれない場合は先頭を表示
+    return text.substring(0, 100) + (text.length > 100 ? '...' : '');
+  } catch (error) {
+    console.error('コンテキスト抽出でエラーが発生しました:', error);
+    return text.substring(0, 100) + (text.length > 100 ? '...' : '');
   }
-  
-  // 本文にキーワードが含まれない場合は先頭を表示
-  return text.substring(0, 100) + (text.length > 100 ? '...' : '');
 }
 
 /**
@@ -69,5 +80,6 @@ export function extractContext(text, query, contextLength = 50) {
  * @returns {string} エスケープされた文字列
  */
 export function escapeRegExp(string) {
+  if (!string) return '';
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
