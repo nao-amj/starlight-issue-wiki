@@ -1,0 +1,206 @@
+---
+/**
+ * ZettelGraph - A visual representation of the note connections
+ * Uses vis-network for an interactive graph visualization
+ */
+import type { ZettelNote } from '../lib/zettelkasten';
+import { generateGraphData } from '../lib/zettelkasten';
+
+interface Props {
+  notes: ZettelNote[];
+  currentNote?: ZettelNote;
+  height?: string;
+  width?: string;
+  showControls?: boolean;
+}
+
+const { 
+  notes, 
+  currentNote, 
+  height = '400px', 
+  width = '100%',
+  showControls = true
+} = Astro.props;
+
+// Generate graph data from notes
+const graphData = generateGraphData(notes);
+
+// Highlight the current note if provided
+if (currentNote) {
+  const currentNodeIndex = graphData.nodes.findIndex(node => node.id === currentNote.id);
+  if (currentNodeIndex >= 0) {
+    graphData.nodes[currentNodeIndex].color = '#4d1a9e';
+    graphData.nodes[currentNodeIndex].font = { color: 'white' };
+  }
+}
+
+// Generate a unique ID for this graph instance
+const graphId = `zettel-graph-${Math.random().toString(36).substring(2, 9)}`;
+---
+
+<div class="zettel-graph-container">
+  {showControls && (
+    <div class="zettel-graph-controls">
+      <button id={`${graphId}-zoom-in`} class="graph-control-btn">
+        <span>+</span>
+      </button>
+      <button id={`${graphId}-zoom-out`} class="graph-control-btn">
+        <span>−</span>
+      </button>
+      <button id={`${graphId}-fit`} class="graph-control-btn">
+        <span>⤢</span>
+      </button>
+    </div>
+  )}
+  
+  <div id={graphId} class="zettel-graph" style={`height: ${height}; width: ${width};`}></div>
+  
+  <script define:vars={{ graphId, graphData }}>
+    // Dynamic import of vis-network
+    import('https://cdn.jsdelivr.net/npm/vis-network@9.1.6/dist/vis-network.min.js')
+      .then((vis) => {
+        const container = document.getElementById(graphId);
+        
+        if (!container) return;
+        
+        // Network configuration
+        const options = {
+          nodes: {
+            shape: 'dot',
+            size: 16,
+            font: {
+              size: 14,
+              face: 'system-ui, sans-serif'
+            },
+            borderWidth: 2,
+            shadow: true
+          },
+          edges: {
+            width: 2,
+            smooth: {
+              type: 'continuous'
+            },
+            arrows: {
+              to: { enabled: true, scaleFactor: 0.5 }
+            },
+            color: { opacity: 0.6 }
+          },
+          physics: {
+            stabilization: true,
+            barnesHut: {
+              gravitationalConstant: -5000,
+              springConstant: 0.01,
+              springLength: 200
+            }
+          },
+          interaction: {
+            navigationButtons: false,
+            keyboard: true,
+            tooltipDelay: 200
+          },
+          groups: {
+            documentation: { color: { background: '#0075ca', border: '#005b9e' } },
+            wiki: { color: { background: '#ededed', border: '#d0d0d0' } },
+            feature: { color: { background: '#a2eeef', border: '#70cdd0' } },
+            untagged: { color: { background: '#dddddd', border: '#cccccc' } }
+          }
+        };
+        
+        // Create the network
+        const network = new vis.Network(container, graphData, options);
+        
+        // Handle node click to navigate to the note
+        network.on('click', function(params) {
+          if (params.nodes.length > 0) {
+            const nodeId = params.nodes[0];
+            const node = graphData.nodes.find(n => n.id === nodeId);
+            
+            if (node && node.slug) {
+              window.location.href = `/starlight-issue-wiki/wiki/${node.slug}`;
+            }
+          }
+        });
+        
+        // Set up control buttons if they exist
+        const zoomIn = document.getElementById(`${graphId}-zoom-in`);
+        const zoomOut = document.getElementById(`${graphId}-zoom-out`);
+        const fitBtn = document.getElementById(`${graphId}-fit`);
+        
+        if (zoomIn) {
+          zoomIn.addEventListener('click', () => {
+            const scale = network.getScale() * 1.2;
+            network.moveTo({ scale: scale });
+          });
+        }
+        
+        if (zoomOut) {
+          zoomOut.addEventListener('click', () => {
+            const scale = network.getScale() * 0.8;
+            network.moveTo({ scale: scale });
+          });
+        }
+        
+        if (fitBtn) {
+          fitBtn.addEventListener('click', () => {
+            network.fit();
+          });
+        }
+      })
+      .catch(err => {
+        console.error('Failed to load vis-network library:', err);
+        const container = document.getElementById(graphId);
+        if (container) {
+          container.innerHTML = '<p>Unable to load graph visualization.</p>';
+        }
+      });
+  </script>
+</div>
+
+<style>
+  .zettel-graph-container {
+    position: relative;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    padding: 8px;
+    border: 1px solid #eee;
+  }
+  
+  .zettel-graph {
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  
+  .zettel-graph-controls {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .graph-control-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background-color: white;
+    border: 1px solid #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s;
+    font-size: 16px;
+    font-weight: bold;
+    padding: 0;
+  }
+  
+  .graph-control-btn:hover {
+    background-color: #f0f0f0;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.15);
+  }
+</style>
