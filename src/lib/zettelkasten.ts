@@ -81,18 +81,15 @@ export function findBidirectionalLinks(issues: GitHubIssue[]): Map<number, numbe
   
   // すべての言及を収集
   issues.forEach(issue => {
-    // 本文中の[[...]]形式のリンクを検出
-    const wikiLinkRegex = /\\[\\[(.*?)\\]\\]/g;
-    
     if (issue.body) {
-      // マッチをすべて検出
-      const matches = [...issue.body.matchAll(/\[\[(.*?)\]\]/g)];
-      
-      if (matches.length > 0) {
-        matches.forEach(match => {
-          if (match[1]) {
+      // マッチをすべて検出 - [[...]]形式のリンク
+      try {
+        const matches = issue.body.match(/\[\[(.*?)\]\]/g);
+        
+        if (matches && matches.length > 0) {
+          matches.forEach(matchStr => {
             // [[...]]から内部のテキストを抽出
-            const linkedTitle = match[1].trim();
+            const linkedTitle = matchStr.substring(2, matchStr.length - 2).trim();
             
             // タイトルから対応するIssueを探す
             const linkedIssue = issues.find(i => 
@@ -106,17 +103,19 @@ export function findBidirectionalLinks(issues: GitHubIssue[]): Map<number, numbe
                 mentions.add(linkedIssue.number);
               }
             }
-          }
-        });
+          });
+        }
+      } catch (e) {
+        console.error('Wikiリンク検出エラー:', e);
       }
       
       // #番号の形式も検出
-      const issueRefMatches = [...issue.body.matchAll(/#(\d+)/g)];
-      
-      if (issueRefMatches.length > 0) {
-        issueRefMatches.forEach(match => {
-          if (match[1]) {
-            const issueNumber = parseInt(match[1], 10);
+      try {
+        const issueRefMatches = issue.body.match(/#(\d+)/g);
+        
+        if (issueRefMatches && issueRefMatches.length > 0) {
+          issueRefMatches.forEach(matchStr => {
+            const issueNumber = parseInt(matchStr.substring(1), 10);
             // 実際にそのissue番号が存在するか確認
             const linkedIssue = issues.find(i => i.number === issueNumber);
             
@@ -126,8 +125,10 @@ export function findBidirectionalLinks(issues: GitHubIssue[]): Map<number, numbe
                 mentions.add(linkedIssue.number);
               }
             }
-          }
-        });
+          });
+        }
+      } catch (e) {
+        console.error('Issue参照検出エラー:', e);
       }
     }
   });
@@ -187,93 +188,80 @@ export function applyZettelkastenLinks(
   const config = loadZettelkastenSettings();
   if (!config.enabled || !config.autoLinkKeywords) return body;
   
-  let processedBody = body;
-  
-  // すでに[[...]]形式でリンクされている部分を除外するために、文書をセグメント化
-  const segments: {text: string, isWikiLink: boolean}[] = [];
-  let lastIndex = 0;
-  
-  // [[...]]を見つけてセグメント化
+  // 既存の [[...]] リンクを検出するための正規表現
   const wikiLinkRegex = /\[\[(.*?)\]\]/g;
+  
+  // 既存リンクの位置を記録
+  const existingLinks = [];
   let match;
-  
-  while ((match = wikiLinkRegex.exec(processedBody)) !== null) {
-    // リンク前のテキスト
-    if (match.index > lastIndex) {
-      segments.push({
-        text: processedBody.substring(lastIndex, match.index),
-        isWikiLink: false
-      });
-    }
-    
-    // リンク自体
-    segments.push({
-      text: match[0],
-      isWikiLink: true
-    });
-    
-    lastIndex = match.index + match[0].length;
-  }
-  
-  // 残りのテキスト
-  if (lastIndex < processedBody.length) {
-    segments.push({
-      text: processedBody.substring(lastIndex),
-      isWikiLink: false
+  while ((match = wikiLinkRegex.exec(body)) !== null) {
+    existingLinks.push({
+      start: match.index,
+      end: match.index + match[0].length,
+      text: match[0]
     });
   }
   
-  // Wiki形式でないセグメントのみキーワード変換
-  for (let i = 0; i < segments.length; i++) {
-    if (!segments[i].isWikiLink) {
-      segments[i].text = processKeywordLinks(segments[i].text, keywords, currentIssueNumber);
-    }
-  }
-  
-  // 全セグメントを結合
-  return segments.map(s => s.text).join('');
-}
-
-// キーワードをWikiリンクに変換
-function processKeywordLinks(
-  text: string, 
-  keywords: Map<string, number>, 
-  currentIssueNumber: number
-): string {
-  let processedText = text;
-  
-  // 長いキーワードから処理（短いキーワードが長いキーワードの一部である可能性があるため）
+  // キーワードをソート (長い順)
   const sortedKeywords = Array.from(keywords.entries())
     .sort((a, b) => b[0].length - a[0].length);
   
-  for (const [keyword, issueNumber] of sortedKeywords) {
-    // 自分自身へのリンクは作成しない
-    if (issueNumber === currentIssueNumber) continue;
-    
-    try {
-      // 単語境界を考慮してキーワードを見つける
-      const regex = new RegExp(`\\b(${escapeRegExp(keyword)})\\b`, 'gi');
-      
-      // 最初の一致のみリンクに変換（複数の同じキーワードがあった場合に無限ループを防ぐ）
-      let matched = false;
-      processedText = processedText.replace(regex, (match, p1) => {
-        if (!matched) {
-          matched = true;
-          return `[[${p1}]]`;
+  // 処理済みの位置を追跡
+  let result = '';
+  let lastIndex = 0;
+  
+  for (let i = 0; i < body.length;) {
+    // この位置が既存リンク内かチェック
+    let insideExistingLink = false;
+    for (const link of existingLinks) {
+      if (i >= link.start && i < link.end) {
+        // 既存リンク内なら、リンク全体をスキップ
+        if (i === link.start) {
+          result += link.text;
+          lastIndex = link.end;
         }
-        return match;
-      });
-    } catch (e) {
-      console.error(`キーワード変換エラー: ${keyword}`, e);
+        i = link.end;
+        insideExistingLink = true;
+        break;
+      }
+    }
+    
+    if (insideExistingLink) continue;
+    
+    // キーワードマッチング
+    let matched = false;
+    for (const [keyword, issueNumber] of sortedKeywords) {
+      // 自分自身へのリンクはスキップ
+      if (issueNumber === currentIssueNumber) continue;
+      
+      // 単語境界チェックのための簡易版
+      const remainingText = body.slice(i);
+      const keywordLower = keyword.toLowerCase();
+      const lowerText = remainingText.toLowerCase();
+      
+      if (lowerText.startsWith(keywordLower)) {
+        const charBefore = i > 0 ? body[i - 1] : ' ';
+        const charAfter = body[i + keyword.length] || ' ';
+        
+        // 単語境界チェック (簡易版)
+        if (/\W/.test(charBefore) && /\W/.test(charAfter)) {
+          // リンクとして追加
+          result += `[[${body.slice(i, i + keyword.length)}]]`;
+          i += keyword.length;
+          matched = true;
+          break;
+        }
+      }
+    }
+    
+    if (!matched) {
+      // マッチしなかった文字を追加
+      result += body[i];
+      i++;
     }
   }
   
-  return processedText;
-}
-
-// 正規表現のエスケープ処理
-function escapeRegExp(string: string): string {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return result;
 }
 
 // WikiリンクをHTMLリンクに変換する関数
@@ -286,31 +274,86 @@ export function convertWikiLinksToHtml(
   const config = loadZettelkastenSettings();
   if (!config.enabled) return body;
   
-  const wikiLinkRegex = /\[\[(.*?)\]\]/g;
+  // 外部のHTMLタグを邪魔しないようにするため、テキストノードのみで検索
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = body;
   
-  return body.replace(wikiLinkRegex, (match, linkText) => {
-    const linkedTitle = linkText.trim();
-    
-    // タイトルから対応するIssueを探す
-    const linkedIssue = issues.find(issue => 
-      issue.title.toLowerCase() === linkedTitle.toLowerCase() ||
-      issue.title.toLowerCase().includes(linkedTitle.toLowerCase())
-    );
-    
-    if (linkedIssue) {
-      // 双方向リンクかどうかを確認
-      const isBidirectional = bidirectionalLinks.has(currentIssueNumber) && 
-        bidirectionalLinks.get(currentIssueNumber)?.includes(linkedIssue.number);
+  // テキストノードを再帰的に処理
+  function processNode(node) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const regex = /\[\[(.*?)\]\]/g;
+      let newHTML = '';
+      let lastIndex = 0;
+      let match;
       
-      const linkClass = isBidirectional && config.highlightBidirectional
-        ? 'wiki-link bidirectional' 
-        : 'wiki-link';
+      const text = node.textContent;
       
-      return `<a href="${BASE_PATH}/wiki/${linkedIssue.number}" class="${linkClass}" 
-               data-issue="${linkedIssue.number}">${linkedTitle}</a>`;
+      // テキスト内のすべてのwikiリンクを処理
+      while ((match = regex.exec(text)) !== null) {
+        // リンク前のテキスト
+        newHTML += text.substring(lastIndex, match.index);
+        
+        const linkedTitle = match[1].trim();
+        
+        // タイトルから対応するIssueを探す
+        const linkedIssue = issues.find(issue => 
+          issue.title.toLowerCase() === linkedTitle.toLowerCase() ||
+          issue.title.toLowerCase().includes(linkedTitle.toLowerCase())
+        );
+        
+        if (linkedIssue) {
+          // 双方向リンクかどうかを確認
+          const isBidirectional = bidirectionalLinks.has(currentIssueNumber) && 
+            bidirectionalLinks.get(currentIssueNumber)?.includes(linkedIssue.number);
+          
+          const linkClass = isBidirectional && config.highlightBidirectional
+            ? 'wiki-link bidirectional' 
+            : 'wiki-link';
+          
+          newHTML += `<a href="${BASE_PATH}/wiki/${linkedIssue.number}" class="${linkClass}" 
+                      data-issue="${linkedIssue.number}">${linkedTitle}</a>`;
+        } else {
+          // 対応するIssueが見つからない場合は未リンクとして表示
+          newHTML += `<span class="wiki-link-unlinked">${linkedTitle}</span>`;
+        }
+        
+        lastIndex = match.index + match[0].length;
+      }
+      
+      // 残りのテキスト
+      if (lastIndex < text.length) {
+        newHTML += text.substring(lastIndex);
+      }
+      
+      if (newHTML) {
+        const tempSpan = document.createElement('span');
+        tempSpan.innerHTML = newHTML;
+        
+        // 元のテキストノードを置き換え
+        const fragment = document.createDocumentFragment();
+        while (tempSpan.firstChild) {
+          fragment.appendChild(tempSpan.firstChild);
+        }
+        
+        node.parentNode.replaceChild(fragment, node);
+      }
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      // スクリプトとスタイル要素は処理しない
+      if (node.tagName !== 'SCRIPT' && node.tagName !== 'STYLE') {
+        // 子ノードを再帰的に処理
+        const childNodes = Array.from(node.childNodes);
+        childNodes.forEach(child => processNode(child));
+      }
     }
+  }
+  
+  try {
+    // すべての子ノードを処理
+    Array.from(tempDiv.childNodes).forEach(node => processNode(node));
     
-    // 対応するIssueが見つからない場合は未リンクとして表示
-    return `<span class="wiki-link-unlinked">${linkedTitle}</span>`;
-  });
+    return tempDiv.innerHTML;
+  } catch (error) {
+    console.error('WikiリンクのHTML変換でエラーが発生しました:', error);
+    return body;
+  }
 }
