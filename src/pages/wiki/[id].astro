@@ -40,31 +40,36 @@ const { title, body, created_at, updated_at, html_url, labels, number } = issue;
 const zettelkastenConfig = loadZettelkastenSettings();
 
 // 処理されたコンテンツを生成
-let processedContent = body;
+let processedContent = body || '';
+let htmlContent = '';
 
+// Zettelkastenモードが有効な場合
 if (zettelkastenConfig.enabled) {
-  // キーワードを抽出
-  const keywords = extractKeywords(allIssues);
-  
-  // 双方向リンクを検出
-  const bidirectionalLinks = findBidirectionalLinks(allIssues);
-  
-  // Zettelkastenリンクを適用
-  if (zettelkastenConfig.autoLinkKeywords) {
-    processedContent = applyZettelkastenLinks(processedContent, keywords, number);
+  try {
+    // キーワードを抽出
+    const keywords = extractKeywords(allIssues);
+    
+    // 双方向リンクを検出
+    const bidirectionalLinks = findBidirectionalLinks(allIssues);
+    
+    // Zettelkastenリンクを適用（Markdownを処理する前に）
+    if (zettelkastenConfig.autoLinkKeywords) {
+      processedContent = applyZettelkastenLinks(processedContent, keywords, number);
+    }
+    
+    // MarkdownをHTMLに変換
+    htmlContent = marked.parse(processedContent);
+    
+    // WikiリンクをHTMLリンクに変換（HTMLに変換した後に）
+    htmlContent = convertWikiLinksToHtml(htmlContent, allIssues, bidirectionalLinks, number);
+  } catch (error) {
+    console.error('Zettelkasten処理でエラーが発生しました:', error);
+    // エラー時は通常のMarkdown変換に戻る
+    htmlContent = marked.parse(body || '');
   }
-  
-  // MarkdownをHTMLに変換
-  let htmlContent = marked.parse(processedContent);
-  
-  // WikiリンクをHTMLリンクに変換
-  htmlContent = convertWikiLinksToHtml(htmlContent, allIssues, bidirectionalLinks, number);
-  
-  // 最終的なHTMLコンテンツ
-  processedContent = htmlContent;
 } else {
   // 通常のMarkdown変換
-  processedContent = marked.parse(processedContent);
+  htmlContent = marked.parse(body || '');
 }
 
 // メタデータ
@@ -111,7 +116,7 @@ const pageTitle = `${title} (#${issue.number})`;
       </div>
       
       <WikiContent 
-        content={processedContent} 
+        content={htmlContent} 
         issueUrl={html_url} 
         currentIssue={issue}
         allIssues={allIssues}
