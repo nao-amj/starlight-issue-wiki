@@ -1,0 +1,144 @@
+---
+/**
+ * TagsList - Displays tags with counts and filtering options
+ */
+import type { ZettelNote } from '../lib/zettelkasten';
+import { BASE_PATH } from '../config';
+
+interface Props {
+  notes: ZettelNote[];
+  activeTags?: string[];
+  showCounts?: boolean;
+  layout?: 'cloud' | 'list';
+  maxTags?: number;
+}
+
+const { 
+  notes, 
+  activeTags = [], 
+  showCounts = true, 
+  layout = 'cloud',
+  maxTags = 0  // 0 means no limit
+} = Astro.props;
+
+// Count tag occurrences across all notes
+const tagCounts: Record<string, number> = {};
+
+notes.forEach(note => {
+  note.tags.forEach(tag => {
+    tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+  });
+});
+
+// Convert to array and sort by count (descending)
+let sortedTags = Object.entries(tagCounts)
+  .sort((a, b) => b[1] - a[1])
+  .map(([tag, count]) => ({ tag, count }));
+
+// Limit the number of tags if specified
+if (maxTags > 0 && sortedTags.length > maxTags) {
+  sortedTags = sortedTags.slice(0, maxTags);
+}
+
+// Calculate tag sizes for the cloud layout
+const minCount = Math.min(...sortedTags.map(t => t.count));
+const maxCount = Math.max(...sortedTags.map(t => t.count));
+const range = maxCount - minCount;
+
+// Function to get the font size based on count (for cloud layout)
+const getTagSize = (count: number) => {
+  if (range === 0) return 1;
+  const normalized = (count - minCount) / range;
+  return 0.8 + normalized * 0.7; // Size range from 0.8em to 1.5em
+};
+---
+
+<div class={`tags-container tags-${layout}`}>
+  {layout === 'list' && (
+    <h3 class="tags-title">Tags</h3>
+  )}
+  
+  <div class="tags-list">
+    {sortedTags.map(({ tag, count }) => {
+      const isActive = activeTags.includes(tag);
+      const tagSize = layout === 'cloud' ? getTagSize(count) : 1;
+      
+      return (
+        <a 
+          href={`${BASE_PATH}/category/${tag}`} 
+          class={`tag-item ${isActive ? 'active' : ''}`}
+          style={layout === 'cloud' ? `font-size: ${tagSize}em;` : ''}
+          data-count={count}
+        >
+          #{tag}
+          {showCounts && <span class="tag-count">{count}</span>}
+        </a>
+      );
+    })}
+  </div>
+</div>
+
+<style>
+  .tags-container {
+    margin-bottom: 1.5rem;
+  }
+  
+  .tags-title {
+    font-size: 1.1rem;
+    margin-bottom: 0.75rem;
+    color: #555;
+    font-weight: 500;
+  }
+  
+  .tags-cloud .tags-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: flex-start;
+  }
+  
+  .tags-list .tags-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  
+  .tag-item {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+    color: #4d1a9e;
+    background-color: #f0e6ff;
+    padding: 0.25rem 0.6rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+  }
+  
+  .tags-list .tag-item {
+    width: fit-content;
+  }
+  
+  .tag-item:hover {
+    background-color: #e0d0ff;
+    transform: translateY(-1px);
+  }
+  
+  .tag-item.active {
+    background-color: #4d1a9e;
+    color: white;
+  }
+  
+  .tag-count {
+    margin-left: 0.4rem;
+    background-color: rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+    padding: 0.1rem 0.4rem;
+    font-size: 0.75rem;
+    opacity: 0.8;
+  }
+  
+  .tag-item.active .tag-count {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+</style>
