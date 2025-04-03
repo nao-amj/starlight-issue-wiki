@@ -44,3 +44,12 @@ export const NAV_LINKS = [
   { title: 'はじめに', url: '/wiki/welcome' },
   { title: 'GitHub', url: REPO_URL, external: true }
 ];
+
+// Zettelkasten設定
+export const DEFAULT_ZETTELKASTEN_CONFIG = {
+  enabled: false,
+  autoLinkKeywords: true,
+  highlightBidirectional: true,
+  showBacklinks: true,
+  keywordMinLength: 3
+};
