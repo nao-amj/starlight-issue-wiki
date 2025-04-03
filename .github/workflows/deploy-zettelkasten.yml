@@ -1,0 +1,67 @@
+name: Deploy Zettelkasten to GitHub Pages
+
+on:
+  push:
+    branches: [zettelkasten]
+  issues:
+    types: [opened, edited, deleted, closed, reopened, labeled, unlabeled]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  issues: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout your repository using git
+        uses: actions/checkout@v4
+        with:
+          ref: zettelkasten
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # クリーンインストールを強制
+      - name: Clean install dependencies
+        run: |
+          # 既存のロックファイルをクリーンアップ
+          rm -f package-lock.json || true
+          rm -rf node_modules || true
+          # NPMキャッシュをクリア
+          npm cache clean --force
+          # 新規インストール
+          npm install
+
+      # ビルド実行
+      - name: Build with Astro
+        run: npm run build
+        env:
+          # GitHub Actionsのデフォルトトークンを使用
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # リポジトリ情報を明示的に設定
+          REPO_OWNER: "nao-amj"
+          REPO_NAME: "starlight-issue-wiki"
+
+      # アーティファクトのアップロード
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
