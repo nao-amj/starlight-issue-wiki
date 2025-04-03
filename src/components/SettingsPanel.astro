@@ -304,6 +304,32 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
     color: #eee;
   }
   
+  /* 保存メッセージのスタイル */
+  .save-message {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #4CAF50;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.25rem;
+    font-weight: 500;
+    z-index: 1001;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    animation: fadeIn 0.3s, fadeOut 0.3s 1.7s;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translate(-50%, 20px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+  }
+  
+  @keyframes fadeOut {
+    from { opacity: 1; transform: translate(-50%, 0); }
+    to { opacity: 0; transform: translate(-50%, 20px); }
+  }
+  
   /* モバイル向け調整 */
   @media (max-width: 640px) {
     .settings-panel {
@@ -366,9 +392,6 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
         settingsPanel.style.display = 'none';
         // 設定が変更されたことを通知
         window.dispatchEvent(new CustomEvent('zettelkasten-settings-changed'));
-        setTimeout(() => {
-          location.reload();
-        }, 300);
       });
     }
     
