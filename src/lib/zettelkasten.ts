@@ -2,8 +2,17 @@
  * Zettelkastenモードの機能を実装するユーティリティ
  */
 
-import { ZettelkastenConfig, DEFAULT_ZETTELKASTEN_CONFIG, BASE_PATH } from '../config';
+import { BASE_PATH, DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
 import type { GitHubIssue } from '../data/types';
+
+// Zettelkasten設定の型定義
+export interface ZettelkastenConfig {
+  enabled: boolean;
+  autoLinkKeywords: boolean;
+  highlightBidirectional: boolean;
+  showBacklinks: boolean;
+  keywordMinLength: number;
+}
 
 // ユーザー設定をロードする関数
 export function loadZettelkastenSettings(): ZettelkastenConfig {
