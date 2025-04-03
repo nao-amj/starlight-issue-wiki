@@ -60,13 +60,13 @@ jobs:
           rm -rf node_modules || true
           npm cache clean --force
           npm install
-          # ビルド実行（サブディレクトリ用に設定を変更）
-          npx astro config set base /starlight-issue-wiki/zettelkasten
+          # 環境変数を設定してビルド実行
           npm run build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO_OWNER: "nao-amj"
           REPO_NAME: "starlight-issue-wiki"
+          PUBLIC_BASE_PATH: "/starlight-issue-wiki/zettelkasten"
 
       # 両方のビルド結果を結合
       - name: Combine build outputs
@@ -77,6 +77,55 @@ jobs:
           # Zettelkastenバージョンをサブディレクトリにコピー
           mkdir -p combined-dist/zettelkasten
           cp -r zettelkasten-branch/dist/* combined-dist/zettelkasten/
+          
+          # メインページからZettelkastenバージョンへのリンクを追加
+          cat > combined-dist/zettelkasten.html << EOF
+          <!DOCTYPE html>
+          <html lang="ja">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>GitWiki Hub - Zettelkasten版へ</title>
+            <meta http-equiv="refresh" content="0;url=/starlight-issue-wiki/zettelkasten/" />
+            <style>
+              body {
+                font-family: system-ui, sans-serif;
+                margin: 0;
+                padding: 20px;
+                line-height: 1.6;
+                color: #333;
+                background-color: #f9f9f9;
+                text-align: center;
+              }
+              .container {
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 2rem;
+                background-color: white;
+                border-radius: 8px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+              }
+              h1 {
+                color: #4d1a9e;
+              }
+              a {
+                color: #4d1a9e;
+                text-decoration: none;
+              }
+              a:hover {
+                text-decoration: underline;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>GitWiki Hub - Zettelkasten版</h1>
+              <p>Zettelkasten版のページに移動しています。自動的にリダイレクトされない場合は、<a href="/starlight-issue-wiki/zettelkasten/">こちらをクリック</a>してください。</p>
+            </div>
+          </body>
+          </html>
+          EOF
+          
           # 確認
           ls -la combined-dist
           ls -la combined-dist/zettelkasten
