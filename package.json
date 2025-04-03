@@ -14,10 +14,13 @@
     "@astrojs/vercel": "^7.3.1",
     "@octokit/rest": "^21.0.0",
     "astro": "^4.7.5",
+    "date-fns": "^3.0.0",
     "marked": "^12.0.1",
     "marked-gfm-heading-id": "^3.1.3",
-    "typescript": "^5.4.2",
-    "date-fns": "^3.0.0",
-    "shiki": "^1.0.0"
+    "shiki": "^1.0.0",
+    "typescript": "^5.4.2"
+  },
+  "devDependencies": {
+    "vis-network": "^9.1.6"
   }
 }
