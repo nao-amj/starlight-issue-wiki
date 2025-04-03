@@ -1,0 +1,115 @@
+/**
+ * Zettelkastenモード用のスタイル
+ */
+
+/* Zettelkastenモードが有効な時のスタイル */
+body.zettelkasten-mode .wiki-content {
+  --zettelkasten-link-color: var(--color-primary, #4f6df5);
+  --zettelkasten-bidirectional-color: var(--color-success, #0fa968);
+  --zettelkasten-highlight-bg: rgba(79, 109, 245, 0.1);
+  --zettelkasten-bidirectional-highlight-bg: rgba(15, 169, 104, 0.1);
+}
+
+/* WikiリンクのスタイリングはWikiContent.astroにも定義されていますが、
+ * グローバルに適用するためにここにも重複して定義しています */
+body.zettelkasten-mode .wiki-link {
+  text-decoration: none;
+  border-bottom: 1px dashed var(--zettelkasten-link-color);
+  color: var(--zettelkasten-link-color);
+  transition: all 0.2s;
+  padding: 0 0.1em;
+}
+
+body.zettelkasten-mode .wiki-link:hover {
+  background-color: var(--zettelkasten-highlight-bg);
+  border-bottom-style: solid;
+}
+
+body.zettelkasten-mode .wiki-link.bidirectional {
+  border-bottom: 2px solid var(--zettelkasten-bidirectional-color);
+  color: var(--zettelkasten-bidirectional-color);
+  font-weight: 500;
+}
+
+body.zettelkasten-mode .wiki-link.bidirectional:hover {
+  background-color: var(--zettelkasten-bidirectional-highlight-bg);
+}
+
+body.zettelkasten-mode .wiki-link-unlinked {
+  text-decoration: none;
+  border-bottom: 1px dotted #999;
+  color: #666;
+  padding: 0 0.1em;
+}
+
+/* バックリンク関連のスタイル */
+.backlinks-container {
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #eee;
+}
+
+.dark .backlinks-container {
+  border-top-color: #444;
+}
+
+/* 設定パネルのダークモード対応 */
+.dark .settings-panel {
+  background-color: #222;
+  color: #eee;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.dark .settings-header,
+.dark .settings-footer {
+  border-color: #444;
+}
+
+.dark .sub-settings {
+  border-left-color: #444;
+}
+
+.dark .range-slider {
+  background: #444;
+}
+
+.dark .slider:before {
+  background-color: #eee;
+}
+
+/* Zettelkastenインディケーター */
+.zettelkasten-indicator {
+  position: fixed;
+  bottom: 6rem;
+  right: 2rem;
+  background-color: var(--zettelkasten-bidirectional-color);
+  color: white;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 99;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  font-weight: bold;
+  font-size: 1rem;
+  transition: transform 0.2s;
+  display: none;
+}
+
+body.zettelkasten-mode .zettelkasten-indicator {
+  display: flex;
+}
+
+.zettelkasten-indicator:hover {
+  transform: scale(1.1);
+}
+
+@media (max-width: 640px) {
+  .zettelkasten-indicator {
+    bottom: 5rem;
+    right: 1rem;
+  }
+}
