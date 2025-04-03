@@ -27,11 +27,12 @@ const { title, description = 'GitHubのIssueを使って管理するWikiサイ�
   <header>
     <div class="container">
       <div class="header-content">
-        <h1><a href={BASE_PATH + "/"}>Starlight Issue Wiki</a></h1>
+        <h1><a href={BASE_PATH + "/"} class="title-link">GitWiki Hub</a></h1>
         <nav>
           <a href={BASE_PATH + "/"}>ホーム</a>
           <a href={`${BASE_PATH}/wiki/1`}>はじめに</a>
           <a href={REPO_URL}>GitHub</a>
+          <button id="settings-toggle-btn" class="settings-toggle-btn">設定</button>
         </nav>
       </div>
     </div>
@@ -76,6 +77,29 @@ const { title, description = 'GitHubのIssueを使って管理するWikiサイ�
       text-align: center;
     }
 
+    /* ヘッダーのタイトルリンクを白色に */
+    .title-link {
+      color: white !important;
+      text-decoration: none;
+    }
+
+    /* 設定ボタンのスタイル */
+    .settings-toggle-btn {
+      background-color: #4f6df5;
+      color: white;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 0.375rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .settings-toggle-btn:hover {
+      background-color: #3a5ad9;
+      transform: translateY(-1px);
+    }
+
     @keyframes fadeInOut {
       0%, 100% { opacity: 0; }
       10%, 90% { opacity: 1; }
@@ -97,6 +121,18 @@ const { title, description = 'GitHubのIssueを使って管理するWikiサイ�
           } else {
             document.body.classList.remove('zettelkasten-mode');
           }
+        }
+        
+        // ヘッダーの設定ボタンのクリックイベント
+        const headerSettingsBtn = document.getElementById('settings-toggle-btn');
+        if (headerSettingsBtn) {
+          headerSettingsBtn.addEventListener('click', () => {
+            // 設定パネルを表示
+            const settingsPanel = document.getElementById('settings-panel');
+            if (settingsPanel) {
+              settingsPanel.style.display = 'block';
+            }
+          });
         }
         
         // Zettelkastenインディケーターのクリックイベント
