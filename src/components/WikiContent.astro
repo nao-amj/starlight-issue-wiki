@@ -13,12 +13,15 @@ export interface Props {
 const { content, issueUrl, currentIssue, allIssues } = Astro.props;
 
 // Zettelkasten設定を読み込み
-const zettelkastenConfig = loadZettelkastenSettings();
+const zettelkastenConfig = {
+  ...loadZettelkastenSettings(),
+  enabled: true // ビルド時は常に有効として処理
+};
 
 // バックリンクを検索
 let backlinks = [];
 try {
-  if (zettelkastenConfig.enabled && zettelkastenConfig.showBacklinks) {
+  if (zettelkastenConfig.showBacklinks) {
     backlinks = findBacklinks(currentIssue.number, allIssues);
   }
 } catch (error) {
@@ -29,7 +32,7 @@ try {
 <div class="wiki-content">
   <div class="content" set:html={content} />
   
-  {zettelkastenConfig.enabled && zettelkastenConfig.showBacklinks && backlinks.length > 0 && (
+  {backlinks.length > 0 && (
     <BacklinkList backlinks={backlinks} currentIssueNumber={currentIssue.number} />
   )}
   
@@ -113,11 +116,12 @@ try {
       }, 500);
     });
     
-    // デバッグ: 特定のクラスの要素を確認
+    // ログ: Wikiリンクの確認
     const wikiLinks = document.querySelectorAll('.wiki-link');
-    const bidirectionalLinks = document.querySelectorAll('.wiki-link.bidirectional');
-    
     console.log(`${wikiLinks.length} WikiLinks found`);
+    
+    // 双方向リンクの確認
+    const bidirectionalLinks = document.querySelectorAll('.wiki-link.bidirectional');
     console.log(`${bidirectionalLinks.length} Bidirectional links found`);
   });
 </script>
