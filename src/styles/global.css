@@ -46,18 +46,16 @@
 }
 
 /* ダークモード対応 */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-primary: #3b82f6;
-    --color-primary-dark: #2563eb;
-    --color-primary-light: #60a5fa;
-    --color-secondary: #f97316;
-    --color-text: #f9fafb;
-    --color-text-light: #e5e7eb;
-    --color-background: #111827;
-    --color-background-panel: #1f2937;
-    --color-border: #374151;
-  }
+:root.dark-theme {
+  --color-primary: #3b82f6;
+  --color-primary-dark: #2563eb;
+  --color-primary-light: #60a5fa;
+  --color-secondary: #f97316;
+  --color-text: #f9fafb;
+  --color-text-light: #e5e7eb;
+  --color-background: #111827;
+  --color-background-panel: #1f2937;
+  --color-border: #374151;
 }
 
 /* リセットとベース */
@@ -85,23 +83,27 @@ body {
   padding: 0 var(--space-md);
 }
 
-/* ヘッダー - グラデーションを追加 */
+/* ヘッダー - コンパクトに改良 */
 header {
   background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
   color: white;
-  padding: var(--space-md) 0;
+  padding: var(--space-xs) 0;  /* 縦のパディングを減らす */
   box-shadow: var(--box-shadow-sm);
+  position: sticky;  /* スクロール時に固定 */
+  top: 0;
+  z-index: 1000;
 }
 
 .header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  height: 3rem;  /* ヘッダーの高さを固定 */
 }
 
 header h1 {
   margin: 0;
-  font-size: var(--font-size-xxl);
+  font-size: var(--font-size-xl);  /* タイトルのサイズを少し小さく */
 }
 
 header h1 a {
@@ -119,16 +121,18 @@ header h1 a:before {
 
 nav {
   display: flex;
-  gap: var(--space-lg);
+  gap: var(--space-md);  /* ナビ項目間のギャップを少し狭く */
+  align-items: center;
 }
 
 nav a {
   color: white;
   text-decoration: none;
   opacity: 0.9;
-  padding: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);  /* パディングを少し狭く */
   border-radius: var(--border-radius-sm);
   transition: all var(--transition-speed);
+  font-size: var(--font-size-sm);  /* フォントサイズを少し小さく */
 }
 
 nav a:hover {
@@ -140,6 +144,29 @@ nav a:hover {
 nav a.active {
   background-color: rgba(255, 255, 255, 0.2);
   font-weight: 500;
+}
+
+/* テーマ切り替えボタン */
+.theme-toggle {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.25rem;
+  cursor: pointer;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all var(--transition-speed);
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.theme-toggle:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
 }
 
 /* メインコンテンツ */
@@ -347,12 +374,14 @@ footer {
 /* バッジとタグ */
 .badge, .tag {
   display: inline-block;
-  padding: 0.2em 0.6em;
-  border-radius: 0.25rem;
-  font-size: 0.8rem;
-  font-weight: 500;
+  padding: 0.25em 0.65em;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
   text-decoration: none;
   line-height: 1.2;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .badge {
@@ -370,6 +399,7 @@ footer {
 .tag:hover {
   background-color: rgba(37, 99, 235, 0.2);
   text-decoration: none;
+  transform: translateY(-1px);
 }
 
 /* アラートとメッセージ */
@@ -433,11 +463,13 @@ footer {
   .header-content {
     flex-direction: column;
     gap: var(--space-md);
+    height: auto;
   }
   
   nav {
     width: 100%;
     justify-content: space-between;
+    flex-wrap: wrap;
   }
   
   h1 {
@@ -479,6 +511,10 @@ footer {
   border: 1px solid var(--color-border);
 }
 
+.dark-theme .markdown-content pre {
+  background-color: #1a202c;
+}
+
 .markdown-content code {
   background-color: #f7fafc;
   padding: 0.2em 0.4em;
@@ -486,6 +522,11 @@ footer {
   font-family: monospace;
   font-size: 0.9em;
   border: 1px solid var(--color-border);
+}
+
+.dark-theme .markdown-content code {
+  background-color: #1a202c;
+  border-color: #4a5568;
 }
 
 .markdown-content blockquote {
@@ -525,8 +566,16 @@ footer {
   text-align: left;
 }
 
+.dark-theme .markdown-content th {
+  background-color: #2d3748;
+}
+
 .markdown-content tr:hover {
   background-color: rgba(37, 99, 235, 0.03);
+}
+
+.dark-theme .markdown-content tr:hover {
+  background-color: rgba(66, 153, 225, 0.05);
 }
 
 /* タイムライン表示 */
