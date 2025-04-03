@@ -30,7 +30,7 @@ export interface ZettelkastenConfig {
 
 // デフォルトのZettelkasten設定
 export const DEFAULT_ZETTELKASTEN_CONFIG: ZettelkastenConfig = {
-  enabled: false,
+  enabled: true,             // デフォルトで有効に変更
   autoLinkKeywords: true,
   highlightBidirectional: true,
   showBacklinks: true,
