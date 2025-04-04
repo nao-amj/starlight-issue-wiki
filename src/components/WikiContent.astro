@@ -46,9 +46,11 @@ try {
     </div>
   </div>
   
-  {backlinks.length > 0 && (
-    <BacklinkList backlinks={backlinks} currentIssueNumber={currentIssue.number} />
-  )}
+  <div class="backlinks-container" style={!zettelkastenConfig.showBacklinks ? 'display: none;' : ''}>
+    {backlinks.length > 0 && (
+      <BacklinkList backlinks={backlinks} currentIssueNumber={currentIssue.number} />
+    )}
+  </div>
   
   <div class="edit-links">
     <a href={issueUrl} target="_blank" rel="noopener noreferrer">
@@ -181,13 +183,36 @@ try {
 <script define:vars={{ BASE_PATH }}>
   // WikiリンクとハッシュタグのクライアントサイドでのフォールバックとUI改善
   document.addEventListener('DOMContentLoaded', () => {
-    // Zettelkasten設定の変更を検知してページをリロード
-    window.addEventListener('zettelkasten-settings-changed', () => {
-      // 設定変更後に少し待ってからリロード
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
+    // 設定変更を検知して即時反映
+    window.addEventListener('zettelkasten-settings-changed', (event) => {
+      console.log('Zettelkasten settings changed, applying changes', event.detail);
+      if (event.detail) {
+        applySettingsToPage(event.detail);
+      }
     });
+    
+    // 設定をコンテンツに適用する関数
+    function applySettingsToPage(config) {
+      // バックリンクの表示/非表示
+      const backlinksContainer = document.querySelector('.backlinks-container');
+      if (backlinksContainer) {
+        backlinksContainer.style.display = config.showBacklinks ? 'block' : 'none';
+      }
+      
+      // 双方向リンクのスタイル調整
+      const bidirectionalLinks = document.querySelectorAll('.wiki-link.bidirectional');
+      bidirectionalLinks.forEach(link => {
+        if (config.highlightBidirectional) {
+          link.style.borderBottom = '2px solid var(--color-success, #0fa968)';
+          link.style.color = 'var(--color-success, #0fa968)';
+          link.style.fontWeight = '500';
+        } else {
+          link.style.borderBottom = '1px dashed var(--color-primary, #4f6df5)';
+          link.style.color = 'var(--color-primary, #4f6df5)';
+          link.style.fontWeight = 'normal';
+        }
+      });
+    }
     
     // ログ: Wikiリンクの確認
     const wikiLinks = document.querySelectorAll('.wiki-link');
@@ -230,6 +255,17 @@ try {
         contentDiv.innerHTML = modifiedHtml;
         console.log('Client-side link conversion completed');
       }
+    }
+    
+    // 現在の設定を読み込んで適用
+    try {
+      const savedConfig = localStorage.getItem('zettelkastenConfig');
+      if (savedConfig) {
+        const config = JSON.parse(savedConfig);
+        applySettingsToPage(config);
+      }
+    } catch (error) {
+      console.error('設定の読み込みに失敗しました:', error);
     }
   });
 </script>
