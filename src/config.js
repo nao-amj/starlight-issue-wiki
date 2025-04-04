@@ -42,14 +42,47 @@ export const NAV_LINKS = [
   { title: 'ホーム', url: '/' },
   { title: 'ページ一覧', url: '/wiki/index' },
   { title: 'はじめに', url: '/wiki/welcome' },
+  { title: 'データ管理', url: '/data-management' },
   { title: 'GitHub', url: REPO_URL, external: true }
 ];
 
-// Zettelkasten設定
+// 拡張Zettelkasten設定
 export const DEFAULT_ZETTELKASTEN_CONFIG = {
-  enabled: false,
+  enabled: true,
   autoLinkKeywords: true,
   highlightBidirectional: true,
   showBacklinks: true,
-  keywordMinLength: 3
+  keywordMinLength: 3,
+  // 拡張機能
+  visualMode: 'standard', // standard, atomic, hierarchical
+  markdownLinks: true,     // [[page]] 形式リンクの自動変換
+  contextAwareness: true,  // セマンティック関連コンテンツ表示
+  atomicNoteSize: 'medium', // small, medium, large
+  autoSuggestLinks: true,  // 関連リンク自動提案
+  tagHierarchy: true,      // タグの階層構造
+  smartBacklinks: true,    // バックリンクのコンテキスト表示
+  graphVisualization: true // 関連グラフ視覚化
+};
+
+// データ管理機能のアクセスポイント
+export const DATA_MANAGEMENT = {
+  path: '/data-management',
+  features: [
+    {
+      name: 'データエクスポート',
+      description: 'Wikiコンテンツを様々な形式でエクスポート'
+    },
+    {
+      name: 'データインポート',
+      description: '外部からWikiにデータをインポート'
+    },
+    {
+      name: 'レポート生成',
+      description: 'Wikiのコンテンツやアクティビティに関するレポートを生成'
+    },
+    {
+      name: 'バックアップと同期',
+      description: 'Wikiデータのバックアップと外部サービスとの同期'
+    }
+  ]
 };
