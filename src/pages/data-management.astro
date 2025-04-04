@@ -1,0 +1,1012 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { BASE_PATH, SITE_TITLE } from '../config';
+import { getIssues } from '../lib/github';
+
+const issues = await getIssues();
+const pageTitle = `データ管理 - ${SITE_TITLE}`;
+---
+
+<Layout title={pageTitle}>
+  <div class="data-management-page">
+    <header class="page-header">
+      <h1>データ管理</h1>
+      <p class="page-description">
+        Wikiデータのインポート、エクスポート、レポート生成などのデータ管理機能を提供します。
+      </p>
+    </header>
+    
+    <div class="data-management-grid">
+      <!-- エクスポート機能 -->
+      <div class="feature-card">
+        <div class="feature-header">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feature-icon">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <h2>データエクスポート</h2>
+        </div>
+        <p class="feature-description">
+          Wikiコンテンツを様々な形式でエクスポートして外部で利用できます。
+        </p>
+        <div class="export-options">
+          <div class="option-group">
+            <h3>エクスポート形式</h3>
+            <select id="export-format" class="export-select">
+              <option value="markdown">Markdown</option>
+              <option value="html">HTML</option>
+              <option value="json">JSON</option>
+              <option value="csv">CSV</option>
+              <option value="pdf">PDF</option>
+            </select>
+          </div>
+          
+          <div class="option-group">
+            <h3>エクスポート範囲</h3>
+            <div class="checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="export-all" checked>
+                すべてのページ
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="export-selected" disabled>
+                選択したページのみ
+              </label>
+            </div>
+            <div id="selected-pages-container" class="selected-pages" style="display: none;">
+              <select id="selected-pages" class="export-select" multiple>
+                {issues.map(issue => (
+                  <option value={issue.number}>{issue.title}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          
+          <div class="option-group">
+            <h3>メタデータオプション</h3>
+            <div class="checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="include-metadata" checked>
+                メタデータを含める
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="include-comments">
+                コメントを含める
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="include-backlinks" checked>
+                バックリンクを含める
+              </label>
+            </div>
+          </div>
+          
+          <button id="export-button" class="action-button">
+            エクスポート
+          </button>
+        </div>
+      </div>
+      
+      <!-- インポート機能 -->
+      <div class="feature-card">
+        <div class="feature-header">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feature-icon">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          <h2>データインポート</h2>
+        </div>
+        <p class="feature-description">
+          外部データをWikiにインポートして、コンテンツを拡充できます。
+        </p>
+        <div class="import-options">
+          <div class="option-group">
+            <h3>インポート元</h3>
+            <select id="import-source" class="import-select">
+              <option value="file">ファイルからインポート</option>
+              <option value="url">URLからインポート</option>
+              <option value="github">別のGitHubリポジトリから</option>
+              <option value="notion">Notionから</option>
+            </select>
+          </div>
+          
+          <div id="file-import-options" class="source-options">
+            <h3>ファイルを選択</h3>
+            <div class="file-input-container">
+              <input type="file" id="import-file" multiple class="file-input" accept=".md,.html,.json,.csv,.zip">
+              <label for="import-file" class="file-input-label">ファイルを選択</label>
+              <span id="file-name" class="file-name">選択されていません</span>
+            </div>
+            <p class="import-help">
+              Markdown, HTML, JSON, CSV, ZIPアーカイブをアップロードできます。
+            </p>
+          </div>
+          
+          <div id="url-import-options" class="source-options" style="display: none;">
+            <h3>URLを入力</h3>
+            <input type="url" id="import-url" class="import-input" placeholder="https://example.com/content.md">
+            <p class="import-help">
+              公開されているMarkdown、HTML、JSONファイルのURLを入力してください。
+            </p>
+          </div>
+          
+          <div id="github-import-options" class="source-options" style="display: none;">
+            <h3>GitHubリポジトリ情報</h3>
+            <input type="text" id="import-github-repo" class="import-input" placeholder="owner/repository">
+            <p class="import-help">
+              「所有者/リポジトリ名」形式でGitHubリポジトリを指定してください。
+            </p>
+          </div>
+          
+          <div id="notion-import-options" class="source-options" style="display: none;">
+            <h3>Notion統合</h3>
+            <input type="text" id="import-notion-url" class="import-input" placeholder="https://www.notion.so/...">
+            <p class="import-help">
+              NotionページのURLを入力し、統合を設定してください。
+            </p>
+            <button id="notion-connect" class="secondary-button">Notionと連携</button>
+          </div>
+          
+          <div class="option-group">
+            <h3>インポートオプション</h3>
+            <div class="checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="overwrite-existing" checked>
+                既存コンテンツを上書き
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="auto-categorize" checked>
+                自動カテゴリ分類
+              </label>
+            </div>
+          </div>
+          
+          <button id="import-button" class="action-button">
+            インポート
+          </button>
+        </div>
+      </div>
+      
+      <!-- レポート機能 -->
+      <div class="feature-card">
+        <div class="feature-header">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feature-icon">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          <h2>レポート生成</h2>
+        </div>
+        <p class="feature-description">
+          Wikiのコンテンツやアクティビティに関する様々なレポートを生成できます。
+        </p>
+        <div class="report-options">
+          <div class="option-group">
+            <h3>レポートタイプ</h3>
+            <select id="report-type" class="report-select">
+              <option value="activity">アクティビティレポート</option>
+              <option value="content">コンテンツ分析レポート</option>
+              <option value="links">リンク関係レポート</option>
+              <option value="contributors">コントリビューターレポート</option>
+              <option value="custom">カスタムレポート</option>
+            </select>
+          </div>
+          
+          <div class="option-group">
+            <h3>期間設定</h3>
+            <div class="date-inputs">
+              <div class="date-input-group">
+                <label for="report-start-date">開始日</label>
+                <input type="date" id="report-start-date" class="date-input">
+              </div>
+              <div class="date-input-group">
+                <label for="report-end-date">終了日</label>
+                <input type="date" id="report-end-date" class="date-input">
+              </div>
+            </div>
+          </div>
+          
+          <div class="option-group">
+            <h3>レポート形式</h3>
+            <select id="report-format" class="report-select">
+              <option value="html">HTML</option>
+              <option value="pdf">PDF</option>
+              <option value="excel">Excel</option>
+              <option value="json">JSON</option>
+            </select>
+          </div>
+          
+          <div id="custom-report-options" class="option-group" style="display: none;">
+            <h3>カスタムレポート設定</h3>
+            <div class="checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="include-activity" checked>
+                アクティビティ分析
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="include-content" checked>
+                コンテンツ分析
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="include-links" checked>
+                リンク関係分析
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="include-contributors" checked>
+                コントリビューター分析
+              </label>
+            </div>
+            <div class="chart-options">
+              <label for="chart-style">グラフスタイル</label>
+              <select id="chart-style" class="report-select">
+                <option value="bar">棒グラフ</option>
+                <option value="line">折れ線グラフ</option>
+                <option value="pie">円グラフ</option>
+                <option value="auto">自動選択</option>
+              </select>
+            </div>
+          </div>
+          
+          <button id="generate-report-button" class="action-button">
+            レポート生成
+          </button>
+        </div>
+      </div>
+      
+      <!-- バックアップ・同期 -->
+      <div class="feature-card">
+        <div class="feature-header">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feature-icon">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+          <h2>バックアップと同期</h2>
+        </div>
+        <p class="feature-description">
+          Wikiデータの自動バックアップと外部サービスとの同期を設定します。
+        </p>
+        <div class="backup-options">
+          <div class="option-group">
+            <h3>バックアップ設定</h3>
+            <div class="checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="auto-backup" checked>
+                自動バックアップを有効化
+              </label>
+            </div>
+            <div class="backup-frequency">
+              <label for="backup-frequency">バックアップ頻度</label>
+              <select id="backup-frequency" class="backup-select">
+                <option value="daily">毎日</option>
+                <option value="weekly" selected>毎週</option>
+                <option value="monthly">毎月</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="option-group">
+            <h3>バックアップ保存先</h3>
+            <select id="backup-destination" class="backup-select">
+              <option value="local">ローカルディスク</option>
+              <option value="github">GitHub</option>
+              <option value="dropbox">Dropbox</option>
+              <option value="googledrive">Google Drive</option>
+            </select>
+            <div id="backup-path-container" class="backup-path">
+              <label for="backup-path">バックアップパス</label>
+              <input type="text" id="backup-path" class="backup-input" placeholder="/backups/wiki">
+            </div>
+          </div>
+          
+          <div class="option-group">
+            <h3>外部サービス同期</h3>
+            <div class="service-list">
+              <div class="service-item">
+                <div class="service-info">
+                  <img src="https://cdn-icons-png.flaticon.com/512/25/25231.png" alt="GitHub" class="service-icon">
+                  <span class="service-name">GitHub</span>
+                </div>
+                <button class="connect-button connected">
+                  連携済み
+                </button>
+              </div>
+              <div class="service-item">
+                <div class="service-info">
+                  <img src="https://www.svgrepo.com/show/353655/discord-icon.svg" alt="Discord" class="service-icon">
+                  <span class="service-name">Discord</span>
+                </div>
+                <button class="connect-button">
+                  連携する
+                </button>
+              </div>
+              <div class="service-item">
+                <div class="service-info">
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/4/45/Notion_app_logo.png" alt="Notion" class="service-icon">
+                  <span class="service-name">Notion</span>
+                </div>
+                <button class="connect-button">
+                  連携する
+                </button>
+              </div>
+              <div class="service-item">
+                <div class="service-info">
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/9/9a/Slack_logo_2019.svg" alt="Slack" class="service-icon">
+                  <span class="service-name">Slack</span>
+                </div>
+                <button class="connect-button">
+                  連携する
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <div class="action-buttons">
+            <button id="save-backup-settings" class="action-button">
+              設定を保存
+            </button>
+            <button id="manual-backup" class="secondary-button">
+              今すぐバックアップ
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="navigation-links">
+      <a href={`${BASE_PATH}/`} class="navigation-link">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+          <polyline points="9 22 9 12 15 12 15 22"></polyline>
+        </svg>
+        ホームに戻る
+      </a>
+      <a href={`${BASE_PATH}/analysis`} class="navigation-link">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+          <line x1="12" y1="22.08" x2="12" y2="12"></line>
+        </svg>
+        分析ページへ
+      </a>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .data-management-page {
+    padding: 2rem 0;
+  }
+  
+  .page-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+  }
+  
+  .page-header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(90deg, #4f6df5, #845ef7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: inline-block;
+  }
+  
+  .page-description {
+    max-width: 800px;
+    margin: 0 auto;
+    color: #666;
+  }
+  
+  .dark .page-description {
+    color: #aaa;
+  }
+  
+  .data-management-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+  }
+  
+  .feature-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+  }
+  
+  .feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+  }
+  
+  .dark .feature-card {
+    background: #222;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+  }
+  
+  .dark .feature-card:hover {
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.35);
+  }
+  
+  .feature-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  
+  .feature-icon {
+    color: #4f6df5;
+    background-color: rgba(79, 109, 245, 0.1);
+    padding: 0.5rem;
+    border-radius: 8px;
+  }
+  
+  .dark .feature-icon {
+    background-color: rgba(79, 109, 245, 0.2);
+  }
+  
+  .feature-header h2 {
+    font-size: 1.35rem;
+    margin: 0;
+    color: #333;
+  }
+  
+  .dark .feature-header h2 {
+    color: #eee;
+  }
+  
+  .feature-description {
+    color: #666;
+    margin-bottom: 1.5rem;
+  }
+  
+  .dark .feature-description {
+    color: #aaa;
+  }
+  
+  .option-group {
+    margin-bottom: 1.5rem;
+  }
+  
+  .option-group h3 {
+    font-size: 1rem;
+    color: #444;
+    margin-bottom: 0.75rem;
+  }
+  
+  .dark .option-group h3 {
+    color: #ddd;
+  }
+  
+  .export-select,
+  .import-select,
+  .report-select,
+  .backup-select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background-color: white;
+    font-size: 0.95rem;
+  }
+  
+  .dark .export-select,
+  .dark .import-select,
+  .dark .report-select,
+  .dark .backup-select {
+    background-color: #333;
+    border-color: #555;
+    color: #ddd;
+  }
+  
+  select[multiple] {
+    height: 120px;
+  }
+  
+  .checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+    color: #444;
+    cursor: pointer;
+  }
+  
+  .dark .checkbox-label {
+    color: #ddd;
+  }
+  
+  .action-button,
+  .secondary-button {
+    padding: 0.75rem 1rem;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+  
+  .action-button {
+    background-color: #4f6df5;
+    color: white;
+  }
+  
+  .action-button:hover {
+    background-color: #3955d8;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(79, 109, 245, 0.3);
+  }
+  
+  .secondary-button {
+    background-color: #f1f5f9;
+    color: #475569;
+  }
+  
+  .secondary-button:hover {
+    background-color: #e2e8f0;
+    transform: translateY(-2px);
+  }
+  
+  .dark .secondary-button {
+    background-color: #334155;
+    color: #e2e8f0;
+  }
+  
+  .dark .secondary-button:hover {
+    background-color: #475569;
+  }
+  
+  .file-input-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+  
+  .file-input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+  }
+  
+  .file-input-label {
+    padding: 0.5rem 1rem;
+    background-color: #f1f5f9;
+    color: #475569;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+    min-width: 140px;
+    text-align: center;
+  }
+  
+  .file-input-label:hover {
+    background-color: #e2e8f0;
+  }
+  
+  .dark .file-input-label {
+    background-color: #334155;
+    color: #e2e8f0;
+  }
+  
+  .dark .file-input-label:hover {
+    background-color: #475569;
+  }
+  
+  .file-name {
+    margin-left: 1rem;
+    font-size: 0.9rem;
+    color: #64748b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+  }
+  
+  .dark .file-name {
+    color: #94a3b8;
+  }
+  
+  .import-help {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-top: 0.5rem;
+    font-style: italic;
+  }
+  
+  .dark .import-help {
+    color: #94a3b8;
+  }
+  
+  .source-options {
+    margin-bottom: 1.5rem;
+  }
+  
+  .import-input,
+  .backup-input,
+  .date-input {
+    width: 100%;
+    padding: 0.6rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.95rem;
+  }
+  
+  .dark .import-input,
+  .dark .backup-input,
+  .dark .date-input {
+    background-color: #333;
+    border-color: #555;
+    color: #ddd;
+  }
+  
+  .date-inputs {
+    display: flex;
+    gap: 1rem;
+  }
+  
+  .date-input-group {
+    flex: 1;
+  }
+  
+  .date-input-group label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.85rem;
+    color: #64748b;
+  }
+  
+  .dark .date-input-group label {
+    color: #94a3b8;
+  }
+  
+  .chart-options {
+    margin-top: 1rem;
+  }
+  
+  .chart-options label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.85rem;
+    color: #64748b;
+  }
+  
+  .dark .chart-options label {
+    color: #94a3b8;
+  }
+  
+  .backup-path {
+    margin-top: 0.75rem;
+  }
+  
+  .backup-path label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.85rem;
+    color: #64748b;
+  }
+  
+  .dark .backup-path label {
+    color: #94a3b8;
+  }
+  
+  .service-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .service-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    background-color: #f8fafc;
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+  
+  .service-item:hover {
+    background-color: #f1f5f9;
+  }
+  
+  .dark .service-item {
+    background-color: #1e293b;
+  }
+  
+  .dark .service-item:hover {
+    background-color: #334155;
+  }
+  
+  .service-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  
+  .service-icon {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+  }
+  
+  .service-name {
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
+  
+  .connect-button {
+    padding: 0.4rem 0.75rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    background-color: #e2e8f0;
+    color: #475569;
+    transition: all 0.2s;
+  }
+  
+  .connect-button:hover {
+    background-color: #cbd5e1;
+  }
+  
+  .connect-button.connected {
+    background-color: #bbf7d0;
+    color: #166534;
+  }
+  
+  .connect-button.connected:hover {
+    background-color: #a7f3d0;
+  }
+  
+  .dark .connect-button {
+    background-color: #334155;
+    color: #e2e8f0;
+  }
+  
+  .dark .connect-button:hover {
+    background-color: #475569;
+  }
+  
+  .dark .connect-button.connected {
+    background-color: #065f46;
+    color: #d1fae5;
+  }
+  
+  .dark .connect-button.connected:hover {
+    background-color: #047857;
+  }
+  
+  .action-buttons {
+    display: flex;
+    gap: 0.75rem;
+  }
+  
+  .navigation-links {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-top: 2rem;
+  }
+  
+  .navigation-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    background-color: #f8fafc;
+    color: #475569;
+    text-decoration: none;
+    border-radius: 50px;
+    transition: all 0.3s;
+    font-weight: 500;
+  }
+  
+  .navigation-link:hover {
+    background-color: #f1f5f9;
+    transform: translateY(-2px);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+  }
+  
+  .dark .navigation-link {
+    background-color: #1e293b;
+    color: #e2e8f0;
+  }
+  
+  .dark .navigation-link:hover {
+    background-color: #334155;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+  }
+  
+  /* レスポンシブ対応 */
+  @media (max-width: 768px) {
+    .data-management-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .date-inputs {
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    
+    .action-buttons {
+      flex-direction: column;
+    }
+    
+    .navigation-links {
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .navigation-link {
+      width: 100%;
+      max-width: 280px;
+      justify-content: center;
+    }
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // エクスポート関連のイベントハンドラ
+    const exportAll = document.getElementById('export-all');
+    const exportSelected = document.getElementById('export-selected');
+    const selectedPagesContainer = document.getElementById('selected-pages-container');
+    
+    if (exportAll && exportSelected && selectedPagesContainer) {
+      exportAll.addEventListener('change', (e) => {
+        exportSelected.disabled = e.target.checked;
+        if (e.target.checked) {
+          selectedPagesContainer.style.display = 'none';
+        }
+      });
+      
+      exportSelected.addEventListener('change', (e) => {
+        exportAll.disabled = e.target.checked;
+        if (e.target.checked) {
+          selectedPagesContainer.style.display = 'block';
+        }
+      });
+    }
+    
+    // インポート関連のイベントハンドラ
+    const importSource = document.getElementById('import-source');
+    const fileImportOptions = document.getElementById('file-import-options');
+    const urlImportOptions = document.getElementById('url-import-options');
+    const githubImportOptions = document.getElementById('github-import-options');
+    const notionImportOptions = document.getElementById('notion-import-options');
+    
+    if (importSource && fileImportOptions && urlImportOptions && githubImportOptions && notionImportOptions) {
+      importSource.addEventListener('change', (e) => {
+        // すべての入力オプションを非表示
+        fileImportOptions.style.display = 'none';
+        urlImportOptions.style.display = 'none';
+        githubImportOptions.style.display = 'none';
+        notionImportOptions.style.display = 'none';
+        
+        // 選択された入力オプションを表示
+        switch (e.target.value) {
+          case 'file':
+            fileImportOptions.style.display = 'block';
+            break;
+          case 'url':
+            urlImportOptions.style.display = 'block';
+            break;
+          case 'github':
+            githubImportOptions.style.display = 'block';
+            break;
+          case 'notion':
+            notionImportOptions.style.display = 'block';
+            break;
+        }
+      });
+    }
+    
+    // ファイル選択のイベントハンドラ
+    const importFile = document.getElementById('import-file');
+    const fileName = document.getElementById('file-name');
+    
+    if (importFile && fileName) {
+      importFile.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+          if (e.target.files.length === 1) {
+            fileName.textContent = e.target.files[0].name;
+          } else {
+            fileName.textContent = `${e.target.files.length}ファイルが選択されました`;
+          }
+        } else {
+          fileName.textContent = '選択されていません';
+        }
+      });
+    }
+    
+    // レポート関連のイベントハンドラ
+    const reportType = document.getElementById('report-type');
+    const customReportOptions = document.getElementById('custom-report-options');
+    
+    if (reportType && customReportOptions) {
+      reportType.addEventListener('change', (e) => {
+        if (e.target.value === 'custom') {
+          customReportOptions.style.display = 'block';
+        } else {
+          customReportOptions.style.display = 'none';
+        }
+      });
+    }
+    
+    // エクスポートボタンのイベントハンドラ
+    const exportButton = document.getElementById('export-button');
+    
+    if (exportButton) {
+      exportButton.addEventListener('click', () => {
+        alert('エクスポート機能は開発中です。実際の実装では、選択された設定に基づいてエクスポート処理を実行します。');
+      });
+    }
+    
+    // インポートボタンのイベントハンドラ
+    const importButton = document.getElementById('import-button');
+    
+    if (importButton) {
+      importButton.addEventListener('click', () => {
+        alert('インポート機能は開発中です。実際の実装では、選択された設定に基づいてインポート処理を実行します。');
+      });
+    }
+    
+    // レポート生成ボタンのイベントハンドラ
+    const generateReportButton = document.getElementById('generate-report-button');
+    
+    if (generateReportButton) {
+      generateReportButton.addEventListener('click', () => {
+        alert('レポート生成機能は開発中です。実際の実装では、選択された設定に基づいてレポートを生成します。');
+      });
+    }
+    
+    // バックアップ設定のイベントハンドラ
+    const saveBackupSettings = document.getElementById('save-backup-settings');
+    const manualBackup = document.getElementById('manual-backup');
+    
+    if (saveBackupSettings) {
+      saveBackupSettings.addEventListener('click', () => {
+        alert('バックアップ設定を保存しました。実際の実装では、選択された設定がサーバーに保存されます。');
+      });
+    }
+    
+    if (manualBackup) {
+      manualBackup.addEventListener('click', () => {
+        alert('手動バックアップを開始します。実際の実装では、選択された設定に基づいてバックアップ処理を実行します。');
+      });
+    }
+    
+    // 外部サービス連携ボタンのイベントハンドラ
+    const connectButtons = document.querySelectorAll('.connect-button:not(.connected)');
+    
+    connectButtons.forEach(button => {
+      button.addEventListener('click', (e) => {
+        const serviceName = e.target.parentElement.querySelector('.service-name').textContent;
+        alert(`${serviceName}との連携を開始します。実際の実装では、OAuth認証などの連携フローが開始されます。`);
+      });
+    });
+  });
+</script>
