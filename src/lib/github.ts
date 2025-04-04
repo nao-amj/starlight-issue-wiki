@@ -6,9 +6,11 @@ import { GitHubIssue } from '../data/types';
 const cache: { 
   issues?: GitHubIssue[],
   timestamp?: number,
-  singleIssues: { [key: number]: { issue: GitHubIssue, timestamp: number } }
+  singleIssues: { [key: number]: { issue: GitHubIssue, timestamp: number } },
+  comments: { [key: number]: { data: any[], timestamp: number } }
 } = {
-  singleIssues: {}
+  singleIssues: {},
+  comments: {}
 };
 
 // キャッシュの有効期限（5分）
@@ -109,6 +111,38 @@ export async function getIssue(issueNumber: number): Promise<GitHubIssue | null>
     // 静的データから再検索
     const staticIssue = (staticIssues as GitHubIssue[]).find(i => i.number === issueNumber);
     return staticIssue || null;
+  }
+}
+
+// Issueのコメントを取得する関数
+export async function getIssueComments(issueNumber: number): Promise<any[]> {
+  try {
+    // キャッシュをチェック
+    const cachedComments = cache.comments[issueNumber];
+    if (cachedComments && (Date.now() - cachedComments.timestamp < CACHE_TTL)) {
+      return cachedComments.data;
+    }
+    
+    console.log(`Fetching comments for issue #${issueNumber} from GitHub API`);
+    
+    const response = await fetch(`https://api.github.com/repos/nao-amj/starlight-issue-wiki/issues/${issueNumber}/comments`);
+    
+    if (!response.ok) {
+      throw new Error(`GitHub API Error: ${response.status}`);
+    }
+    
+    const comments = await response.json();
+    
+    // キャッシュを更新
+    cache.comments[issueNumber] = {
+      data: comments,
+      timestamp: Date.now()
+    };
+    
+    return comments;
+  } catch (error) {
+    console.error(`Error fetching comments for issue #${issueNumber}:`, error);
+    return [];
   }
 }
 
