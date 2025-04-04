@@ -1,5 +1,5 @@
 ---
-// 検索バーコンポーネント
+// 検索バーコンポーネント - 拡張版
 import { BASE_PATH } from '../config';
 ---
 
@@ -13,31 +13,169 @@ import { BASE_PATH } from '../config';
       placeholder="Wikiページを検索..."
       aria-label="検索"
     />
+    <button id="search-advanced-toggle" class="search-advanced-toggle" aria-label="詳細検索">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+      </svg>
+    </button>
+  </div>
+  <div id="advanced-search-options" class="advanced-search-options" style="display: none;">
+    <div class="options-grid">
+      <div class="option-group">
+        <label>検索範囲</label>
+        <div class="options-row">
+          <label class="option-checkbox">
+            <input type="checkbox" id="search-title" checked> タイトル
+          </label>
+          <label class="option-checkbox">
+            <input type="checkbox" id="search-body" checked> 本文
+          </label>
+          <label class="option-checkbox">
+            <input type="checkbox" id="search-labels"> ラベル
+          </label>
+        </div>
+      </div>
+      <div class="option-group">
+        <label>ソート順</label>
+        <select id="search-sort" class="search-select">
+          <option value="relevance">関連性</option>
+          <option value="newest">新しい順</option>
+          <option value="oldest">古い順</option>
+        </select>
+      </div>
+      <div class="option-group">
+        <label>表示件数</label>
+        <select id="search-limit" class="search-select">
+          <option value="5">5件</option>
+          <option value="10">10件</option>
+          <option value="20">20件</option>
+        </select>
+      </div>
+      <div class="option-buttons">
+        <button id="search-reset" class="option-button option-button-secondary">リセット</button>
+        <button id="search-execute" class="option-button option-button-primary">検索</button>
+      </div>
+    </div>
   </div>
   <div id="search-results" class="search-results" role="listbox" tabindex="-1"></div>
 </div>
 
 <script is:inline>
-  // 検索ユーティリティ関数を直接スクリプトに埋め込む
-  function filterIssuesByQuery(issues, query) {
+  // 拡張検索ユーティリティを実装
+  function filterIssuesByQuery(issues, query, options = {}) {
     if (!query || query.length < 2 || !Array.isArray(issues)) {
       return [];
     }
     
-    const lowerQuery = query.toLowerCase();
+    const {
+      searchInTitle = true,
+      searchInBody = true,
+      searchInLabels = false,
+      sortBy = 'relevance',
+      limit = 5
+    } = options;
     
-    return issues.filter(issue => 
-      (issue.title && issue.title.toLowerCase().includes(lowerQuery)) || 
-      (issue.body && issue.body.toLowerCase().includes(lowerQuery))
-    );
+    const lowerQuery = query.toLowerCase();
+    const terms = lowerQuery.split(/\s+/).filter(term => term.length > 1);
+    
+    // 複数の検索語に対応
+    const filteredIssues = issues.filter(issue => {
+      let score = 0;
+      
+      // タイトル検索
+      if (searchInTitle && issue.title) {
+        const titleLower = issue.title.toLowerCase();
+        // 完全一致は高いスコア
+        if (titleLower === lowerQuery) {
+          score += 100;
+        }
+        // 部分一致
+        else if (titleLower.includes(lowerQuery)) {
+          score += 50;
+        }
+        // 個別の単語一致
+        terms.forEach(term => {
+          if (titleLower.includes(term)) {
+            score += 20;
+          }
+        });
+      }
+      
+      // 本文検索
+      if (searchInBody && issue.body) {
+        const bodyLower = issue.body.toLowerCase();
+        // 完全一致
+        if (bodyLower.includes(lowerQuery)) {
+          score += 30;
+        }
+        // 個別の単語一致
+        terms.forEach(term => {
+          if (bodyLower.includes(term)) {
+            score += 10;
+            
+            // 出現回数も考慮
+            const occurrences = (bodyLower.match(new RegExp(escapeRegExp(term), 'g')) || []).length;
+            if (occurrences > 1) {
+              score += Math.min(occurrences, 5) * 2; // 最大10点まで
+            }
+          }
+        });
+      }
+      
+      // ラベル検索
+      if (searchInLabels && issue.labels && issue.labels.length > 0) {
+        issue.labels.forEach(label => {
+          if (label.name && label.name.toLowerCase().includes(lowerQuery)) {
+            score += 40;
+          }
+          
+          terms.forEach(term => {
+            if (label.name && label.name.toLowerCase().includes(term)) {
+              score += 15;
+            }
+          });
+        });
+      }
+      
+      // スコアが0以上なら検索結果として含める
+      issue.searchScore = score;
+      return score > 0;
+    });
+    
+    // 結果のソート
+    let sortedIssues = [...filteredIssues];
+    
+    switch (sortBy) {
+      case 'newest':
+        sortedIssues.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+        break;
+      case 'oldest':
+        sortedIssues.sort((a, b) => new Date(a.updated_at) - new Date(b.updated_at));
+        break;
+      case 'relevance':
+      default:
+        sortedIssues.sort((a, b) => b.searchScore - a.searchScore);
+        break;
+    }
+    
+    // 指定件数に制限
+    return sortedIssues.slice(0, limit);
   }
 
   function highlightText(text, query) {
     if (!text || !query) return '';
     
     try {
-      const regex = new RegExp(`(${escapeRegExp(query)})`, 'gi');
-      return text.replace(regex, '<mark class="search-highlight">$1</mark>');
+      const terms = query.toLowerCase().split(/\s+/).filter(term => term.length > 1);
+      let highlightedText = text;
+      
+      // 複数の検索語に対応してハイライト
+      terms.forEach(term => {
+        const regex = new RegExp(`(${escapeRegExp(term)})`, 'gi');
+        highlightedText = highlightedText.replace(regex, '<mark class="search-highlight">$1</mark>');
+      });
+      
+      return highlightedText;
     } catch (error) {
       console.error('ハイライト処理でエラーが発生しました:', error);
       return text;
@@ -48,13 +186,17 @@ import { BASE_PATH } from '../config';
     if (!text || !query) return '';
     
     try {
+      const terms = query.toLowerCase().split(/\s+/).filter(term => term.length > 1);
       const lowerText = text.toLowerCase();
-      const lowerQuery = query.toLowerCase();
-      const matchIndex = lowerText.indexOf(lowerQuery);
+      
+      // 最も長い検索語を見つける（長い単語が一般的にユニークなため）
+      const longestTerm = terms.sort((a, b) => b.length - a.length)[0] || query.toLowerCase();
+      
+      const matchIndex = lowerText.indexOf(longestTerm);
       
       if (matchIndex >= 0) {
         const startPos = Math.max(0, matchIndex - contextLength);
-        const endPos = Math.min(text.length, matchIndex + lowerQuery.length + contextLength);
+        const endPos = Math.min(text.length, matchIndex + longestTerm.length + contextLength);
         let excerpt = text.substring(startPos, endPos);
         
         // 前後が切れている場合は省略記号を追加
@@ -120,13 +262,80 @@ import { BASE_PATH } from '../config';
     return yiq >= 128; // 128以上なら明るい色と判定
   }
 
-  // クライアントサイド検索機能
+  // 検索ヒストリー機能
+  class SearchHistory {
+    constructor(maxEntries = 5) {
+      this.maxEntries = maxEntries;
+      this.history = this.loadHistory();
+    }
+    
+    loadHistory() {
+      try {
+        const saved = localStorage.getItem('wiki_search_history');
+        return saved ? JSON.parse(saved) : [];
+      } catch (e) {
+        console.error('検索履歴の読み込みに失敗しました:', e);
+        return [];
+      }
+    }
+    
+    saveHistory() {
+      try {
+        localStorage.setItem('wiki_search_history', JSON.stringify(this.history));
+      } catch (e) {
+        console.error('検索履歴の保存に失敗しました:', e);
+      }
+    }
+    
+    addEntry(query) {
+      if (!query || query.trim().length < 2) return;
+      
+      // 同じクエリがあれば削除（後で先頭に追加するため）
+      this.history = this.history.filter(entry => entry.query !== query);
+      
+      // 新しいエントリを追加
+      this.history.unshift({
+        query,
+        timestamp: new Date().toISOString()
+      });
+      
+      // 最大件数を超えたら古いものを削除
+      if (this.history.length > this.maxEntries) {
+        this.history = this.history.slice(0, this.maxEntries);
+      }
+      
+      this.saveHistory();
+    }
+    
+    getEntries() {
+      return this.history;
+    }
+    
+    clear() {
+      this.history = [];
+      this.saveHistory();
+    }
+  }
+
+  // クライアントサイド検索機能の拡張版
   document.addEventListener('DOMContentLoaded', async () => {
     try {
       const searchInput = document.getElementById('search-input');
       const searchResults = document.getElementById('search-results');
+      const advancedToggle = document.getElementById('search-advanced-toggle');
+      const advancedOptions = document.getElementById('advanced-search-options');
+      const searchTitle = document.getElementById('search-title');
+      const searchBody = document.getElementById('search-body');
+      const searchLabels = document.getElementById('search-labels');
+      const searchSort = document.getElementById('search-sort');
+      const searchLimit = document.getElementById('search-limit');
+      const searchReset = document.getElementById('search-reset');
+      const searchExecute = document.getElementById('search-execute');
+      
       let issues = [];
       let selectedResultIndex = -1;
+      let debounceTimeout = null;
+      let searchHistory = new SearchHistory(10);
       const BASE_PATH = '/starlight-issue-wiki'; // または適切なパスを設定
 
       // GitHub APIからissueデータを取得
@@ -138,8 +347,10 @@ import { BASE_PATH } from '../config';
           // プルリクエストを除外する
           issues = allItems.filter(item => !item.pull_request);
           console.log(`取得したIssue数: ${issues.length}`);
+          return issues;
         } catch (error) {
           console.error('Error fetching issues:', error);
+          return [];
         }
       }
 
@@ -162,8 +373,24 @@ import { BASE_PATH } from '../config';
         selectedItem.focus();
       }
 
-      // 検索機能
-      function performSearch(query) {
+      // 詳細検索パネルの表示/非表示を切り替え
+      function toggleAdvancedSearch() {
+        const isVisible = advancedOptions.style.display !== 'none';
+        advancedOptions.style.display = isVisible ? 'none' : 'block';
+        advancedToggle.setAttribute('aria-expanded', !isVisible);
+      }
+
+      // 検索オプションをリセット
+      function resetSearchOptions() {
+        searchTitle.checked = true;
+        searchBody.checked = true;
+        searchLabels.checked = false;
+        searchSort.value = 'relevance';
+        searchLimit.value = '5';
+      }
+
+      // 検索機能の実行
+      function performSearch(query, options = {}) {
         if (!query || query.length < 2) {
           searchResults.innerHTML = '';
           searchResults.style.display = 'none';
@@ -171,13 +398,54 @@ import { BASE_PATH } from '../config';
           return;
         }
 
+        // デフォルトオプションとマージ
+        const searchOptions = {
+          searchInTitle: options.searchInTitle !== undefined ? options.searchInTitle : searchTitle.checked,
+          searchInBody: options.searchInBody !== undefined ? options.searchInBody : searchBody.checked,
+          searchInLabels: options.searchInLabels !== undefined ? options.searchInLabels : searchLabels.checked,
+          sortBy: options.sortBy || searchSort.value,
+          limit: options.limit || parseInt(searchLimit.value, 10) || 5
+        };
+
         const lowerQuery = query.toLowerCase();
-        const matches = filterIssuesByQuery(issues, query);
+        const matches = filterIssuesByQuery(issues, query, searchOptions);
 
         if (matches.length === 0) {
-          searchResults.innerHTML = '<div class="no-results">検索結果がありません</div>';
+          // 検索履歴を表示
+          const historyEntries = searchHistory.getEntries();
+          if (historyEntries.length > 0) {
+            searchResults.innerHTML = `
+              <div class="no-results">検索結果がありません</div>
+              <div class="search-history">
+                <h3 class="history-title">最近の検索</h3>
+                <ul class="history-list">
+                  ${historyEntries.map(entry => `
+                    <li class="history-item">
+                      <button class="history-button" data-query="${entry.query}">
+                        <span class="history-icon">⟲</span>
+                        <span class="history-text">${entry.query}</span>
+                      </button>
+                    </li>
+                  `).join('')}
+                </ul>
+              </div>
+            `;
+            
+            // 検索履歴ボタンにイベントリスナーを追加
+            const historyButtons = searchResults.querySelectorAll('.history-button');
+            historyButtons.forEach(button => {
+              button.addEventListener('click', () => {
+                const historyQuery = button.getAttribute('data-query');
+                searchInput.value = historyQuery;
+                performSearch(historyQuery);
+              });
+            });
+          } else {
+            searchResults.innerHTML = '<div class="no-results">検索結果がありません</div>';
+          }
         } else {
-          searchResults.innerHTML = matches.slice(0, 5).map((issue, index) => {
+          // 検索結果を表示
+          searchResults.innerHTML = matches.map((issue, index) => {
             // タイトル内のキーワードをハイライト
             const highlightedTitle = highlightText(issue.title, lowerQuery);
             
@@ -202,6 +470,12 @@ import { BASE_PATH } from '../config';
                 </div>` 
               : '';
             
+            // 検索スコアの表示（デバッグモード）
+            const debugScoreHtml = '';
+            /*const debugScoreHtml = issue.searchScore 
+              ? `<div class="search-result-score">スコア: ${issue.searchScore}</div>` 
+              : '';*/
+            
             return `
               <a href="${BASE_PATH}/wiki/${issue.number}" 
                  class="search-result-item" 
@@ -219,20 +493,32 @@ import { BASE_PATH } from '../config';
                   </div>
                   ${labelsHtml}
                   ${excerptHtml ? `<div class="search-result-excerpt">${excerptHtml}</div>` : ''}
+                  ${debugScoreHtml}
                 </div>
               </a>
             `;
           }).join('');
+          
+          // 検索履歴に追加
+          searchHistory.addEntry(query);
         }
 
         searchResults.style.display = 'block';
         selectedResultIndex = -1; // 選択をリセット
       }
 
+      // 検索のデバウンス処理
+      function debounceSearch(query) {
+        clearTimeout(debounceTimeout);
+        debounceTimeout = setTimeout(() => {
+          performSearch(query);
+        }, 300); // 300ms待機
+      }
+
       // イベントリスナー
       if (searchInput) {
         searchInput.addEventListener('input', (e) => {
-          performSearch(e.target.value.trim());
+          debounceSearch(e.target.value.trim());
         });
 
         searchInput.addEventListener('focus', () => {
@@ -294,16 +580,41 @@ import { BASE_PATH } from '../config';
           }
         });
 
+        // 詳細検索の表示/非表示ボタン
+        if (advancedToggle) {
+          advancedToggle.addEventListener('click', toggleAdvancedSearch);
+        }
+
+        // 検索リセットボタン
+        if (searchReset) {
+          searchReset.addEventListener('click', resetSearchOptions);
+        }
+
+        // 検索実行ボタン
+        if (searchExecute) {
+          searchExecute.addEventListener('click', () => {
+            performSearch(searchInput.value.trim());
+          });
+        }
+
         // クリック以外の場所をクリックしたら結果を非表示
         document.addEventListener('click', (e) => {
-          if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+          const isSearchComponent = 
+            searchInput.contains(e.target) || 
+            searchResults.contains(e.target) || 
+            (advancedOptions && advancedOptions.contains(e.target)) ||
+            (advancedToggle && advancedToggle.contains(e.target));
+            
+          if (!isSearchComponent) {
             searchResults.style.display = 'none';
+            // 詳細検索は閉じない - ユーザーが意図的に開いた場合は残す
           }
         });
       }
 
       // 初期ロード
-      fetchIssues();
+      await fetchIssues();
+      resetSearchOptions();
     } catch (error) {
       console.error('検索機能の初期化に失敗しました:', error);
     }
@@ -320,6 +631,8 @@ import { BASE_PATH } from '../config';
 
   .search-form {
     position: relative;
+    display: flex;
+    align-items: center;
   }
 
   .search-input {
@@ -351,6 +664,153 @@ import { BASE_PATH } from '../config';
     top: 50%;
     transform: translateY(-50%);
     opacity: 0.6;
+  }
+  
+  .search-advanced-toggle {
+    background: none;
+    border: none;
+    color: #666;
+    padding: 0.5rem;
+    margin-left: 0.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.25rem;
+    transition: all 0.2s;
+  }
+  
+  .search-advanced-toggle:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: #333;
+  }
+  
+  .dark .search-advanced-toggle {
+    color: #aaa;
+  }
+  
+  .dark .search-advanced-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+  
+  .advanced-search-options {
+    margin-top: 0.5rem;
+    padding: 1rem;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.375rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+  
+  .dark .advanced-search-options {
+    background-color: #1e293b;
+    border-color: #334155;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+  }
+  
+  .options-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+  
+  .option-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .option-group > label {
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: #4b5563;
+  }
+  
+  .dark .option-group > label {
+    color: #9ca3af;
+  }
+  
+  .options-row {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  
+  .option-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.875rem;
+    color: #4b5563;
+    cursor: pointer;
+  }
+  
+  .dark .option-checkbox {
+    color: #d1d5db;
+  }
+  
+  .search-select {
+    padding: 0.375rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.25rem;
+    background-color: white;
+    font-size: 0.875rem;
+    color: #4b5563;
+  }
+  
+  .dark .search-select {
+    background-color: #1f2937;
+    border-color: #4b5563;
+    color: #d1d5db;
+  }
+  
+  .option-buttons {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    align-items: flex-end;
+  }
+  
+  .option-button {
+    padding: 0.375rem 0.75rem;
+    border: none;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .option-button:hover {
+    transform: translateY(-1px);
+  }
+  
+  .option-button-primary {
+    background-color: #4f6df5;
+    color: white;
+  }
+  
+  .option-button-primary:hover {
+    background-color: #3955d8;
+    box-shadow: 0 2px 4px rgba(79, 109, 245, 0.3);
+  }
+  
+  .option-button-secondary {
+    background-color: #e5e7eb;
+    color: #4b5563;
+  }
+  
+  .option-button-secondary:hover {
+    background-color: #d1d5db;
+  }
+  
+  .dark .option-button-secondary {
+    background-color: #374151;
+    color: #d1d5db;
+  }
+  
+  .dark .option-button-secondary:hover {
+    background-color: #4b5563;
   }
 
   .search-results {
@@ -524,6 +984,83 @@ import { BASE_PATH } from '../config';
   .dark .no-results {
     color: #aaa;
   }
+  
+  /* 検索履歴スタイル */
+  .search-history {
+    padding: 1rem;
+    border-top: 1px solid #eaeaea;
+  }
+  
+  .dark .search-history {
+    border-top-color: #444;
+  }
+  
+  .history-title {
+    font-size: 0.9rem;
+    color: #666;
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+  }
+  
+  .dark .history-title {
+    color: #aaa;
+  }
+  
+  .history-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .history-item {
+    margin-bottom: 0.5rem;
+  }
+  
+  .history-button {
+    background: none;
+    border: none;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #4f6df5;
+    font-size: 0.9rem;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    border-radius: 0.25rem;
+    transition: all 0.2s;
+  }
+  
+  .history-button:hover {
+    background-color: rgba(79, 109, 245, 0.1);
+  }
+  
+  .dark .history-button {
+    color: #7b96ff;
+  }
+  
+  .dark .history-button:hover {
+    background-color: rgba(79, 109, 245, 0.2);
+  }
+  
+  .history-icon {
+    opacity: 0.6;
+  }
+  
+  .search-result-score {
+    font-size: 0.75rem;
+    color: #666;
+    background-color: #f5f5f5;
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.25rem;
+    align-self: flex-start;
+  }
+  
+  .dark .search-result-score {
+    color: #aaa;
+    background-color: #333;
+  }
 
   /* レスポンシブ対応 */
   @media (min-width: 768px) {
@@ -546,6 +1083,16 @@ import { BASE_PATH } from '../config';
       align-items: flex-end;
       white-space: nowrap;
       margin-left: 1rem;
+    }
+  }
+  
+  @media (max-width: 640px) {
+    .options-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .option-buttons {
+      justify-content: center;
     }
   }
 </style>
