@@ -1,0 +1,305 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { BASE_PATH, SITE_TITLE } from '../../config';
+
+// すべてのIssueを取得する関数
+async function fetchAllIssues() {
+  try {
+    const response = await fetch('https://api.github.com/repos/nao-amj/starlight-issue-wiki/issues?state=all&per_page=100');
+    if (!response.ok) {
+      throw new Error(`GitHub API error: ${response.status}`);
+    }
+    const allItems = await response.json();
+    return allItems.filter(item => !item.pull_request);
+  } catch (error) {
+    console.error('Error fetching issues:', error);
+    return [];
+  }
+}
+
+// Issueからタグを抽出する関数
+function extractTags(issues) {
+  const tagCounts = {};
+  
+  issues.forEach(issue => {
+    if (!issue.body) return;
+    
+    // ハッシュタグを検出
+    const tagMatches = issue.body.match(/#([a-zA-Z0-9_-]+)/g);
+    if (tagMatches) {
+      tagMatches.forEach(tag => {
+        const cleanTag = tag.substring(1).toLowerCase();
+        tagCounts[cleanTag] = (tagCounts[cleanTag] || 0) + 1;
+      });
+    }
+    
+    // ラベルもタグとして扱う
+    if (issue.labels && Array.isArray(issue.labels)) {
+      issue.labels.forEach(label => {
+        if (typeof label === 'object' && label.name) {
+          const labelName = label.name.toLowerCase();
+          tagCounts[labelName] = (tagCounts[labelName] || 0) + 1;
+        }
+      });
+    }
+  });
+  
+  // タグを出現回数でソート
+  return Object.entries(tagCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([tag, count]) => ({ tag, count }));
+}
+
+const issues = await fetchAllIssues();
+const tags = extractTags(issues);
+const pageTitle = `タグ一覧 - ${SITE_TITLE}`;
+---
+
+<Layout title={pageTitle}>
+  <div class="tags-page">
+    <header class="page-header">
+      <h1>タグ一覧</h1>
+      <p class="header-description">このWikiで使用されているすべてのタグ（ハッシュタグとラベル）を表示しています。</p>
+    </header>
+    
+    <div class="tags-container">
+      {tags.length > 0 ? (
+        <div class="tag-grid">
+          {tags.map(({ tag, count }) => (
+            <a href={`${BASE_PATH}/tag/${tag}`} class="tag-card">
+              <div class="tag-name">#{tag}</div>
+              <div class="tag-count">{count} ページ</div>
+            </a>
+          ))}
+        </div>
+      ) : (
+        <div class="empty-state">
+          <p>タグがまだ使用されていません。</p>
+        </div>
+      )}
+    </div>
+    
+    <div class="info-section">
+      <h2>タグの使い方</h2>
+      <p>タグを効果的に使用するために以下の点に留意しましょう：</p>
+      <ul>
+        <li>コンテンツの分類には<strong>ハッシュタグ</strong>（例：#knowledge-management）を使用します</li>
+        <li><strong>ラベル</strong>はissueに付けることができ、同様にタグとして機能します</li>
+        <li>関連するトピックに同じタグを使用すると、ナビゲーションしやすくなります</li>
+        <li>複数のタグを組み合わせることで、より詳細な分類が可能です</li>
+      </ul>
+      
+      <div class="tag-examples">
+        <h3>よく使われるタグの例：</h3>
+        <div class="example-tags">
+          <a href={`${BASE_PATH}/tag/documentation`} class="example-tag">#documentation</a>
+          <a href={`${BASE_PATH}/tag/wiki`} class="example-tag">#wiki</a>
+          <a href={`${BASE_PATH}/tag/knowledge-management`} class="example-tag">#knowledge-management</a>
+          <a href={`${BASE_PATH}/tag/feature`} class="example-tag">#feature</a>
+          <a href={`${BASE_PATH}/tag/note-taking`} class="example-tag">#note-taking</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .tags-page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem 0;
+  }
+  
+  .page-header {
+    background: linear-gradient(135deg, #4f6df5 0%, #283593 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    text-align: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .dark .page-header {
+    background: linear-gradient(135deg, #2a3f9d 0%, #1a237e 100%);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  }
+  
+  .page-header h1 {
+    margin: 0 0 0.5rem 0;
+    font-size: 2rem;
+  }
+  
+  .header-description {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 1.1rem;
+  }
+  
+  .tags-container {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  .dark .tags-container {
+    background-color: #222;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  }
+  
+  .tag-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+  
+  .tag-card {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s;
+    border: 1px solid #eee;
+  }
+  
+  .dark .tag-card {
+    background-color: #2a2a2a;
+    border-color: #444;
+  }
+  
+  .tag-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    background-color: #f0f0f0;
+  }
+  
+  .dark .tag-card:hover {
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    background-color: #333;
+  }
+  
+  .tag-name {
+    font-weight: 500;
+    color: var(--color-primary);
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+  }
+  
+  .tag-count {
+    font-size: 0.9rem;
+    color: #666;
+  }
+  
+  .dark .tag-count {
+    color: #aaa;
+  }
+  
+  .empty-state {
+    text-align: center;
+    padding: 3rem 0;
+    color: #666;
+  }
+  
+  .dark .empty-state {
+    color: #aaa;
+  }
+  
+  .info-section {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    padding: 1.5rem;
+  }
+  
+  .dark .info-section {
+    background-color: #222;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  }
+  
+  .info-section h2 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+  }
+  
+  .info-section p, .info-section ul {
+    color: #555;
+    line-height: 1.6;
+  }
+  
+  .dark .info-section p, .dark .info-section ul {
+    color: #ccc;
+  }
+  
+  .info-section ul {
+    padding-left: 1.5rem;
+  }
+  
+  .info-section li {
+    margin-bottom: 0.5rem;
+  }
+  
+  .tag-examples {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #eee;
+  }
+  
+  .dark .tag-examples {
+    border-top-color: #444;
+  }
+  
+  .tag-examples h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+  }
+  
+  .example-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .example-tag {
+    display: inline-block;
+    text-decoration: none;
+    color: #1a73e8;
+    background-color: rgba(26, 115, 232, 0.1);
+    padding: 0.3em 0.6em;
+    border-radius: 0.25em;
+    font-size: 0.9em;
+    transition: all 0.2s;
+  }
+  
+  .example-tag:hover {
+    background-color: rgba(26, 115, 232, 0.2);
+    transform: translateY(-2px);
+  }
+  
+  .dark .example-tag {
+    color: #64b5f6;
+    background-color: rgba(100, 181, 246, 0.1);
+  }
+  
+  .dark .example-tag:hover {
+    background-color: rgba(100, 181, 246, 0.2);
+  }
+  
+  @media (max-width: 768px) {
+    .tag-grid {
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .tag-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+</style>
