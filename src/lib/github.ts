@@ -23,10 +23,21 @@ export async function getIssues(): Promise<GitHubIssue[]> {
       return cache.issues;
     }
 
-    console.log('Using static JSON data for issues');
+    console.log('Fetching issues from GitHub API');
     
-    // 静的JSONファイルから読み込む
-    const issues = staticIssues as GitHubIssue[];
+    // GitHub APIから直接取得を試みる（OPEN状態のIssueのみ）
+    const response = await fetch('https://api.github.com/repos/nao-amj/starlight-issue-wiki/issues?state=open&per_page=100');
+    
+    if (!response.ok) {
+      throw new Error(`GitHub API Error: ${response.status}`);
+    }
+    
+    // レスポンスをJSONとしてパース
+    const data = await response.json();
+    
+    // プルリクエストを除外
+    const issues = data.filter((issue: any) => !issue.pull_request) as GitHubIssue[];
+    console.log(`Fetched ${issues.length} issues from GitHub API`);
     
     // キャッシュを更新
     cache.issues = issues;
@@ -36,7 +47,9 @@ export async function getIssues(): Promise<GitHubIssue[]> {
   } catch (error) {
     console.error('Error fetching issues:', error);
     // 静的データにフォールバック
-    return staticIssues as GitHubIssue[];
+    const staticData = staticIssues as GitHubIssue[];
+    // 静的データからOpen状態のIssueのみをフィルタリング
+    return staticData.filter(issue => issue.state === 'open');
   }
 }
 
@@ -49,14 +62,39 @@ export async function getIssue(issueNumber: number): Promise<GitHubIssue | null>
       return cachedIssue.issue;
     }
     
-    console.log(`Fetching issue #${issueNumber} from static data`);
-    
-    // 静的JSONから該当するissueを検索
-    const issue = (staticIssues as GitHubIssue[]).find(i => i.number === issueNumber);
+    // 全issueを取得してから目的のものを検索
+    const allIssues = await getIssues();
+    const issue = allIssues.find(i => i.number === issueNumber);
     
     if (!issue) {
-      console.warn(`Issue #${issueNumber} not found in static data`);
-      return null;
+      console.warn(`Issue #${issueNumber} not found in issues list, checking API directly`);
+      
+      // 直接そのIssueをAPIから取得
+      try {
+        const response = await fetch(`https://api.github.com/repos/nao-amj/starlight-issue-wiki/issues/${issueNumber}`);
+        
+        if (!response.ok) {
+          throw new Error(`GitHub API Error: ${response.status}`);
+        }
+        
+        const singleIssue = await response.json() as GitHubIssue;
+        
+        // Pull Requestでないか確認
+        if (singleIssue.pull_request) {
+          return null;
+        }
+        
+        // キャッシュを更新
+        cache.singleIssues[issueNumber] = {
+          issue: singleIssue,
+          timestamp: Date.now()
+        };
+        
+        return singleIssue;
+      } catch (error) {
+        console.error(`Error fetching single issue #${issueNumber}:`, error);
+        return null;
+      }
     }
     
     // キャッシュを更新
