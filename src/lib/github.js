@@ -66,6 +66,31 @@ export async function getIssueByNumber(number) {
 }
 
 /**
+ * イシューのコメントを取得する
+ * @param {number} issueNumber イシュー番号
+ * @returns {Promise<Array>} コメントの配列
+ */
+export async function getIssueComments(issueNumber) {
+  try {
+    if (GITHUB_TOKEN) {
+      const { data } = await octokit.issues.listComments({
+        owner: REPO_OWNER,
+        repo: REPO_NAME,
+        issue_number: issueNumber,
+      });
+      
+      return data;
+    } else {
+      // モックコメントを返す
+      return getMockComments(issueNumber);
+    }
+  } catch (error) {
+    console.error(`Failed to fetch comments for issue #${issueNumber}:`, error);
+    return [];
+  }
+}
+
+/**
  * タイトルからURLスラッグを生成
  * @param {string} title タイトル文字列
  * @returns {string} URLスラッグ
@@ -121,4 +146,52 @@ function getMockIssues() {
       ]
     }
   ];
+}
+
+/**
+ * モックコメントデータを返す（開発用）
+ * @param {number} issueNumber イシュー番号
+ * @returns {Array} モックコメントの配列
+ */
+function getMockComments(issueNumber) {
+  // イシュー番号に基づいたモックコメントを返す
+  const mockCommentSets = {
+    1: [
+      {
+        id: 1001,
+        body: 'この記事はとても役立ちました！',
+        created_at: '2025-03-02T10:00:00Z',
+        updated_at: '2025-03-02T10:00:00Z',
+        user: {
+          login: 'mock-user-1',
+          avatar_url: 'https://avatars.githubusercontent.com/u/1?v=4'
+        }
+      }
+    ],
+    2: [
+      {
+        id: 2001,
+        body: 'Markdownの表の書き方も追加してほしいです。',
+        created_at: '2025-03-07T14:30:00Z',
+        updated_at: '2025-03-07T14:30:00Z',
+        user: {
+          login: 'mock-user-2',
+          avatar_url: 'https://avatars.githubusercontent.com/u/2?v=4'
+        }
+      },
+      {
+        id: 2002,
+        body: '表の書き方は以下のようになります：\n\n```markdown\n| 列1 | 列2 | 列3 |\n| --- | --- | --- |\n| セル1 | セル2 | セル3 |\n| セル4 | セル5 | セル6 |\n```',
+        created_at: '2025-03-08T09:15:00Z',
+        updated_at: '2025-03-08T09:15:00Z',
+        user: {
+          login: 'mock-user-3',
+          avatar_url: 'https://avatars.githubusercontent.com/u/3?v=4'
+        }
+      }
+    ]
+  };
+  
+  // イシュー番号に対応するコメントセットがあれば返す、なければ空配列
+  return mockCommentSets[issueNumber] || [];
 }
