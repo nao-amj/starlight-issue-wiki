@@ -194,6 +194,9 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
           <option value="dark">ダークモード</option>
           <option value="auto">自動（システム設定に合わせる）</option>
         </select>
+        <div class="description">
+          表示モードを変更すると、即座にサイト全体の見た目が変わります。
+        </div>
       </div>
       
       <div class="setting-item select-container">
@@ -211,6 +214,33 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
           <span class="slider"></span>
         </label>
         <span class="setting-label">目次を表示する</span>
+      </div>
+    </div>
+    
+    <div class="theme-preview">
+      <h4>テーマプレビュー</h4>
+      <div class="theme-cards">
+        <div class="theme-card light-theme" id="light-theme-preview">
+          <div class="theme-header">ライトモード</div>
+          <div class="theme-content">
+            <p>明るい背景に暗いテキスト</p>
+            <div class="theme-samples">
+              <div class="sample-button primary">ボタン</div>
+              <div class="sample-link">リンク</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="theme-card dark-theme" id="dark-theme-preview">
+          <div class="theme-header">ダークモード</div>
+          <div class="theme-content">
+            <p>暗い背景に明るいテキスト</p>
+            <div class="theme-samples">
+              <div class="sample-button primary">ボタン</div>
+              <div class="sample-link">リンク</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -628,6 +658,91 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
     stroke-opacity: 0.6;
   }
   
+  /* テーマプレビュー */
+  .theme-preview {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    border: 1px solid #eee;
+    border-radius: 0.5rem;
+    background-color: #f9f9f9;
+  }
+  
+  .dark .theme-preview {
+    border-color: #444;
+    background-color: #1a1a1a;
+  }
+  
+  .theme-preview h4 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1rem;
+  }
+  
+  .theme-cards {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  
+  .theme-card {
+    flex: 1;
+    min-width: 200px;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .light-theme {
+    background-color: white;
+    color: #333;
+  }
+  
+  .dark-theme {
+    background-color: #222;
+    color: #eee;
+  }
+  
+  .theme-header {
+    padding: 0.75rem;
+    font-weight: 500;
+    text-align: center;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .dark-theme .theme-header {
+    border-bottom-color: #444;
+  }
+  
+  .theme-content {
+    padding: 1rem;
+  }
+  
+  .theme-samples {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+  
+  .sample-button {
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.25rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+  
+  .sample-button.primary {
+    background-color: var(--color-primary, #4f6df5);
+    color: white;
+  }
+  
+  .sample-link {
+    color: var(--color-primary, #4f6df5);
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 0.5rem 0;
+  }
+  
   /* トグルスイッチのスタイル */
   .switch {
     position: relative;
@@ -850,6 +965,10 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
       padding: 0.75rem 0.75rem;
       white-space: nowrap;
     }
+    
+    .theme-cards {
+      flex-direction: column;
+    }
   }
 </style>
 
@@ -893,6 +1012,15 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
     const smartBacklinks = document.getElementById('smart-backlinks');
     const graphVisualization = document.getElementById('graph-visualization');
     
+    // 表示設定
+    const themeMode = document.getElementById('theme-mode');
+    const fontSize = document.getElementById('font-size');
+    const showToc = document.getElementById('show-toc');
+    
+    // データ管理設定
+    const autoBackup = document.getElementById('auto-backup');
+    const backupFrequency = document.getElementById('backup-frequency');
+    
     // プレビュー要素
     const previewModeTag = document.getElementById('preview-mode-tag');
     const sampleKeyword = document.querySelector('.sample-keyword');
@@ -908,15 +1036,6 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
       atomic: document.getElementById('atomic-description'),
       hierarchical: document.getElementById('hierarchical-description')
     };
-    
-    // 表示設定
-    const themeMode = document.getElementById('theme-mode');
-    const fontSize = document.getElementById('font-size');
-    const showToc = document.getElementById('show-toc');
-    
-    // データ管理設定
-    const autoBackup = document.getElementById('auto-backup');
-    const backupFrequency = document.getElementById('backup-frequency');
     
     // デフォルト設定
     const defaultConfig = {
@@ -1048,6 +1167,42 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
         document.querySelector('.preview-sample').style.backgroundColor = 'transparent';
       }
     }
+
+    // テーマ設定変更処理
+    if (themeMode) {
+      themeMode.addEventListener('change', (e) => {
+        const selectedMode = e.target.value;
+        // テーママネージャーを使用してテーマを設定
+        if (window.themeManager) {
+          window.themeManager.setTheme(selectedMode);
+        } else {
+          // テーママネージャーのロードを試みる
+          loadThemeManager().then(() => {
+            if (window.themeManager) {
+              window.themeManager.setTheme(selectedMode);
+            }
+          });
+        }
+      });
+    }
+
+    // テーママネージャーのロード
+    async function loadThemeManager() {
+      if (window.themeManager) return;
+      
+      try {
+        const themeModule = await import('../utils/themeManager.js');
+        window.themeManager = themeModule;
+        
+        // 現在のテーマを取得してセレクトボックスに設定
+        if (themeMode) {
+          const currentThemePreference = themeModule.getSavedThemePreference();
+          themeMode.value = currentThemePreference;
+        }
+      } catch (error) {
+        console.error('テーママネージャーのロードに失敗しました:', error);
+      }
+    }
     
     // 設定パネルを閉じる
     if (closeButton) {
@@ -1128,7 +1283,17 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
         if (graphVisualization) graphVisualization.checked = config.graphVisualization !== undefined ? config.graphVisualization : true;
         
         // 表示設定
-        if (themeMode) themeMode.value = config.themeMode || 'auto';
+        if (themeMode) {
+          // 現在のテーマ設定を読み込む
+          loadThemeManager().then(() => {
+            if (window.themeManager) {
+              themeMode.value = window.themeManager.getSavedThemePreference();
+            } else {
+              themeMode.value = config.themeMode || 'auto';
+            }
+          });
+        }
+        
         if (fontSize) fontSize.value = config.fontSize || 'medium';
         if (showToc) showToc.checked = config.showToc !== undefined ? config.showToc : true;
         
@@ -1199,6 +1364,11 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
         localStorage.setItem('zettelkastenConfig', JSON.stringify(config));
         console.log('Saved Zettelkasten config:', config);
         
+        // テーマ設定を適用
+        if (window.themeManager) {
+          window.themeManager.setTheme(config.themeMode);
+        }
+        
         // 保存成功メッセージを表示
         const saveMessage = document.createElement('div');
         saveMessage.className = 'save-message';
@@ -1258,6 +1428,11 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
       })[defaultConfig.visualMode];
       
       subSettings.style.display = defaultConfig.enabled ? 'block' : 'none';
+      
+      // テーマ設定をリセット
+      if (window.themeManager) {
+        window.themeManager.setTheme(defaultConfig.themeMode);
+      }
     }
     
     // 現在のページに設定を適用
@@ -1326,6 +1501,9 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
       
       console.log('Applied settings to current page');
     }
+    
+    // テーママネージャーのロードを試みる
+    loadThemeManager();
     
     // 設定パネルが開かれたときに設定を読み込む
     window.addEventListener('settings-panel-open', loadSettings);
