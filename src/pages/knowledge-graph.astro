@@ -1,0 +1,156 @@
+---
+import Layout from '../layouts/Layout.astro';
+import KnowledgeGraph from '../components/KnowledgeGraph.astro';
+import { SITE_TITLE } from '../config';
+
+// GitHub API からIssueを取得する関数
+async function fetchIssues() {
+  try {
+    // GitHub APIを使用してissueを取得（プルリクエストを除外）
+    const response = await fetch('https://api.github.com/repos/nao-amj/starlight-issue-wiki/issues?state=all&per_page=100');
+    if (!response.ok) {
+      throw new Error(`GitHub API error: ${response.status}`);
+    }
+    const allItems = await response.json();
+    // プルリクエストを除外する
+    return allItems.filter(item => !item.pull_request);
+  } catch (error) {
+    console.error('Error fetching issues:', error);
+    return [];
+  }
+}
+
+const issues = await fetchIssues();
+const pageTitle = `知識グラフ - ${SITE_TITLE}`;
+---
+
+<Layout title={pageTitle}>
+  <div class="knowledge-graph-page">
+    <header>
+      <h1>知識グラフ</h1>
+      <p class="description">
+        このグラフは、Wiki内のすべてのページとその関連性を可視化しています。
+        ページ同士のリンク関係を確認でき、新しい関連性やアイデアを発見するのに役立ちます。
+      </p>
+    </header>
+    
+    <div class="graph-container">
+      <KnowledgeGraph 
+        issues={issues} 
+        showFullGraph={true} 
+      />
+    </div>
+    
+    <div class="graph-legend">
+      <h3>凡例</h3>
+      <ul>
+        <li><span class="legend-dot" style="background-color: #4f6df5;"></span> 通常のページ</li>
+        <li><span class="legend-line"></span> 片方向リンク</li>
+        <li><span class="legend-line bidirectional"></span> 双方向リンク</li>
+      </ul>
+      <p class="instructions">
+        <strong>操作方法:</strong> ノード（円）をドラッグして移動、ホイールでズーム、ノードをクリックしてページに移動できます。
+      </p>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .knowledge-graph-page {
+    padding: 2rem 0;
+  }
+  
+  header {
+    margin-bottom: 2rem;
+  }
+  
+  h1 {
+    margin-bottom: 0.5rem;
+  }
+  
+  .description {
+    color: #666;
+    max-width: 800px;
+    line-height: 1.6;
+  }
+  
+  .dark .description {
+    color: #aaa;
+  }
+  
+  .graph-container {
+    margin: 2rem 0;
+    width: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #eee;
+  }
+  
+  .dark .graph-container {
+    border-color: #444;
+  }
+  
+  .graph-legend {
+    background-color: #f9f9f9;
+    padding: 1rem;
+    border-radius: 8px;
+    max-width: 500px;
+    margin: 2rem 0;
+  }
+  
+  .dark .graph-legend {
+    background-color: #222;
+  }
+  
+  .graph-legend h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+  }
+  
+  .graph-legend ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1rem 0;
+  }
+  
+  .graph-legend li {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+  
+  .legend-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 10px;
+  }
+  
+  .legend-line {
+    display: inline-block;
+    width: 30px;
+    height: 2px;
+    background-color: #999;
+    margin-right: 10px;
+  }
+  
+  .legend-line.bidirectional {
+    background-color: #0fa968;
+    height: 3px;
+  }
+  
+  .instructions {
+    font-size: 0.9rem;
+    color: #666;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #eee;
+  }
+  
+  .dark .instructions {
+    color: #aaa;
+    border-top-color: #444;
+  }
+</style>
