@@ -27,7 +27,7 @@ const pageTitle = `知識グラフ - ${SITE_TITLE}`;
 <Layout title={pageTitle}>
   <div class="knowledge-graph-page">
     <header>
-      <h1>知識グラフ</h1>
+      <h1 class="title">知識グラフ</h1>
       <p class="description">
         このグラフは、Wiki内のすべてのページとその関連性を可視化しています。
         ページ同士のリンク関係を確認でき、新しい関連性やアイデアを発見するのに役立ちます。
@@ -45,11 +45,17 @@ const pageTitle = `知識グラフ - ${SITE_TITLE}`;
       <h3>凡例</h3>
       <ul>
         <li><span class="legend-dot" style="background-color: #4f6df5;"></span> 通常のページ</li>
+        <li><span class="legend-dot" style="background-color: #f04050;"></span> 現在のページ</li>
+        <li><span class="legend-dot" style="background-color: #0075ca;"></span> ドキュメントページ</li>
         <li><span class="legend-line"></span> 片方向リンク</li>
         <li><span class="legend-line bidirectional"></span> 双方向リンク</li>
       </ul>
       <p class="instructions">
-        <strong>操作方法:</strong> ノード（円）をドラッグして移動、ホイールでズーム、ノードをクリックしてページに移動できます。
+        <strong>操作方法:</strong><br>
+        - <strong>ノードをドラッグ:</strong> グラフを移動<br>
+        - <strong>ホイール:</strong> 拡大・縮小<br>
+        - <strong>ノードをクリック:</strong> ページに移動<br>
+        - <strong>ノードにマウスオーバー:</strong> 詳細情報を表示
       </p>
     </div>
   </div>
@@ -62,20 +68,22 @@ const pageTitle = `知識グラフ - ${SITE_TITLE}`;
   
   header {
     margin-bottom: 2rem;
+    background-color: var(--color-primary-lightest, rgba(79, 109, 245, 0.1));
+    padding: 2rem;
+    border-radius: 8px;
+    text-align: center;
   }
   
-  h1 {
-    margin-bottom: 0.5rem;
+  .title {
+    margin-bottom: 1rem;
+    color: white;
   }
   
   .description {
-    color: #666;
+    color: white;
     max-width: 800px;
     line-height: 1.6;
-  }
-  
-  .dark .description {
-    color: #aaa;
+    margin: 0 auto;
   }
   
   .graph-container {
@@ -84,48 +92,58 @@ const pageTitle = `知識グラフ - ${SITE_TITLE}`;
     border-radius: 8px;
     overflow: hidden;
     border: 1px solid #eee;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   }
   
   .dark .graph-container {
     border-color: #444;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
   }
   
   .graph-legend {
     background-color: #f9f9f9;
-    padding: 1rem;
+    padding: 1.5rem;
     border-radius: 8px;
     max-width: 500px;
     margin: 2rem 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   }
   
   .dark .graph-legend {
     background-color: #222;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   }
   
   .graph-legend h3 {
     margin-top: 0;
     margin-bottom: 1rem;
     font-size: 1.2rem;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 0.5rem;
+  }
+  
+  .dark .graph-legend h3 {
+    border-bottom-color: #444;
   }
   
   .graph-legend ul {
     list-style: none;
     padding: 0;
-    margin: 0 0 1rem 0;
+    margin: 0 0 1.5rem 0;
   }
   
   .graph-legend li {
     display: flex;
     align-items: center;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.8rem;
   }
   
   .legend-dot {
     display: inline-block;
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
-    margin-right: 10px;
+    margin-right: 12px;
   }
   
   .legend-line {
@@ -133,7 +151,7 @@ const pageTitle = `知識グラフ - ${SITE_TITLE}`;
     width: 30px;
     height: 2px;
     background-color: #999;
-    margin-right: 10px;
+    margin-right: 12px;
   }
   
   .legend-line.bidirectional {
@@ -147,6 +165,7 @@ const pageTitle = `知識グラフ - ${SITE_TITLE}`;
     margin-top: 1rem;
     padding-top: 1rem;
     border-top: 1px solid #eee;
+    line-height: 1.6;
   }
   
   .dark .instructions {
@@ -154,3 +173,19 @@ const pageTitle = `知識グラフ - ${SITE_TITLE}`;
     border-top-color: #444;
   }
 </style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // ヘッダーの背景色をグラデーションに変更
+    const header = document.querySelector('header');
+    if (header) {
+      const isDarkMode = document.documentElement.classList.contains('dark');
+      if (isDarkMode) {
+        header.style.background = 'linear-gradient(135deg, #2a3f9d 0%, #1a237e 100%)';
+      } else {
+        header.style.background = 'linear-gradient(135deg, #4f6df5 0%, #283593 100%)';
+      }
+      header.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.1)';
+    }
+  });
+</script>
