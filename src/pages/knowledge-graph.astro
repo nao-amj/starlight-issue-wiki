@@ -21,7 +21,7 @@ async function fetchIssues() {
 }
 
 const issues = await fetchIssues();
-const pageTitle = `知識グラフ - ${SITE_TITLE}`;
+const pageTitle = `Knowledge Graph - ${SITE_TITLE}`;
 const issueCount = issues.length;
 
 // リンクの統計を計算
@@ -102,22 +102,22 @@ bidirectionalLinks = bidirectionalLinks / 2;
   <div class="knowledge-graph-page">
     <header class="graph-header">
       <div class="header-content">
-        <h1 class="header-title">知識グラフ</h1>
+        <h1 class="header-title">Knowledge Graph</h1>
         <p class="header-description">
-          Wiki内のページとその関連性の可視化。リンク関係を通じて知識の繋がりを探索できます。
+          Visualization of pages and their relationships in the Wiki. Explore knowledge connections through links.
         </p>
         <div class="graph-stats">
           <div class="stat-item">
             <div class="stat-value">{issueCount}</div>
-            <div class="stat-label">ページ数</div>
+            <div class="stat-label">Pages</div>
           </div>
           <div class="stat-item">
             <div class="stat-value">{totalLinks}</div>
-            <div class="stat-label">総リンク数</div>
+            <div class="stat-label">Total Links</div>
           </div>
           <div class="stat-item">
             <div class="stat-value">{bidirectionalLinks}</div>
-            <div class="stat-label">双方向リンク</div>
+            <div class="stat-label">Bidirectional</div>
           </div>
         </div>
       </div>
@@ -133,7 +133,7 @@ bidirectionalLinks = bidirectionalLinks / 2;
         </svg>
       </div>
       <div class="instruction-text">
-        <strong>操作方法:</strong> ノードをドラッグして移動 | ホイールでズーム | ノードをクリックしてページ閲覧 | 右下コントロールでズーム調整 | 凡例ボタンで詳細表示
+        <strong>Instructions:</strong> Drag nodes to move | Scroll to zoom | Click nodes to view pages | Use controls for zoom | Click legend for details
       </div>
     </div>
     
@@ -150,14 +150,14 @@ bidirectionalLinks = bidirectionalLinks / 2;
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
           <polyline points="9 22 9 12 15 12 15 22"></polyline>
         </svg>
-        トップページへ戻る
+        Back to Home
       </a>
       <a href="/wiki/1" class="action-button">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
           <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
         </svg>
-        はじめにのページ
+        Getting Started
       </a>
     </div>
   </div>
