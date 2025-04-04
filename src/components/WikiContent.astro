@@ -29,10 +29,32 @@ try {
 } catch (error) {
   console.error('バックリンク検索中にエラーが発生しました:', error);
 }
+
+// 現在のIssueの全タグを収集
+const tags = new Set();
+if (currentIssue.body) {
+  const tagMatches = currentIssue.body.match(/#([a-zA-Z0-9_-]+)/g);
+  if (tagMatches) {
+    tagMatches.forEach(tag => {
+      tags.add(tag.substring(1).toLowerCase());
+    });
+  }
+}
 ---
 
 <div class="wiki-content">
   <div class="content" set:html={content} />
+  
+  {tags.size > 0 && (
+    <div class="tags-container">
+      <div class="tags-header">タグ:</div>
+      <div class="tag-list">
+        {Array.from(tags).map(tag => (
+          <a href={`${BASE_PATH}/tag/${tag}`} class="content-tag">#{tag}</a>
+        ))}
+      </div>
+    </div>
+  )}
   
   <div class="knowledge-graph-section">
     <h3>知識グラフ（接続ノード）</h3>
@@ -82,6 +104,7 @@ try {
     border-bottom: 1px dashed var(--color-primary, #4f6df5);
     color: var(--color-primary, #4f6df5);
     transition: all 0.2s;
+    padding: 0 0.1em;
   }
   
   .content :global(.wiki-link:hover) {
@@ -90,9 +113,10 @@ try {
   }
   
   .content :global(.wiki-link.bidirectional) {
-    border-bottom: 2px solid var(--color-success, #0fa968);
-    color: var(--color-success, #0fa968);
+    border-bottom: 2px solid #0fa968;
+    color: #0fa968;
     font-weight: 500;
+    background-color: rgba(15, 169, 104, 0.05);
   }
   
   .content :global(.wiki-link.bidirectional:hover) {
@@ -126,6 +150,63 @@ try {
   }
   
   .dark .content :global(.hash-tag:hover) {
+    background-color: rgba(100, 181, 246, 0.2);
+  }
+  
+  /* タグセクション */
+  .tags-container {
+    margin: 1.5rem 0;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background-color: #f9f9f9;
+    border-radius: 0.5rem;
+  }
+  
+  .dark .tags-container {
+    background-color: #222;
+  }
+  
+  .tags-header {
+    font-weight: 500;
+    color: #666;
+    margin-right: 0.5rem;
+  }
+  
+  .dark .tags-header {
+    color: #ccc;
+  }
+  
+  .tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .content-tag {
+    display: inline-block;
+    text-decoration: none;
+    color: #1a73e8;
+    background-color: rgba(26, 115, 232, 0.1);
+    padding: 0.2em 0.5em;
+    border-radius: 0.25em;
+    font-size: 0.9em;
+    transition: all 0.2s;
+  }
+  
+  .content-tag:hover {
+    background-color: rgba(26, 115, 232, 0.2);
+    transform: translateY(-1px);
+  }
+  
+  .dark .content-tag {
+    color: #64b5f6;
+    background-color: rgba(100, 181, 246, 0.1);
+  }
+  
+  .dark .content-tag:hover {
     background-color: rgba(100, 181, 246, 0.2);
   }
   
@@ -203,13 +284,15 @@ try {
       const bidirectionalLinks = document.querySelectorAll('.wiki-link.bidirectional');
       bidirectionalLinks.forEach(link => {
         if (config.highlightBidirectional) {
-          link.style.borderBottom = '2px solid var(--color-success, #0fa968)';
-          link.style.color = 'var(--color-success, #0fa968)';
+          link.style.borderBottom = '2px solid #0fa968';
+          link.style.color = '#0fa968';
           link.style.fontWeight = '500';
+          link.style.backgroundColor = 'rgba(15, 169, 104, 0.05)';
         } else {
           link.style.borderBottom = '1px dashed var(--color-primary, #4f6df5)';
           link.style.color = 'var(--color-primary, #4f6df5)';
           link.style.fontWeight = 'normal';
+          link.style.backgroundColor = 'transparent';
         }
       });
     }
