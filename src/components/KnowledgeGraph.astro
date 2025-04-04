@@ -126,7 +126,7 @@ const dataJson = JSON.stringify(showFullGraph ? graphData : filteredGraphData);
   {showFullGraph && (
     <div class="graph-controls">
       <div class="graph-search">
-        <input type="text" id="node-search" placeholder="ノードを検索..." />
+        <input type="text" id="node-search" placeholder="ノードを検索...">
       </div>
       <div class="graph-buttons">
         <button id="zoom-in" class="graph-button" title="拡大">
@@ -171,6 +171,15 @@ const dataJson = JSON.stringify(showFullGraph ? graphData : filteredGraphData);
             <circle cx="12" cy="12" r="10"></circle>
             <line x1="2" y1="12" x2="22" y2="12"></line>
             <line x1="12" y1="2" x2="12" y2="22"></line>
+          </svg>
+        </button>
+        <button id="optimize-layout" class="graph-button" title="レイアウト最適化">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <circle cx="15.5" cy="8.5" r="1.5"></circle>
+            <circle cx="15.5" cy="15.5" r="1.5"></circle>
+            <circle cx="8.5" cy="15.5" r="1.5"></circle>
           </svg>
         </button>
       </div>
@@ -629,6 +638,45 @@ const dataJson = JSON.stringify(showFullGraph ? graphData : filteredGraphData);
     opacity: 1;
   }
 
+  /* ノードのジャンプリンク */
+  :global(.node-jump-link) {
+    position: absolute;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 11px;
+    text-decoration: none;
+    color: var(--color-primary);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    z-index: 5;
+    transition: all 0.2s;
+    opacity: 0;
+    transform: translateY(10px);
+    pointer-events: none;
+  }
+
+  :global(.node-jump-link.visible) {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  :global(.node-jump-link:hover) {
+    background-color: var(--color-primary);
+    color: white;
+  }
+  
+  .dark :global(.node-jump-link) {
+    background-color: rgba(40, 40, 40, 0.9);
+    color: #7b96ff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  }
+
+  .dark :global(.node-jump-link:hover) {
+    background-color: var(--color-primary);
+    color: white;
+  }
+
   /* レスポンシブ対応 */
   @media (max-width: 768px) {
     .graph-controls {
@@ -691,6 +739,8 @@ const dataJson = JSON.stringify(showFullGraph ? graphData : filteredGraphData);
           container.attr('transform', event.transform);
           // ズームレベルに応じてラベルの表示を調整
           adjustLabels(event.transform.k);
+          // ジャンプリンクの位置を更新
+          updateJumpLinks();
         });
       
       // SVGにズーム機能を追加
@@ -719,9 +769,12 @@ const dataJson = JSON.stringify(showFullGraph ? graphData : filteredGraphData);
         .attr('class', d => `graph-node ${d.isCurrent ? 'current' : ''}`)
         .attr('r', d => d.isCurrent ? 8 : getNodeSize(d))
         .attr('fill', d => d.isCurrent ? '#f04050' : getNodeColor(d))
+        .attr('data-id', d => d.id)
+        .attr('data-url', d => d.url)
         .on('mouseover', nodeMouseOver)
         .on('mouseout', nodeMouseOut)
-        .on('click', nodeClicked);
+        .on('click', nodeClicked)
+        .on('dblclick', nodeDoubleClicked);
       
       // ラベルの描画（デフォルトでは表示）
       const label = container.append('g')
@@ -733,6 +786,27 @@ const dataJson = JSON.stringify(showFullGraph ? graphData : filteredGraphData);
         .attr('dy', d => d.isCurrent ? '-1.2em' : '-0.5em')
         .text(d => truncateLabel(d.title))
         .style('opacity', 1); // デフォルトで全てのラベルを表示
+      
+      // ジャンプリンク用のコンテナ
+      const jumpLinksContainer = d3.select('#knowledge-graph').append('div')
+        .attr('class', 'jump-links-container')
+        .style('position', 'absolute')
+        .style('top', 0)
+        .style('left', 0)
+        .style('width', '100%')
+        .style('height', '100%')
+        .style('pointer-events', 'none');
+        
+      // 各ノードに対するジャンプリンクを作成
+      graphData.nodes.forEach(nodeData => {
+        jumpLinksContainer.append('a')
+          .attr('class', 'node-jump-link')
+          .attr('id', `jump-link-${nodeData.id}`)
+          .attr('href', nodeData.url)
+          .attr('target', isFullGraph ? '_blank' : '_self')
+          .text('ページへ')
+          .style('display', 'none');
+      });
       
       // ツールチップの作成
       const tooltip = d3.select('body').append('div')
@@ -822,6 +896,46 @@ const dataJson = JSON.stringify(showFullGraph ? graphData : filteredGraphData);
           }
         });
 
+        // レイアウト最適化ボタン
+        d3.select('#optimize-layout').on('click', function() {
+          // 現在のシミュレーション設定を保存
+          const wasRunning = simulationRunning;
+          
+          // 一時的にシミュレーションを再開し、強度を変更
+          simulation
+            .force('charge', d3.forceManyBody().strength(-600))  // より強い反発力
+            .force('link', d3.forceLink(graphData.links).id(d => d.id).distance(120))  // リンク距離を広げる
+            .force('center', d3.forceCenter(width / 2, height / 2))
+            .force('x', d3.forceX(width / 2).strength(0.1))  // X方向の力を追加
+            .force('y', d3.forceY(height / 2).strength(0.1))  // Y方向の力を追加
+            .force('collision', d3.forceCollide().radius(30))  // 衝突回避を強化
+            .alpha(0.8)  // アルファ値を高く設定して激しく動かす
+            .restart();
+          
+          // 最適化アニメーション
+          const button = d3.select(this);
+          button.classed('active', true).attr('disabled', true);
+          
+          // 一定時間後に元の設定に戻す
+          setTimeout(() => {
+            simulation
+              .force('charge', d3.forceManyBody().strength(isFullGraph ? -250 : -150))
+              .force('link', d3.forceLink(graphData.links).id(d => d.id).distance(isFullGraph ? 100 : 70))
+              .force('center', d3.forceCenter(width / 2, height / 2))
+              .force('x', null)  // 追加の力を削除
+              .force('y', null)
+              .force('collision', d3.forceCollide().radius(15));
+            
+            if (!wasRunning) {
+              simulation.stop();
+            } else {
+              simulation.alpha(0.3).restart();
+            }
+            
+            button.classed('active', false).attr('disabled', null);
+          }, 3000);
+        });
+
         // ノード検索
         d3.select('#node-search').on('input', function() {
           const searchTerm = this.value.toLowerCase();
@@ -899,6 +1013,28 @@ const dataJson = JSON.stringify(showFullGraph ? graphData : filteredGraphData);
         }
       }
 
+      // ジャンプリンクの位置を更新する関数
+      function updateJumpLinks() {
+        // 表示されているジャンプリンクを更新
+        const activeNode = document.querySelector('.graph-node.active');
+        if (activeNode) {
+          const nodeId = activeNode.getAttribute('data-id');
+          const nodePosition = activeNode.getBoundingClientRect();
+          const containerPosition = graphElement.getBoundingClientRect();
+          
+          const jumpLink = document.getElementById(`jump-link-${nodeId}`);
+          if (jumpLink) {
+            // グラフ内の相対位置を計算
+            const relativeLeft = nodePosition.left - containerPosition.left;
+            const relativeTop = nodePosition.top - containerPosition.top;
+            
+            // ジャンプリンクの位置を更新
+            jumpLink.style.left = `${relativeLeft}px`;
+            jumpLink.style.top = `${relativeTop + nodePosition.height / 2 + 15}px`;
+          }
+        }
+      }
+
       // 選択されたノードの詳細を表示する関数
       function showNodeDetails(node) {
         const nodeDetails = document.getElementById('node-details');
@@ -929,6 +1065,7 @@ const dataJson = JSON.stringify(showFullGraph ? graphData : filteredGraphData);
             ${node.labels && node.labels.length ? 
               `<div><span>ラベル:</span> <span>${node.labels.join(', ')}</span></div>` : 
               ''}
+            <div><span>アクション:</span> <span><a href="${node.url}" target="_blank">記事を開く</a></span></div>
           </div>
         `;
 
@@ -991,6 +1128,7 @@ const dataJson = JSON.stringify(showFullGraph ? graphData : filteredGraphData);
 
         node
           .classed('selected', d => highlight && d.id === nodeId)
+          .classed('active', d => highlight && d.id === nodeId)
           .style('opacity', d => 
             highlight 
               ? (connectedNodeIds.has(d.id) ? 1 : 0.2)
@@ -1007,6 +1145,40 @@ const dataJson = JSON.stringify(showFullGraph ? graphData : filteredGraphData);
             if (highlight && connectedNodeIds.has(d.id)) return 1;
             return showLabels ? 0.7 : 0;
           });
+
+        // ジャンプリンクの表示/非表示
+        const jumpLinkElements = document.querySelectorAll('.node-jump-link');
+        jumpLinkElements.forEach(el => {
+          el.style.display = 'none';
+          el.classList.remove('visible');
+        });
+
+        if (highlight) {
+          const jumpLink = document.getElementById(`jump-link-${nodeId}`);
+          if (jumpLink) {
+            jumpLink.style.display = 'block';
+            
+            // アクティブなノードの位置を取得
+            const activeNode = document.querySelector(`.graph-node[data-id="${nodeId}"]`);
+            if (activeNode) {
+              const nodePosition = activeNode.getBoundingClientRect();
+              const containerPosition = graphElement.getBoundingClientRect();
+              
+              // グラフ内の相対位置を計算
+              const relativeLeft = nodePosition.left - containerPosition.left;
+              const relativeTop = nodePosition.top - containerPosition.top;
+              
+              // ジャンプリンクの位置を設定
+              jumpLink.style.left = `${relativeLeft}px`;
+              jumpLink.style.top = `${relativeTop + 15}px`;
+              
+              // 表示アニメーション
+              setTimeout(() => {
+                jumpLink.classList.add('visible');
+              }, 10);
+            }
+          }
+        }
       }
       
       // ノードのマウスオーバー処理
@@ -1058,6 +1230,7 @@ const dataJson = JSON.stringify(showFullGraph ? graphData : filteredGraphData);
             `<div class="node-tooltip-info">ラベル: ${d.labels.join(', ')}</div>` : ''}
           ${d.comments > 0 ? 
             `<div class="node-tooltip-info">コメント数: ${d.comments}</div>` : ''}
+          <div class="node-tooltip-info">クリックで詳細を表示 | ダブルクリックで記事へジャンプ</div>
         `)
           .style('left', (event.pageX + 10) + 'px')
           .style('top', (event.pageY - 28) + 'px');
@@ -1114,11 +1287,11 @@ const dataJson = JSON.stringify(showFullGraph ? graphData : filteredGraphData);
           const isCurrentlySelected = d3.select(this).classed('selected');
           
           // すべてのノードから選択状態を解除
-          node.classed('selected', false);
+          node.classed('selected', false).classed('active', false);
           
           if (!isCurrentlySelected) {
             // 選択状態にして詳細を表示
-            d3.select(this).classed('selected', true);
+            d3.select(this).classed('selected', true).classed('active', true);
             highlightNodeLinks(d.id);
             showNodeDetails(d);
           } else {
@@ -1128,11 +1301,45 @@ const dataJson = JSON.stringify(showFullGraph ? graphData : filteredGraphData);
               '<div class="no-selection">ノードを選択すると詳細が表示されます</div>';
           }
         } else {
-          // ミニグラフの場合は詳細ページに遷移
-          if (d.url) {
-            window.location.href = d.url;
+          // ミニグラフの場合は直接ジャンプリンクを表示
+          const nodeId = d.id;
+          const jumpLink = document.getElementById(`jump-link-${nodeId}`);
+          
+          if (jumpLink) {
+            const nodePosition = event.target.getBoundingClientRect();
+            const containerPosition = graphElement.getBoundingClientRect();
+            
+            // グラフ内の相対位置を計算
+            const relativeLeft = nodePosition.left - containerPosition.left;
+            const relativeTop = nodePosition.top - containerPosition.top;
+            
+            // ジャンプリンクの位置を設定して表示
+            jumpLink.style.display = 'block';
+            jumpLink.style.left = `${relativeLeft}px`;
+            jumpLink.style.top = `${relativeTop + 15}px`;
+            
+            // 表示アニメーション
+            setTimeout(() => {
+              jumpLink.classList.add('visible');
+            }, 10);
+            
+            // 他のジャンプリンクを非表示
+            document.querySelectorAll('.node-jump-link').forEach(el => {
+              if (el.id !== `jump-link-${nodeId}`) {
+                el.style.display = 'none';
+                el.classList.remove('visible');
+              }
+            });
           }
         }
+      }
+      
+      // ノードダブルクリック時の挙動
+      function nodeDoubleClicked(event, d) {
+        event.preventDefault();
+        
+        // 記事ページに直接ジャンプ
+        window.location.href = d.url;
       }
       
       // シミュレーションの設定
@@ -1140,6 +1347,7 @@ const dataJson = JSON.stringify(showFullGraph ? graphData : filteredGraphData);
         .force('link', d3.forceLink(graphData.links).id(d => d.id).distance(isFullGraph ? 100 : 70))
         .force('charge', d3.forceManyBody().strength(isFullGraph ? -250 : -150))
         .force('center', d3.forceCenter(width / 2, height / 2))
+        .force('collision', d3.forceCollide().radius(15)) // ノード間の衝突回避
         .on('tick', ticked);
       
       // シミュレーション更新時の描画更新
@@ -1157,6 +1365,9 @@ const dataJson = JSON.stringify(showFullGraph ? graphData : filteredGraphData);
         label
           .attr('x', d => d.x)
           .attr('y', d => d.y - 10);
+          
+        // アクティブなノードのジャンプリンク位置を更新
+        updateJumpLinks();
       }
       
       // ズームコントロールのイベントハンドラー
@@ -1198,6 +1409,23 @@ const dataJson = JSON.stringify(showFullGraph ? graphData : filteredGraphData);
           }, 500);
         }
       }
+      
+      // ウィンドウサイズ変更時の処理
+      window.addEventListener('resize', () => {
+        const newWidth = graphElement.clientWidth;
+        const newHeight = graphElement.clientHeight;
+        
+        svg.attr('width', newWidth)
+           .attr('height', newHeight)
+           .attr('viewBox', [0, 0, newWidth, newHeight]);
+        
+        // 中心位置を更新
+        simulation.force('center', d3.forceCenter(newWidth / 2, newHeight / 2));
+        simulation.alpha(0.3).restart();
+        
+        // ジャンプリンクの位置を更新
+        updateJumpLinks();
+      });
     }
   });
 </script>
