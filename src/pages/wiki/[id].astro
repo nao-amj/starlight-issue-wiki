@@ -36,56 +36,57 @@ export async function getStaticPaths() {
 const { issue, allIssues } = Astro.props;
 const { title, body, created_at, updated_at, html_url, labels, number } = issue;
 
-// Zettelkasten設定を読み込み
-const zettelkastenConfig = loadZettelkastenSettings();
+// Zettelkastenの設定を強制的に有効化（ビルド時）
+const zettelkastenConfig = {
+  enabled: true,
+  autoLinkKeywords: true,
+  highlightBidirectional: true,
+  showBacklinks: true,
+  keywordMinLength: 3
+};
 
 // 処理されたコンテンツを生成
 let processedContent = body || '';
 let htmlContent = '';
 
-// Zettelkastenモードが有効な場合
-if (zettelkastenConfig.enabled) {
-  try {
-    // キーワードを抽出
-    const keywords = extractKeywords(allIssues);
-    
-    // 双方向リンクを検出
-    const bidirectionalLinks = findBidirectionalLinks(allIssues);
-    
-    // Zettelkastenリンクを適用（Markdownを処理する前に）
-    if (zettelkastenConfig.autoLinkKeywords) {
-      processedContent = applyZettelkastenLinks(processedContent, keywords, number);
-    }
-    
-    // Wikiリンクをプレースホルダーに置換
-    const wikiLinks = [];
-    processedContent = processedContent.replace(/\[\[(.*?)\]\]/g, (match, content) => {
-      const placeholder = `__WIKILINK_${wikiLinks.length}__`;
-      wikiLinks.push({ placeholder, content });
-      return placeholder;
-    });
-    
-    // Markdownを通常処理
-    htmlContent = marked.parse(processedContent);
-    
-    // プレースホルダーをWikiリンクに戻す
-    wikiLinks.forEach(link => {
-      htmlContent = htmlContent.replace(
-        link.placeholder, 
-        `[[${link.content}]]`
-      );
-    });
-    
-    // HTMLコンテンツに対してWikiリンク変換を適用
-    htmlContent = convertWikiLinksToHtml(htmlContent, allIssues, bidirectionalLinks, number);
-    
-  } catch (error) {
-    console.error('Zettelkasten処理でエラーが発生しました:', error);
-    // エラー時は通常のMarkdown変換に戻る
-    htmlContent = marked.parse(body || '');
+// Zettelkastenモードが有効な場合（常に有効）
+try {
+  // キーワードを抽出
+  const keywords = extractKeywords(allIssues);
+  
+  // 双方向リンクを検出
+  const bidirectionalLinks = findBidirectionalLinks(allIssues);
+  
+  // Zettelkastenリンクを適用（Markdownを処理する前に）
+  if (zettelkastenConfig.autoLinkKeywords) {
+    processedContent = applyZettelkastenLinks(processedContent, keywords, number);
   }
-} else {
-  // 通常のMarkdown変換
+  
+  // Wikiリンクをプレースホルダーに置換
+  const wikiLinks = [];
+  processedContent = processedContent.replace(/\[\[(.*?)\]\]/g, (match, content) => {
+    const placeholder = `__WIKILINK_${wikiLinks.length}__`;
+    wikiLinks.push({ placeholder, content });
+    return placeholder;
+  });
+  
+  // Markdownを通常処理
+  htmlContent = marked.parse(processedContent);
+  
+  // プレースホルダーをWikiリンクに戻す
+  wikiLinks.forEach(link => {
+    htmlContent = htmlContent.replace(
+      link.placeholder, 
+      `[[${link.content}]]`
+    );
+  });
+  
+  // HTMLコンテンツに対してWikiリンク変換を適用
+  htmlContent = convertWikiLinksToHtml(htmlContent, allIssues, bidirectionalLinks, number);
+  
+} catch (error) {
+  console.error('Zettelkasten処理でエラーが発生しました:', error);
+  // エラー時は通常のMarkdown変換に戻る
   htmlContent = marked.parse(body || '');
 }
 
@@ -340,6 +341,22 @@ const pageTitle = `${title} (#${issue.number})`;
         tocContainer.appendChild(tocList);
       } else {
         tocContainer.innerHTML = '<p class="toc-empty">目次がありません</p>';
+      }
+    }
+    
+    // デバッグ用
+    console.log('Checking wiki links...');
+    const wikiLinks = document.querySelectorAll('.wiki-link');
+    console.log(`Found ${wikiLinks.length} wiki links`);
+    if (wikiLinks.length === 0) {
+      console.log('No wiki links found, checking for [[ ]] patterns in HTML');
+      const content = document.querySelector('.wiki-content');
+      if (content) {
+        const html = content.innerHTML;
+        const matches = html.match(/\[\[(.*?)\]\]/g);
+        if (matches) {
+          console.log(`Found ${matches.length} [[...]] patterns that were not converted`);
+        }
       }
     }
   });
