@@ -20,7 +20,7 @@ async function fetchIssues() {
 }
 
 const issues = await fetchIssues();
-const pageTitle = `コンテンツ分析 - ${SITE_TITLE}`;
+const pageTitle = `Content Analytics - ${SITE_TITLE}`;
 
 // ラベルの集計
 const labelCounts = {};
@@ -68,11 +68,45 @@ const activityData = Object.entries(monthlyActivity)
   .map(([month, data]) => ({ month, ...data }))
   .sort((a, b) => a.month.localeCompare(b.month));
 
+// 曜日別アクティビティ分析
+const dayOfWeekActivity = {
+  0: { label: 'Sunday', created: 0, updated: 0 },
+  1: { label: 'Monday', created: 0, updated: 0 },
+  2: { label: 'Tuesday', created: 0, updated: 0 },
+  3: { label: 'Wednesday', created: 0, updated: 0 },
+  4: { label: 'Thursday', created: 0, updated: 0 },
+  5: { label: 'Friday', created: 0, updated: 0 },
+  6: { label: 'Saturday', created: 0, updated: 0 }
+};
+
+issues.forEach(issue => {
+  const createdDate = new Date(issue.created_at);
+  const updatedDate = new Date(issue.updated_at);
+  
+  dayOfWeekActivity[createdDate.getDay()].created++;
+  dayOfWeekActivity[updatedDate.getDay()].updated++;
+});
+
+// 時間帯別アクティビティ分析
+const hourlyActivity = Array.from({length: 24}, (_, i) => ({
+  hour: i,
+  created: 0,
+  updated: 0
+}));
+
+issues.forEach(issue => {
+  const createdDate = new Date(issue.created_at);
+  const updatedDate = new Date(issue.updated_at);
+  
+  hourlyActivity[createdDate.getHours()].created++;
+  hourlyActivity[updatedDate.getHours()].updated++;
+});
+
 // コンテンツ長さの分析（文字数）
 const lengthCategories = {
-  short: { count: 0, label: '短い (< 500字)' },
-  medium: { count: 0, label: '中程度 (500-2000字)' },
-  long: { count: 0, label: '長い (> 2000字)' }
+  short: { count: 0, label: 'Short Content (<500 chars)' },
+  medium: { count: 0, label: 'Medium Content (500-2000 chars)' },
+  long: { count: 0, label: 'Long Content (>2000 chars)' }
 };
 
 issues.forEach(issue => {
@@ -85,6 +119,26 @@ issues.forEach(issue => {
   } else {
     lengthCategories.long.count++;
   }
+});
+
+// 長さの詳細な分布データ
+const lengthDistribution = [];
+const BUCKET_SIZE = 250; // 250文字ごとにカウント
+const MAX_BUCKET = 10; // 最大2500文字まで
+
+// バケット初期化
+for (let i = 0; i <= MAX_BUCKET; i++) {
+  lengthDistribution.push({
+    range: i < MAX_BUCKET ? `${i * BUCKET_SIZE}-${(i + 1) * BUCKET_SIZE}` : `${MAX_BUCKET * BUCKET_SIZE}+`,
+    count: 0
+  });
+}
+
+// 文字数分布の計算
+issues.forEach(issue => {
+  const contentLength = (issue.body || '').length;
+  const bucketIndex = Math.min(Math.floor(contentLength / BUCKET_SIZE), MAX_BUCKET);
+  lengthDistribution[bucketIndex].count++;
 });
 
 // リンク関係の分析
@@ -175,11 +229,70 @@ const topLinkedPages = Object.entries(linkAnalysis.mostLinkedPages)
   .sort((a, b) => b.count - a.count)
   .slice(0, 5);
 
+// リンク関係のネットワークデータ作成
+const linkNetworkData = {
+  nodes: [],
+  links: []
+};
+
+// まずノードを作成
+issues.forEach(issue => {
+  linkNetworkData.nodes.push({
+    id: issue.number.toString(),
+    title: issue.title,
+    group: issue.labels && issue.labels.length > 0 ? 
+           issue.labels[0].name : 'unlabeled'
+  });
+});
+
+// リンク関係を追加
+issues.forEach(issue => {
+  if (!issue.body) return;
+  
+  // [[...]]形式のリンクを検出
+  const wikiLinks = issue.body.match(/\[\[(.*?)\]\]/g);
+  if (wikiLinks) {
+    wikiLinks.forEach(link => {
+      const linkedTitle = link.substring(2, link.length - 2).trim();
+      const linkedIssue = issues.find(i => 
+        i.title.toLowerCase() === linkedTitle.toLowerCase() ||
+        i.title.toLowerCase().includes(linkedTitle.toLowerCase())
+      );
+      
+      if (linkedIssue) {
+        linkNetworkData.links.push({
+          source: issue.number.toString(),
+          target: linkedIssue.number.toString(),
+          value: 1,
+          type: 'wiki'
+        });
+      }
+    });
+  }
+  
+  // #番号形式のリンクを検出
+  const issueRefs = issue.body.match(/#(\d+)/g);
+  if (issueRefs) {
+    issueRefs.forEach(ref => {
+      const refNumber = parseInt(ref.substring(1), 10);
+      
+      if (issues.some(i => i.number === refNumber)) {
+        linkNetworkData.links.push({
+          source: issue.number.toString(),
+          target: refNumber.toString(),
+          value: 1,
+          type: 'issue'
+        });
+      }
+    });
+  }
+});
+
 // 更新日時による分類
 const recencyCategories = {
-  recent: { count: 0, label: '最近 (30日以内)' },
-  medium: { count: 0, label: '中程度 (30-90日)' },
-  old: { count: 0, label: '古い (90日以上)' }
+  recent: { count: 0, label: 'Recent (last 30 days)' },
+  medium: { count: 0, label: 'Medium (30-90 days)' },
+  old: { count: 0, label: 'Older (90+ days)' }
 };
 
 const now = new Date();
@@ -196,146 +309,268 @@ issues.forEach(issue => {
   }
 });
 
+// 修正日からの経過日数分布
+const ageDistribution = Array.from({length: 10}, (_, i) => ({
+  days: i * 10, // 0-10日, 10-20日, ...
+  count: 0
+}));
+
+// さらに90日以上のカテゴリー
+ageDistribution.push({ days: 90, count: 0 });
+
+issues.forEach(issue => {
+  const updatedDate = new Date(issue.updated_at);
+  const daysDifference = Math.floor((now - updatedDate) / (1000 * 60 * 60 * 24));
+  
+  if (daysDifference >= 90) {
+    ageDistribution[10].count++;
+  } else {
+    const bucketIndex = Math.floor(daysDifference / 10);
+    ageDistribution[bucketIndex].count++;
+  }
+});
+
 // フロントエンド用データのシリアライズ
 const serializedLabelData = JSON.stringify(labelData);
 const serializedActivityData = JSON.stringify(activityData);
+const serializedDayOfWeekActivity = JSON.stringify(Object.values(dayOfWeekActivity));
+const serializedHourlyActivity = JSON.stringify(hourlyActivity);
 const serializedLengthData = JSON.stringify({
   short: lengthCategories.short.count,
   medium: lengthCategories.medium.count,
   long: lengthCategories.long.count
 });
+const serializedLengthDistribution = JSON.stringify(lengthDistribution);
 const serializedRecencyData = JSON.stringify({
   recent: recencyCategories.recent.count,
   medium: recencyCategories.medium.count,
   old: recencyCategories.old.count
 });
+const serializedAgeDistribution = JSON.stringify(ageDistribution);
 const serializedLinkData = JSON.stringify({
   internal: linkAnalysis.internalLinks,
   external: linkAnalysis.externalLinks,
   wikiLinks: linkAnalysis.wikiLinks,
   issueRefs: linkAnalysis.issueRefs
 });
+const serializedLinkNetworkData = JSON.stringify(linkNetworkData);
 ---
 
 <Layout title={pageTitle}>
   <div class="analysis-page">
     <header class="page-header">
-      <h1>コンテンツ分析ダッシュボード</h1>
+      <h1>Content Analytics Dashboard</h1>
       <p class="page-description">
-        このページではWikiのコンテンツ構成や更新状況、リンク関係などを視覚的に表示しています。
+        This dashboard visualizes content statistics, activity patterns, and relationship metrics to offer insights into your wiki's structure and engagement.
       </p>
     </header>
     
-    <div class="analysis-grid">
-      <!-- 概要カード -->
-      <div class="analysis-card" id="summary-card">
-        <h2 class="card-title">コンテンツ概要</h2>
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-value">{issues.length}</div>
-            <div class="stat-label">総ページ数</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value">{linkAnalysis.totalLinks}</div>
-            <div class="stat-label">総リンク数</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value">{Object.keys(labelCounts).length}</div>
-            <div class="stat-label">カテゴリ数</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value">{activityData.length}</div>
-            <div class="stat-label">活動月数</div>
-          </div>
-        </div>
-      </div>
+    <div class="dashboard-controls">
+      <select id="theme-selector" class="dashboard-control">
+        <option value="default">Default Theme</option>
+        <option value="dark">Dark Theme</option>
+        <option value="light">Light Theme</option>
+        <option value="pastel">Pastel Theme</option>
+      </select>
       
-      <!-- カテゴリ分布カード -->
-      <div class="analysis-card" id="category-card">
-        <h2 class="card-title">カテゴリ分布</h2>
-        <div class="category-chart-container">
-          <div id="category-chart"></div>
-          <div class="category-legend">
-            {labelData.slice(0, 6).map(label => (
-              <div class="legend-item">
-                <span class="legend-color" style={`background-color: #${label.color}`}></span>
-                <span class="legend-text">{label.name} ({label.count})</span>
+      <div class="tabs">
+        <button class="tab active" data-tab="overview">Overview</button>
+        <button class="tab" data-tab="activity">Activity</button>
+        <button class="tab" data-tab="content">Content</button>
+        <button class="tab" data-tab="network">Network</button>
+      </div>
+    </div>
+    
+    <div class="dashboard-container">
+      <!-- Overview Tab (Default View) -->
+      <section class="dashboard-section active" id="overview-section">
+        <div class="analysis-grid">
+          <!-- Summary Card -->
+          <div class="analysis-card" id="summary-card">
+            <h2 class="card-title">Content Summary</h2>
+            <div class="stats-grid">
+              <div class="stat-item">
+                <div class="stat-value">{issues.length}</div>
+                <div class="stat-label">Total Pages</div>
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
-      
-      <!-- 更新頻度カード -->
-      <div class="analysis-card" id="activity-card">
-        <h2 class="card-title">更新頻度</h2>
-        <div id="activity-chart"></div>
-      </div>
-      
-      <!-- コンテンツ長さカード -->
-      <div class="analysis-card" id="length-card">
-        <h2 class="card-title">コンテンツの長さ</h2>
-        <div class="donut-container">
-          <div id="length-chart"></div>
-          <div class="donut-legend">
-            <div class="legend-item">
-              <span class="legend-color" style="background-color: #E9D5FF"></span>
-              <span class="legend-text">{lengthCategories.short.label} ({lengthCategories.short.count})</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-color" style="background-color: #C084FC"></span>
-              <span class="legend-text">{lengthCategories.medium.label} ({lengthCategories.medium.count})</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-color" style="background-color: #6B21A8"></span>
-              <span class="legend-text">{lengthCategories.long.label} ({lengthCategories.long.count})</span>
+              <div class="stat-item">
+                <div class="stat-value">{linkAnalysis.totalLinks}</div>
+                <div class="stat-label">Total Links</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">{Object.keys(labelCounts).length}</div>
+                <div class="stat-label">Categories</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">{activityData.length}</div>
+                <div class="stat-label">Active Months</div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-      
-      <!-- 更新日時カード -->
-      <div class="analysis-card" id="recency-card">
-        <h2 class="card-title">更新日時の分布</h2>
-        <div class="donut-container">
-          <div id="recency-chart"></div>
-          <div class="donut-legend">
-            <div class="legend-item">
-              <span class="legend-color" style="background-color: #86EFAC"></span>
-              <span class="legend-text">{recencyCategories.recent.label} ({recencyCategories.recent.count})</span>
+          
+          <!-- Category Distribution Card -->
+          <div class="analysis-card" id="category-card">
+            <h2 class="card-title">Category Distribution</h2>
+            <div class="category-chart-container">
+              <div id="category-chart"></div>
+              <div class="category-legend">
+                {labelData.slice(0, 6).map(label => (
+                  <div class="legend-item">
+                    <span class="legend-color" style={`background-color: #${label.color}`}></span>
+                    <span class="legend-text">{label.name} ({label.count})</span>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div class="legend-item">
-              <span class="legend-color" style="background-color: #4ADE80"></span>
-              <span class="legend-text">{recencyCategories.medium.label} ({recencyCategories.medium.count})</span>
+          </div>
+          
+          <!-- Monthly Activity Card -->
+          <div class="analysis-card" id="activity-card">
+            <h2 class="card-title">Monthly Activity</h2>
+            <div id="activity-chart"></div>
+          </div>
+          
+          <!-- Content Length Card -->
+          <div class="analysis-card" id="length-card">
+            <h2 class="card-title">Content Length Distribution</h2>
+            <div class="donut-container">
+              <div id="length-chart"></div>
+              <div class="donut-legend">
+                <div class="legend-item">
+                  <span class="legend-color" style="background-color: #E9D5FF"></span>
+                  <span class="legend-text">{lengthCategories.short.label} ({lengthCategories.short.count})</span>
+                </div>
+                <div class="legend-item">
+                  <span class="legend-color" style="background-color: #C084FC"></span>
+                  <span class="legend-text">{lengthCategories.medium.label} ({lengthCategories.medium.count})</span>
+                </div>
+                <div class="legend-item">
+                  <span class="legend-color" style="background-color: #6B21A8"></span>
+                  <span class="legend-text">{lengthCategories.long.label} ({lengthCategories.long.count})</span>
+                </div>
+              </div>
             </div>
-            <div class="legend-item">
-              <span class="legend-color" style="background-color: #16A34A"></span>
-              <span class="legend-text">{recencyCategories.old.label} ({recencyCategories.old.count})</span>
+          </div>
+          
+          <!-- Recency Card -->
+          <div class="analysis-card" id="recency-card">
+            <h2 class="card-title">Content Freshness</h2>
+            <div class="donut-container">
+              <div id="recency-chart"></div>
+              <div class="donut-legend">
+                <div class="legend-item">
+                  <span class="legend-color" style="background-color: #86EFAC"></span>
+                  <span class="legend-text">{recencyCategories.recent.label} ({recencyCategories.recent.count})</span>
+                </div>
+                <div class="legend-item">
+                  <span class="legend-color" style="background-color: #4ADE80"></span>
+                  <span class="legend-text">{recencyCategories.medium.label} ({recencyCategories.medium.count})</span>
+                </div>
+                <div class="legend-item">
+                  <span class="legend-color" style="background-color: #16A34A"></span>
+                  <span class="legend-text">{recencyCategories.old.label} ({recencyCategories.old.count})</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Link Analysis Card -->
+          <div class="analysis-card" id="links-card">
+            <h2 class="card-title">Link Analysis</h2>
+            <div class="links-container">
+              <div id="links-chart"></div>
+              <div class="links-stats">
+                <h3>Most Referenced Pages</h3>
+                <ul class="links-list">
+                  {topLinkedPages.map(page => (
+                    <li>
+                      <a href={`${BASE_PATH}/wiki/${page.id}`} class="page-link">
+                        {page.title}
+                      </a>
+                      <span class="link-count">{page.count} {page.count === 1 ? 'reference' : 'references'}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
       
-      <!-- リンク分析カード -->
-      <div class="analysis-card" id="links-card">
-        <h2 class="card-title">リンク分析</h2>
-        <div class="links-container">
-          <div id="links-chart"></div>
-          <div class="links-stats">
-            <h3>最も参照されているページ</h3>
-            <ul class="links-list">
-              {topLinkedPages.map(page => (
-                <li>
-                  <a href={`${BASE_PATH}/wiki/${page.id}`} class="page-link">
-                    {page.title}
-                  </a>
-                  <span class="link-count">{page.count} リンク</span>
-                </li>
-              ))}
-            </ul>
+      <!-- Activity Tab -->
+      <section class="dashboard-section" id="activity-section">
+        <div class="analysis-grid">
+          <!-- Day of Week Activity -->
+          <div class="analysis-card" id="day-of-week-card">
+            <h2 class="card-title">Activity by Day of Week</h2>
+            <div id="day-of-week-chart"></div>
+          </div>
+          
+          <!-- Hour of Day Activity -->
+          <div class="analysis-card" id="hourly-activity-card">
+            <h2 class="card-title">Activity by Hour of Day</h2>
+            <div id="hourly-activity-chart"></div>
+          </div>
+          
+          <!-- Monthly Trend -->
+          <div class="analysis-card" id="monthly-trend-card">
+            <h2 class="card-title">Monthly Activity Trend</h2>
+            <div id="monthly-trend-chart"></div>
+          </div>
+          
+          <!-- Content Age Distribution -->
+          <div class="analysis-card" id="age-distribution-card">
+            <h2 class="card-title">Content Age Distribution</h2>
+            <div id="age-distribution-chart"></div>
           </div>
         </div>
-      </div>
+      </section>
+      
+      <!-- Content Tab -->
+      <section class="dashboard-section" id="content-section">
+        <div class="analysis-grid">
+          <!-- Detailed Length Distribution -->
+          <div class="analysis-card" id="detailed-length-card">
+            <h2 class="card-title">Detailed Content Length Distribution</h2>
+            <div id="detailed-length-chart"></div>
+          </div>
+          
+          <!-- Content Type Distribution -->
+          <div class="analysis-card" id="content-type-card">
+            <h2 class="card-title">Content Type Distribution</h2>
+            <div id="content-type-chart"></div>
+          </div>
+          
+          <!-- Growth Over Time -->
+          <div class="analysis-card" id="content-growth-card">
+            <h2 class="card-title">Content Growth Over Time</h2>
+            <div id="content-growth-chart"></div>
+          </div>
+        </div>
+      </section>
+      
+      <!-- Network Tab -->
+      <section class="dashboard-section" id="network-section">
+        <div class="analysis-card" id="network-card">
+          <h2 class="card-title">Content Relationship Network</h2>
+          <div class="network-controls">
+            <button id="zoom-in" class="network-control-btn">Zoom In</button>
+            <button id="zoom-out" class="network-control-btn">Zoom Out</button>
+            <button id="reset-view" class="network-control-btn">Reset View</button>
+          </div>
+          <div id="network-chart"></div>
+          <div class="network-legend">
+            <div class="legend-item">
+              <span class="legend-line wiki-link"></span>
+              <span class="legend-text">Wiki Style Links</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-line issue-link"></span>
+              <span class="legend-text">Issue References</span>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
     
     <div class="action-buttons">
@@ -344,7 +579,7 @@ const serializedLinkData = JSON.stringify({
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
           <polyline points="9 22 9 12 15 12 15 22"></polyline>
         </svg>
-        トップページに戻る
+        Back to Home
       </a>
       <a href={`${BASE_PATH}/knowledge-graph`} class="action-button">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -352,7 +587,7 @@ const serializedLinkData = JSON.stringify({
           <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
           <line x1="12" y1="22.08" x2="12" y2="12"></line>
         </svg>
-        知識グラフを見る
+        View Knowledge Graph
       </a>
     </div>
   </div>
@@ -369,8 +604,12 @@ const serializedLinkData = JSON.stringify({
   }
   
   .page-header h1 {
-    font-size: 2rem;
+    font-size: 2.5rem;
     margin-bottom: 0.5rem;
+    background: linear-gradient(90deg, #4f6df5, #845ef7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: inline-block;
   }
   
   .page-description {
@@ -381,6 +620,69 @@ const serializedLinkData = JSON.stringify({
   
   .dark .page-description {
     color: #aaa;
+  }
+  
+  .dashboard-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+  }
+  
+  .dashboard-control {
+    padding: 0.5rem 1rem;
+    border: 1px solid #ddd;
+    border-radius: 0.5rem;
+    background-color: white;
+  }
+  
+  .dark .dashboard-control {
+    background-color: #222;
+    border-color: #444;
+    color: #ddd;
+  }
+  
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  .tab {
+    padding: 0.75rem 1.5rem;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+    color: #666;
+  }
+  
+  .tab:hover {
+    color: #4f6df5;
+  }
+  
+  .tab.active {
+    color: #4f6df5;
+    border-bottom-color: #4f6df5;
+  }
+  
+  .dark .tab {
+    color: #aaa;
+  }
+  
+  .dark .tab:hover,
+  .dark .tab.active {
+    color: #7b96ff;
+    border-bottom-color: #7b96ff;
+  }
+  
+  .dashboard-section {
+    display: none;
+  }
+  
+  .dashboard-section.active {
+    display: block;
   }
   
   .analysis-grid {
@@ -397,11 +699,21 @@ const serializedLinkData = JSON.stringify({
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
+    transition: all 0.3s ease;
+  }
+  
+  .analysis-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
   }
   
   .dark .analysis-card {
     background: #222;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  }
+  
+  .dark .analysis-card:hover {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
   }
   
   .card-title {
@@ -410,13 +722,15 @@ const serializedLinkData = JSON.stringify({
     margin-bottom: 1.25rem;
     padding-bottom: 0.75rem;
     border-bottom: 1px solid #eee;
+    color: #333;
   }
   
   .dark .card-title {
     border-bottom-color: #444;
+    color: #eee;
   }
   
-  /* サマリーカードのスタイル */
+  /* Summary Card Styles */
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -428,10 +742,20 @@ const serializedLinkData = JSON.stringify({
     padding: 1rem;
     background-color: #f8fafc;
     border-radius: 8px;
+    transition: all 0.3s ease;
+  }
+  
+  .stat-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
   }
   
   .dark .stat-item {
     background-color: #333;
+  }
+  
+  .dark .stat-item:hover {
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
   }
   
   .stat-value {
@@ -454,7 +778,7 @@ const serializedLinkData = JSON.stringify({
     color: #94a3b8;
   }
   
-  /* カテゴリチャートのスタイル */
+  /* Chart Container Styles */
   .category-chart-container {
     height: 300px;
     display: flex;
@@ -486,12 +810,18 @@ const serializedLinkData = JSON.stringify({
     border-radius: 2px;
   }
   
-  /* アクティビティチャート */
-  #activity-chart {
+  /* Activity Charts */
+  #activity-chart,
+  #day-of-week-chart,
+  #hourly-activity-chart,
+  #monthly-trend-chart,
+  #age-distribution-chart,
+  #detailed-length-chart,
+  #content-type-chart,
+  #content-growth-chart {
     height: 250px;
   }
   
-  /* ドーナツチャート共通スタイル */
   .donut-container {
     display: flex;
     align-items: center;
@@ -512,7 +842,7 @@ const serializedLinkData = JSON.stringify({
     padding-left: 1rem;
   }
   
-  /* リンク分析カード */
+  /* Link Analysis Card */
   #links-card {
     grid-column: span 2;
   }
@@ -557,10 +887,20 @@ const serializedLinkData = JSON.stringify({
     padding: 0.5rem;
     background-color: #f9fafb;
     border-radius: 4px;
+    transition: all 0.3s ease;
+  }
+  
+  .links-list li:hover {
+    transform: translateX(5px);
+    background-color: #f0f4f8;
   }
   
   .dark .links-list li {
     background-color: #374151;
+  }
+  
+  .dark .links-list li:hover {
+    background-color: #4b5563;
   }
   
   .page-link {
@@ -587,7 +927,76 @@ const serializedLinkData = JSON.stringify({
     color: #9ca3af;
   }
   
-  /* アクションボタン */
+  /* Network Graph Styles */
+  #network-card {
+    grid-column: 1 / -1;
+    height: 600px;
+  }
+  
+  #network-chart {
+    height: 500px;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    margin: 1rem 0;
+  }
+  
+  .dark #network-chart {
+    border-color: #444;
+  }
+  
+  .network-controls {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  
+  .network-control-btn {
+    padding: 0.5rem 1rem;
+    background-color: #f0f4f8;
+    border: none;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .network-control-btn:hover {
+    background-color: #e0e7ff;
+    color: #4f6df5;
+  }
+  
+  .dark .network-control-btn {
+    background-color: #333;
+    color: #ddd;
+  }
+  
+  .dark .network-control-btn:hover {
+    background-color: #444;
+    color: #7b96ff;
+  }
+  
+  .network-legend {
+    display: flex;
+    gap: 2rem;
+    margin-top: 1rem;
+  }
+  
+  .legend-line {
+    display: inline-block;
+    width: 30px;
+    height: A2px;
+    vertical-align: middle;
+  }
+  
+  .wiki-link {
+    background-color: #4f6df5;
+  }
+  
+  .issue-link {
+    background-color: #f59e0b;
+  }
+  
+  /* Action Buttons */
   .action-buttons {
     display: flex;
     justify-content: center;
@@ -617,8 +1026,14 @@ const serializedLinkData = JSON.stringify({
     box-shadow: 0 5px 15px rgba(79, 109, 245, 0.5);
   }
   
-  /* レスポンシブ対応 */
+  /* Responsive Design */
   @media (max-width: 768px) {
+    .dashboard-controls {
+      flex-direction: column;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+    
     .links-container {
       flex-direction: column;
       height: auto;
@@ -672,31 +1087,111 @@ const serializedLinkData = JSON.stringify({
 <script define:vars={{ 
   labelData: serializedLabelData, 
   activityData: serializedActivityData,
+  dayOfWeekActivity: serializedDayOfWeekActivity,
+  hourlyActivity: serializedHourlyActivity,
   lengthData: serializedLengthData,
+  lengthDistribution: serializedLengthDistribution,
   recencyData: serializedRecencyData,
-  linkData: serializedLinkData
+  ageDistribution: serializedAgeDistribution,
+  linkData: serializedLinkData,
+  linkNetworkData: serializedLinkNetworkData
 }}>
   document.addEventListener('DOMContentLoaded', () => {
-    // データを解析
+    // Parse the data
     const issueData = {
       labels: JSON.parse(labelData),
       activity: JSON.parse(activityData),
+      dayOfWeek: JSON.parse(dayOfWeekActivity),
+      hourly: JSON.parse(hourlyActivity),
       length: JSON.parse(lengthData),
+      lengthDist: JSON.parse(lengthDistribution),
       recency: JSON.parse(recencyData),
-      links: JSON.parse(linkData)
+      ageDist: JSON.parse(ageDistribution),
+      links: JSON.parse(linkData),
+      network: JSON.parse(linkNetworkData)
     };
     
-    // D3.jsを使用してチャートを描画
-    renderCategoryChart();
-    renderActivityChart();
-    renderLengthChart();
-    renderRecencyChart();
-    renderLinksChart();
+    // Tab switching functionality
+    const tabs = document.querySelectorAll('.tab');
+    const sections = document.querySelectorAll('.dashboard-section');
     
-    // カテゴリ分布チャート
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        // Remove active class from all tabs and sections
+        tabs.forEach(t => t.classList.remove('active'));
+        sections.forEach(s => s.classList.remove('active'));
+        
+        // Add active class to clicked tab
+        tab.classList.add('active');
+        
+        // Show corresponding section
+        const tabId = tab.getAttribute('data-tab');
+        document.getElementById(`${tabId}-section`).classList.add('active');
+        
+        // Re-render charts in the newly visible section
+        renderAllChartsInSection(tabId);
+      });
+    });
+    
+    // Function to render charts in a specific section
+    function renderAllChartsInSection(sectionId) {
+      switch(sectionId) {
+        case 'overview':
+          renderCategoryChart();
+          renderActivityChart();
+          renderLengthChart();
+          renderRecencyChart();
+          renderLinksChart();
+          break;
+        case 'activity':
+          renderDayOfWeekChart();
+          renderHourlyActivityChart();
+          renderMonthlyTrendChart();
+          renderAgeDistributionChart();
+          break;
+        case 'content':
+          renderDetailedLengthChart();
+          renderContentTypeChart();
+          renderContentGrowthChart();
+          break;
+        case 'network':
+          renderNetworkChart();
+          break;
+      }
+    }
+    
+    // Theme selector functionality
+    const themeSelector = document.getElementById('theme-selector');
+    
+    themeSelector.addEventListener('change', () => {
+      const theme = themeSelector.value;
+      setTheme(theme);
+      
+      // Re-render all visible charts
+      const activeTab = document.querySelector('.tab.active');
+      if (activeTab) {
+        renderAllChartsInSection(activeTab.getAttribute('data-tab'));
+      }
+    });
+    
+    function setTheme(theme) {
+      // Apply theme colors to charts
+      const body = document.body;
+      
+      // Remove all theme classes
+      body.classList.remove('theme-default', 'theme-dark', 'theme-light', 'theme-pastel');
+      
+      // Add selected theme class
+      body.classList.add(`theme-${theme}`);
+    }
+    
+    // D3.js Charts
+    
+    // Category Distribution Chart
     function renderCategoryChart() {
-      // d3.jsを使って水平バーチャートを作成
       const container = document.getElementById('category-chart');
+      if (!container) return;
+      
       const width = container.clientWidth;
       const height = container.clientHeight;
       const margin = { top: 20, right: 10, bottom: 30, left: 120 };
@@ -707,7 +1202,7 @@ const serializedLinkData = JSON.stringify({
         .attr('viewBox', [0, 0, width, height])
         .attr('style', 'max-width: 100%; height: auto;');
       
-      const labels = issueData.labels.slice(0, 6); // 上位6つのみ表示
+      const labels = issueData.labels.slice(0, 6); // Top 6 only
       
       const x = d3.scaleLinear()
         .domain([0, d3.max(labels, d => d.count)])
@@ -718,19 +1213,19 @@ const serializedLinkData = JSON.stringify({
         .range([margin.top, height - margin.bottom])
         .padding(0.2);
       
-      // X軸を追加
+      // X axis
       svg.append('g')
         .attr('transform', `translate(0,${height - margin.bottom})`)
         .call(d3.axisBottom(x).ticks(5))
         .call(g => g.select('.domain').remove());
       
-      // Y軸を追加
+      // Y axis
       svg.append('g')
         .attr('transform', `translate(${margin.left},0)`)
         .call(d3.axisLeft(y).tickSize(0).tickPadding(10))
         .call(g => g.select('.domain').remove());
       
-      // バーを追加
+      // Add bars
       svg.append('g')
         .selectAll('rect')
         .data(labels)
@@ -739,9 +1234,11 @@ const serializedLinkData = JSON.stringify({
         .attr('y', d => y(d.name))
         .attr('width', d => x(d.count) - margin.left)
         .attr('height', y.bandwidth())
-        .attr('fill', d => `#${d.color}`);
+        .attr('fill', d => `#${d.color}`)
+        .attr('rx', 4) // Rounded corners
+        .attr('ry', 4);
       
-      // 値ラベルを追加
+      // Add value labels
       svg.append('g')
         .selectAll('text')
         .data(labels)
@@ -757,9 +1254,11 @@ const serializedLinkData = JSON.stringify({
       container.appendChild(svg.node());
     }
     
-    // 更新頻度チャート
+    // Monthly Activity Chart
     function renderActivityChart() {
       const container = document.getElementById('activity-chart');
+      if (!container) return;
+      
       const width = container.clientWidth;
       const height = container.clientHeight;
       const margin = { top: 20, right: 20, bottom: 50, left: 50 };
@@ -770,10 +1269,8 @@ const serializedLinkData = JSON.stringify({
         .attr('viewBox', [0, 0, width, height])
         .attr('style', 'max-width: 100%; height: auto;');
       
-      const activity = issueData.activity;
-      
-      // 最近6ヶ月のデータのみ表示
-      const recentActivity = activity.slice(-6);
+      // Most recent 6 months
+      const recentActivity = issueData.activity.slice(-6);
       
       const x = d3.scaleBand()
         .domain(recentActivity.map(d => d.month))
@@ -785,7 +1282,7 @@ const serializedLinkData = JSON.stringify({
         .nice()
         .range([height - margin.bottom, margin.top]);
       
-      // X軸を追加
+      // X axis
       svg.append('g')
         .attr('transform', `translate(0,${height - margin.bottom})`)
         .call(d3.axisBottom(x).tickFormat(d => {
@@ -799,13 +1296,13 @@ const serializedLinkData = JSON.stringify({
         .attr('dx', '-.8em')
         .attr('dy', '.15em');
       
-      // Y軸を追加
+      // Y axis
       svg.append('g')
         .attr('transform', `translate(${margin.left},0)`)
         .call(d3.axisLeft(y).ticks(5))
         .call(g => g.select('.domain').remove());
       
-      // 作成バーを追加
+      // Creation bars
       svg.append('g')
         .selectAll('rect.created')
         .data(recentActivity)
@@ -815,9 +1312,11 @@ const serializedLinkData = JSON.stringify({
         .attr('y', d => y(d.created))
         .attr('width', x.bandwidth() / 2 - 2)
         .attr('height', d => height - margin.bottom - y(d.created))
-        .attr('fill', '#4f6df5');
+        .attr('fill', '#4f6df5')
+        .attr('rx', 4)
+        .attr('ry', 4);
       
-      // 更新バーを追加
+      // Update bars
       svg.append('g')
         .selectAll('rect.updated')
         .data(recentActivity)
@@ -827,45 +1326,53 @@ const serializedLinkData = JSON.stringify({
         .attr('y', d => y(d.updated))
         .attr('width', x.bandwidth() / 2 - 2)
         .attr('height', d => height - margin.bottom - y(d.updated))
-        .attr('fill', '#10B981');
+        .attr('fill', '#10B981')
+        .attr('rx', 4)
+        .attr('ry', 4);
       
-      // 凡例を追加
+      // Legend
       const legend = svg.append('g')
         .attr('transform', `translate(${width / 2 - 90},${height - 20})`);
       
-      // 作成の凡例
+      // Creation legend
       legend.append('rect')
         .attr('x', 0)
         .attr('width', 14)
         .attr('height', 14)
-        .attr('fill', '#4f6df5');
+        .attr('fill', '#4f6df5')
+        .attr('rx', 2)
+        .attr('ry', 2);
       
       legend.append('text')
         .attr('x', 20)
         .attr('y', 10)
-        .text('新規作成')
+        .text('Created')
         .style('font-size', '12px');
       
-      // 更新の凡例
+      // Update legend
       legend.append('rect')
         .attr('x', 90)
         .attr('width', 14)
         .attr('height', 14)
-        .attr('fill', '#10B981');
+        .attr('fill', '#10B981')
+        .attr('rx', 2)
+        .attr('ry', 2);
       
       legend.append('text')
         .attr('x', 110)
         .attr('y', 10)
-        .text('更新')
+        .text('Updated')
         .style('font-size', '12px');
       
       container.innerHTML = '';
       container.appendChild(svg.node());
     }
     
-    // コンテンツ長さドーナツチャート
+    // Content Length Donut Chart
     function renderLengthChart() {
       const container = document.getElementById('length-chart');
+      if (!container) return;
+      
       const width = container.clientWidth;
       const height = container.clientHeight;
       
@@ -885,7 +1392,8 @@ const serializedLinkData = JSON.stringify({
       const radius = Math.min(width, height) / 2;
       const arcGenerator = d3.arc()
         .innerRadius(radius * 0.5)
-        .outerRadius(radius * 0.9);
+        .outerRadius(radius * 0.9)
+        .cornerRadius(8);
       
       const pieGenerator = d3.pie()
         .value(d => d.value)
@@ -894,21 +1402,52 @@ const serializedLinkData = JSON.stringify({
       const g = svg.append('g')
         .attr('transform', `translate(${width / 2},${height / 2})`);
       
-      g.selectAll('path')
+      // Add donut segments
+      const path = g.selectAll('path')
         .data(pieGenerator(data))
         .join('path')
         .attr('d', arcGenerator)
         .attr('fill', d => d.data.color)
         .attr('stroke', 'white')
-        .style('stroke-width', '2px');
+        .style('stroke-width', '2px')
+        .style('opacity', 0.9);
+      
+      // Add hover effect
+      path.on('mouseover', function() {
+        d3.select(this)
+          .transition()
+          .duration(300)
+          .style('opacity', 1)
+          .attr('transform', 'scale(1.05)');
+      }).on('mouseout', function() {
+        d3.select(this)
+          .transition()
+          .duration(300)
+          .style('opacity', 0.9)
+          .attr('transform', 'scale(1)');
+      });
+      
+      // Add labels
+      g.selectAll('text')
+        .data(pieGenerator(data))
+        .join('text')
+        .attr('transform', d => `translate(${arcGenerator.centroid(d)})`)
+        .attr('text-anchor', 'middle')
+        .attr('dy', '0.35em')
+        .style('font-size', '12px')
+        .style('font-weight', 'bold')
+        .style('fill', d => d.data.name === 'long' ? 'white' : '#333')
+        .text(d => d.data.value > 0 ? d.data.value : '');
       
       container.innerHTML = '';
       container.appendChild(svg.node());
     }
     
-    // 更新日時ドーナツチャート
+    // Content Recency Donut Chart
     function renderRecencyChart() {
       const container = document.getElementById('recency-chart');
+      if (!container) return;
+      
       const width = container.clientWidth;
       const height = container.clientHeight;
       
@@ -928,7 +1467,8 @@ const serializedLinkData = JSON.stringify({
       const radius = Math.min(width, height) / 2;
       const arcGenerator = d3.arc()
         .innerRadius(radius * 0.5)
-        .outerRadius(radius * 0.9);
+        .outerRadius(radius * 0.9)
+        .cornerRadius(8);
       
       const pieGenerator = d3.pie()
         .value(d => d.value)
@@ -937,21 +1477,52 @@ const serializedLinkData = JSON.stringify({
       const g = svg.append('g')
         .attr('transform', `translate(${width / 2},${height / 2})`);
       
-      g.selectAll('path')
+      // Add donut segments
+      const path = g.selectAll('path')
         .data(pieGenerator(data))
         .join('path')
         .attr('d', arcGenerator)
         .attr('fill', d => d.data.color)
         .attr('stroke', 'white')
-        .style('stroke-width', '2px');
+        .style('stroke-width', '2px')
+        .style('opacity', 0.9);
+      
+      // Add hover effect
+      path.on('mouseover', function() {
+        d3.select(this)
+          .transition()
+          .duration(300)
+          .style('opacity', 1)
+          .attr('transform', 'scale(1.05)');
+      }).on('mouseout', function() {
+        d3.select(this)
+          .transition()
+          .duration(300)
+          .style('opacity', 0.9)
+          .attr('transform', 'scale(1)');
+      });
+      
+      // Add labels
+      g.selectAll('text')
+        .data(pieGenerator(data))
+        .join('text')
+        .attr('transform', d => `translate(${arcGenerator.centroid(d)})`)
+        .attr('text-anchor', 'middle')
+        .attr('dy', '0.35em')
+        .style('font-size', '12px')
+        .style('font-weight', 'bold')
+        .style('fill', 'white')
+        .text(d => d.data.value > 0 ? d.data.value : '');
       
       container.innerHTML = '';
       container.appendChild(svg.node());
     }
     
-    // リンク分析チャート
+    // Link Analysis Chart
     function renderLinksChart() {
       const container = document.getElementById('links-chart');
+      if (!container) return;
+      
       const width = container.clientWidth;
       const height = container.clientHeight;
       const margin = { top: 30, right: 20, bottom: 70, left: 40 };
@@ -964,9 +1535,9 @@ const serializedLinkData = JSON.stringify({
       
       const links = issueData.links;
       const data = [
-        { name: 'Wiki形式', value: links.wikiLinks, color: '#FCD34D' },
-        { name: 'Issue参照', value: links.issueRefs, color: '#F59E0B' },
-        { name: '外部リンク', value: links.external, color: '#FBBF24' }
+        { name: 'Wiki Style', value: links.wikiLinks, color: '#FCD34D' },
+        { name: 'Issue Refs', value: links.issueRefs, color: '#F59E0B' },
+        { name: 'External', value: links.external, color: '#FBBF24' }
       ];
       
       const x = d3.scaleBand()
@@ -979,20 +1550,20 @@ const serializedLinkData = JSON.stringify({
         .nice()
         .range([height - margin.bottom, margin.top]);
       
-      // X軸を追加
+      // X axis
       svg.append('g')
         .attr('transform', `translate(0,${height - margin.bottom})`)
         .call(d3.axisBottom(x).tickSizeOuter(0))
         .call(g => g.select('.domain').remove());
       
-      // Y軸を追加
+      // Y axis
       svg.append('g')
         .attr('transform', `translate(${margin.left},0)`)
         .call(d3.axisLeft(y).ticks(5))
         .call(g => g.select('.domain').remove());
       
-      // バーを追加
-      svg.append('g')
+      // Add bars
+      const bars = svg.append('g')
         .selectAll('rect')
         .data(data)
         .join('rect')
@@ -1000,9 +1571,28 @@ const serializedLinkData = JSON.stringify({
         .attr('y', d => y(d.value))
         .attr('width', x.bandwidth())
         .attr('height', d => height - margin.bottom - y(d.value))
-        .attr('fill', d => d.color);
+        .attr('fill', d => d.color)
+        .attr('rx', 6)
+        .attr('ry', 6);
       
-      // 値ラベルを追加
+      // Add hover effect
+      bars.on('mouseover', function() {
+        d3.select(this)
+          .transition()
+          .duration(300)
+          .attr('opacity', 0.8)
+          .attr('y', d => y(d.value) - 5)
+          .attr('height', d => height - margin.bottom - y(d.value) + 5);
+      }).on('mouseout', function() {
+        d3.select(this)
+          .transition()
+          .duration(300)
+          .attr('opacity', 1)
+          .attr('y', d => y(d.value))
+          .attr('height', d => height - margin.bottom - y(d.value));
+      });
+      
+      // Add value labels
       svg.append('g')
         .selectAll('text')
         .data(data)
@@ -1011,40 +1601,322 @@ const serializedLinkData = JSON.stringify({
         .attr('y', d => y(d.value) - 5)
         .attr('text-anchor', 'middle')
         .style('font-size', '12px')
+        .style('font-weight', 'bold')
         .style('fill', '#666')
         .text(d => d.value);
       
-      // タイトルを追加
+      // Add title
       svg.append('text')
         .attr('x', width / 2)
         .attr('y', margin.top / 2)
         .attr('text-anchor', 'middle')
         .style('font-size', '14px')
         .style('font-weight', 'bold')
-        .text('リンクタイプの分布');
+        .text('Link Types Distribution');
       
-      // リンク合計を追加
+      // Add total count
       svg.append('text')
         .attr('x', width / 2)
         .attr('y', height - 10)
         .attr('text-anchor', 'middle')
         .style('font-size', '12px')
-        .text(`総リンク数: ${links.internal + links.external}`);
+        .text(`Total Links: ${links.internal + links.external}`);
       
       container.innerHTML = '';
       container.appendChild(svg.node());
     }
     
-    // ウィンドウリサイズでチャートを再描画
+    // Activity Tab Charts
+    
+    // Day of Week Activity
+    function renderDayOfWeekChart() {
+      const container = document.getElementById('day-of-week-chart');
+      if (!container) return;
+      
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      const margin = { top: 30, right: 20, bottom: 40, left: 50 };
+      
+      const svg = d3.create('svg')
+        .attr('width', width)
+        .attr('height', height)
+        .attr('viewBox', [0, 0, width, height])
+        .attr('style', 'max-width: 100%; height: auto;');
+      
+      const data = issueData.dayOfWeek;
+      
+      const x = d3.scaleBand()
+        .domain(data.map(d => d.label))
+        .range([margin.left, width - margin.right])
+        .padding(0.2);
+      
+      const y = d3.scaleLinear()
+        .domain([0, d3.max(data, d => Math.max(d.created, d.updated))])
+        .nice()
+        .range([height - margin.bottom, margin.top]);
+      
+      // X axis
+      svg.append('g')
+        .attr('transform', `translate(0,${height - margin.bottom})`)
+        .call(d3.axisBottom(x).tickSizeOuter(0))
+        .call(g => g.select('.domain').remove());
+      
+      // Y axis
+      svg.append('g')
+        .attr('transform', `translate(${margin.left},0)`)
+        .call(d3.axisLeft(y).ticks(5))
+        .call(g => g.select('.domain').remove());
+      
+      // Add bars for created
+      svg.append('g')
+        .selectAll('rect.created')
+        .data(data)
+        .join('rect')
+        .attr('class', 'created')
+        .attr('x', d => x(d.label))
+        .attr('y', d => y(d.created))
+        .attr('width', x.bandwidth() / 2 - 2)
+        .attr('height', d => height - margin.bottom - y(d.created))
+        .attr('fill', '#4f6df5')
+        .attr('rx', 4)
+        .attr('ry', 4);
+      
+      // Add bars for updated
+      svg.append('g')
+        .selectAll('rect.updated')
+        .data(data)
+        .join('rect')
+        .attr('class', 'updated')
+        .attr('x', d => x(d.label) + x.bandwidth() / 2)
+        .attr('y', d => y(d.updated))
+        .attr('width', x.bandwidth() / 2 - 2)
+        .attr('height', d => height - margin.bottom - y(d.updated))
+        .attr('fill', '#10B981')
+        .attr('rx', 4)
+        .attr('ry', 4);
+      
+      // Legend
+      const legend = svg.append('g')
+        .attr('transform', `translate(${width / 2 - 90},${height - 10})`);
+      
+      legend.append('rect')
+        .attr('x', 0)
+        .attr('width', 14)
+        .attr('height', 14)
+        .attr('fill', '#4f6df5')
+        .attr('rx', 2)
+        .attr('ry', 2);
+      
+      legend.append('text')
+        .attr('x', 20)
+        .attr('y', 10)
+        .text('Created')
+        .style('font-size', '12px');
+      
+      legend.append('rect')
+        .attr('x', 90)
+        .attr('width', 14)
+        .attr('height', 14)
+        .attr('fill', '#10B981')
+        .attr('rx', 2)
+        .attr('ry', 2);
+      
+      legend.append('text')
+        .attr('x', 110)
+        .attr('y', 10)
+        .text('Updated')
+        .style('font-size', '12px');
+      
+      container.innerHTML = '';
+      container.appendChild(svg.node());
+    }
+    
+    // Hourly Activity Chart
+    function renderHourlyActivityChart() {
+      const container = document.getElementById('hourly-activity-chart');
+      if (!container) return;
+      
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      const margin = { top: 30, right: 20, bottom: 40, left: 50 };
+      
+      const svg = d3.create('svg')
+        .attr('width', width)
+        .attr('height', height)
+        .attr('viewBox', [0, 0, width, height])
+        .attr('style', 'max-width: 100%; height: auto;');
+      
+      const data = issueData.hourly;
+      
+      // Create line generators
+      const x = d3.scaleLinear()
+        .domain([0, 23])
+        .range([margin.left, width - margin.right]);
+      
+      const y = d3.scaleLinear()
+        .domain([0, d3.max(data, d => Math.max(d.created, d.updated))])
+        .nice()
+        .range([height - margin.bottom, margin.top]);
+      
+      // X axis
+      svg.append('g')
+        .attr('transform', `translate(0,${height - margin.bottom})`)
+        .call(d3.axisBottom(x).ticks(12).tickFormat(d => `${d}h`))
+        .call(g => g.select('.domain').remove());
+      
+      // Y axis
+      svg.append('g')
+        .attr('transform', `translate(${margin.left},0)`)
+        .call(d3.axisLeft(y).ticks(5))
+        .call(g => g.select('.domain').remove());
+      
+      // Add line for created
+      const createdLine = d3.line()
+        .x(d => x(d.hour))
+        .y(d => y(d.created))
+        .curve(d3.curveMonotoneX);
+      
+      svg.append('path')
+        .datum(data)
+        .attr('fill', 'none')
+        .attr('stroke', '#4f6df5')
+        .attr('stroke-width', 3)
+        .attr('d', createdLine);
+      
+      // Add line for updated
+      const updatedLine = d3.line()
+        .x(d => x(d.hour))
+        .y(d => y(d.updated))
+        .curve(d3.curveMonotoneX);
+      
+      svg.append('path')
+        .datum(data)
+        .attr('fill', 'none')
+        .attr('stroke', '#10B981')
+        .attr('stroke-width', 3)
+        .attr('d', updatedLine);
+      
+      // Add dots for created
+      svg.selectAll('.dot-created')
+        .data(data.filter(d => d.created > 0))
+        .enter().append('circle')
+        .attr('class', 'dot-created')
+        .attr('cx', d => x(d.hour))
+        .attr('cy', d => y(d.created))
+        .attr('r', 5)
+        .attr('fill', '#4f6df5');
+      
+      // Add dots for updated
+      svg.selectAll('.dot-updated')
+        .data(data.filter(d => d.updated > 0))
+        .enter().append('circle')
+        .attr('class', 'dot-updated')
+        .attr('cx', d => x(d.hour))
+        .attr('cy', d => y(d.updated))
+        .attr('r', 5)
+        .attr('fill', '#10B981');
+      
+      // Legend
+      const legend = svg.append('g')
+        .attr('transform', `translate(${width / 2 - 90},${height - 10})`);
+      
+      legend.append('line')
+        .attr('x1', 0)
+        .attr('y1', 5)
+        .attr('x2', 14)
+        .attr('y2', 5)
+        .attr('stroke', '#4f6df5')
+        .attr('stroke-width', 3);
+      
+      legend.append('text')
+        .attr('x', 20)
+        .attr('y', 10)
+        .text('Created')
+        .style('font-size', '12px');
+      
+      legend.append('line')
+        .attr('x1', 90)
+        .attr('y1', 5)
+        .attr('x2', 104)
+        .attr('y2', 5)
+        .attr('stroke', '#10B981')
+        .attr('stroke-width', 3);
+      
+      legend.append('text')
+        .attr('x', 110)
+        .attr('y', 10)
+        .text('Updated')
+        .style('font-size', '12px');
+      
+      container.innerHTML = '';
+      container.appendChild(svg.node());
+    }
+    
+    // Add placeholder implementations for remaining charts
+    function renderMonthlyTrendChart() {
+      const container = document.getElementById('monthly-trend-chart');
+      if (!container) return;
+      
+      // Similar implementation to other charts
+      container.innerHTML = '<div style="height: 100%; display: flex; align-items: center; justify-content: center; color: #666;">Monthly trend chart will be implemented in future updates</div>';
+    }
+    
+    function renderAgeDistributionChart() {
+      const container = document.getElementById('age-distribution-chart');
+      if (!container) return;
+      
+      // Similar implementation to other charts
+      container.innerHTML = '<div style="height: 100%; display: flex; align-items: center; justify-content: center; color: #666;">Age distribution chart will be implemented in future updates</div>';
+    }
+    
+    function renderDetailedLengthChart() {
+      const container = document.getElementById('detailed-length-chart');
+      if (!container) return;
+      
+      // Similar implementation to other charts
+      container.innerHTML = '<div style="height: 100%; display: flex; align-items: center; justify-content: center; color: #666;">Detailed length chart will be implemented in future updates</div>';
+    }
+    
+    function renderContentTypeChart() {
+      const container = document.getElementById('content-type-chart');
+      if (!container) return;
+      
+      // Similar implementation to other charts
+      container.innerHTML = '<div style="height: 100%; display: flex; align-items: center; justify-content: center; color: #666;">Content type chart will be implemented in future updates</div>';
+    }
+    
+    function renderContentGrowthChart() {
+      const container = document.getElementById('content-growth-chart');
+      if (!container) return;
+      
+      // Similar implementation to other charts
+      container.innerHTML = '<div style="height: 100%; display: flex; align-items: center; justify-content: center; color: #666;">Content growth chart will be implemented in future updates</div>';
+    }
+    
+    function renderNetworkChart() {
+      const container = document.getElementById('network-chart');
+      if (!container) return;
+      
+      // Similar implementation to other charts
+      container.innerHTML = '<div style="height: 100%; display: flex; align-items: center; justify-content: center; color: #666;">Network visualization will be implemented in future updates</div>';
+    }
+    
+    // Initial rendering of the Overview section charts
+    renderCategoryChart();
+    renderActivityChart();
+    renderLengthChart();
+    renderRecencyChart();
+    renderLinksChart();
+    
+    // Handle window resize
     window.addEventListener('resize', () => {
-      renderCategoryChart();
-      renderActivityChart();
-      renderLengthChart();
-      renderRecencyChart();
-      renderLinksChart();
+      const activeTab = document.querySelector('.tab.active');
+      if (activeTab) {
+        renderAllChartsInSection(activeTab.getAttribute('data-tab'));
+      }
     });
   });
 </script>
 
-<!-- D3.jsの読み込み -->
+<!-- D3.js -->
 <script is:inline src="https://d3js.org/d3.v7.min.js"></script>
