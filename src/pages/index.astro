@@ -27,19 +27,11 @@ const categorizedIssues = filteredIssues.reduce((acc, issue) => {
     }
   });
   
-  // カテゴリーがない場合は「その他」に
-  if (labels.length === 0) {
-    if (!acc['その他']) {
-      acc['その他'] = [];
-    }
-    acc['その他'].push(issue);
-  }
-  
   return acc;
 }, {});
 
-// カテゴリーを取得
-const categories = Object.keys(categorizedIssues);
+// カテゴリーを取得（空のカテゴリーは表示しない）
+const categories = Object.keys(categorizedIssues).filter(cat => categorizedIssues[cat].length > 0);
 
 // 最近の更新一覧を作成（最大5件）
 const recentIssues = [...filteredIssues]
@@ -140,19 +132,21 @@ const popularContent = [...filteredIssues]
       </div>
 
       <div class="sidebar-section">
-        <div class="categories-widget">
-          <h2>カテゴリー</h2>
-          <ul class="categories-list">
-            {categories.map(category => (
-              <li class="category-item">
-                <a href={`${BASE_PATH}/tag/${encodeURIComponent(category)}`}>
-                  {category}
-                  <span class="category-count">{categorizedIssues[category].length}</span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
+        {categories.length > 0 && (
+          <div class="categories-widget">
+            <h2>カテゴリー</h2>
+            <ul class="categories-list">
+              {categories.map(category => (
+                <li class="category-item">
+                  <a href={`${BASE_PATH}/tag/${encodeURIComponent(category)}`}>
+                    {category}
+                    <span class="category-count">{categorizedIssues[category].length}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div class="popular-content">
           <h2>人気のコンテンツ</h2>
