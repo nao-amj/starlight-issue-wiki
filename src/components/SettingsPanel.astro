@@ -15,7 +15,7 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
     
     <div class="setting-item">
       <label class="switch">
-        <input type="checkbox" id="zettelkasten-enabled">
+        <input type="checkbox" id="zettelkasten-enabled" checked>
         <span class="slider"></span>
       </label>
       <span class="setting-label">Zettelkastenモードを有効にする</span>
@@ -24,7 +24,7 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
     <div class="sub-settings" id="zettelkasten-sub-settings">
       <div class="setting-item">
         <label class="switch">
-          <input type="checkbox" id="autolink-keywords">
+          <input type="checkbox" id="autolink-keywords" checked>
           <span class="slider"></span>
         </label>
         <span class="setting-label">キーワードを自動的にリンクする</span>
@@ -32,7 +32,7 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
       
       <div class="setting-item">
         <label class="switch">
-          <input type="checkbox" id="highlight-bidirectional">
+          <input type="checkbox" id="highlight-bidirectional" checked>
           <span class="slider"></span>
         </label>
         <span class="setting-label">双方向リンクを強調表示する</span>
@@ -40,7 +40,7 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
       
       <div class="setting-item">
         <label class="switch">
-          <input type="checkbox" id="show-backlinks">
+          <input type="checkbox" id="show-backlinks" checked>
           <span class="slider"></span>
         </label>
         <span class="setting-label">バックリンク一覧を表示する</span>
@@ -357,12 +357,29 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
     
     // デフォルト設定（設定がない場合用）
     const defaultConfig = {
-      enabled: false,
+      enabled: true,
       autoLinkKeywords: true,
       highlightBidirectional: true,
       showBacklinks: true,
       keywordMinLength: 3
     };
+    
+    // 初期設定の強制保存（バグ修正用）
+    if (!localStorage.getItem('zettelkastenConfig')) {
+      console.log('No Zettelkasten config found. Setting default config.');
+      localStorage.setItem('zettelkastenConfig', JSON.stringify(defaultConfig));
+    } else {
+      // 既存の設定を取得して強制的に有効化
+      try {
+        const savedConfig = JSON.parse(localStorage.getItem('zettelkastenConfig'));
+        savedConfig.enabled = true;
+        localStorage.setItem('zettelkastenConfig', JSON.stringify(savedConfig));
+        console.log('Zettelkasten config updated to ensure enabled=true');
+      } catch (e) {
+        console.error('Error updating Zettelkasten config:', e);
+        localStorage.setItem('zettelkastenConfig', JSON.stringify(defaultConfig));
+      }
+    }
     
     // 設定パネルを閉じる
     if (closeButton) {
@@ -420,6 +437,8 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
         keywordLengthValue.textContent = config.keywordMinLength;
         
         subSettings.style.display = config.enabled ? 'block' : 'none';
+        
+        console.log('Loaded Zettelkasten config:', config);
       } catch (error) {
         console.error('設定の読み込みに失敗しました:', error);
       }
@@ -437,6 +456,7 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
         };
         
         localStorage.setItem('zettelkastenConfig', JSON.stringify(config));
+        console.log('Saved Zettelkasten config:', config);
         
         // 保存成功メッセージを表示
         const saveMessage = document.createElement('div');
@@ -462,6 +482,9 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
       keywordLengthValue.textContent = defaultConfig.keywordMinLength;
       
       subSettings.style.display = defaultConfig.enabled ? 'block' : 'none';
+      
+      // リセット後にすぐに保存
+      saveSettings();
     }
     
     // 設定パネルが開かれたときに設定を読み込む
