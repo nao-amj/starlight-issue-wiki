@@ -62,27 +62,47 @@ try {
     processedContent = applyZettelkastenLinks(processedContent, keywords, number);
   }
   
-  // Wikiリンクをプレースホルダーに置換
-  const wikiLinks = [];
+  // Markdownを通常処理 - Wikiリンクは特別に処理する
   processedContent = processedContent.replace(/\[\[(.*?)\]\]/g, (match, content) => {
-    const placeholder = `__WIKILINK_${wikiLinks.length}__`;
-    wikiLinks.push({ placeholder, content });
-    return placeholder;
+    return `<wiki-link>${content}</wiki-link>`;
   });
   
-  // Markdownを通常処理
+  // ハッシュタグをリンクに変換
+  processedContent = processedContent.replace(/#([a-zA-Z0-9_-]+)/g, (match, tag) => {
+    return `<hash-tag>${tag}</hash-tag>`;
+  });
+  
+  // Markdownをパース
   htmlContent = marked.parse(processedContent);
   
-  // プレースホルダーをWikiリンクに戻す
-  wikiLinks.forEach(link => {
-    htmlContent = htmlContent.replace(
-      link.placeholder, 
-      `[[${link.content}]]`
+  // カスタムタグをHTMLリンクに変換
+  // まず、Wikiリンクを処理
+  htmlContent = htmlContent.replace(/<wiki-link>(.*?)<\/wiki-link>/g, (match, content) => {
+    const linkedTitle = content.trim();
+    const linkedIssue = allIssues.find(i => 
+      i.title.toLowerCase() === linkedTitle.toLowerCase() ||
+      i.title.toLowerCase().includes(linkedTitle.toLowerCase())
     );
+    
+    // 双方向リンクかどうかを確認
+    const isBidirectional = linkedIssue && bidirectionalLinks.has(number) && 
+      bidirectionalLinks.get(number)?.includes(linkedIssue.number);
+    
+    const linkClass = isBidirectional && zettelkastenConfig.highlightBidirectional
+      ? 'wiki-link bidirectional' 
+      : 'wiki-link';
+    
+    if (linkedIssue) {
+      return `<a href="${BASE_PATH}/wiki/${linkedIssue.number}" class="${linkClass}" data-issue="${linkedIssue.number}">${linkedTitle}</a>`;
+    } else {
+      return `<span class="wiki-link-unlinked">${linkedTitle}</span>`;
+    }
   });
   
-  // HTMLコンテンツに対してWikiリンク変換を適用
-  htmlContent = convertWikiLinksToHtml(htmlContent, allIssues, bidirectionalLinks, number);
+  // 次に、ハッシュタグを処理
+  htmlContent = htmlContent.replace(/<hash-tag>(.*?)<\/hash-tag>/g, (match, tag) => {
+    return `<a href="${BASE_PATH}/tag/${tag.toLowerCase()}" class="hash-tag">#${tag}</a>`;
+  });
   
 } catch (error) {
   console.error('Zettelkasten処理でエラーが発生しました:', error);
@@ -155,6 +175,7 @@ const pageTitle = `${title} (#${issue.number})`;
         <ul>
           <li><a href={`${BASE_PATH}/`}>トップページ</a></li>
           <li><a href={`${BASE_PATH}/wiki/1`}>はじめに</a></li>
+          <li><a href={`${BASE_PATH}/knowledge-graph`}>知識グラフ</a></li>
           <li><a href="https://github.com/nao-amj/starlight-issue-wiki/issues/new">新しいページの作成</a></li>
         </ul>
       </div>
@@ -348,16 +369,5 @@ const pageTitle = `${title} (#${issue.number})`;
     console.log('Checking wiki links...');
     const wikiLinks = document.querySelectorAll('.wiki-link');
     console.log(`Found ${wikiLinks.length} wiki links`);
-    if (wikiLinks.length === 0) {
-      console.log('No wiki links found, checking for [[ ]] patterns in HTML');
-      const content = document.querySelector('.wiki-content');
-      if (content) {
-        const html = content.innerHTML;
-        const matches = html.match(/\[\[(.*?)\]\]/g);
-        if (matches) {
-          console.log(`Found ${matches.length} [[...]] patterns that were not converted`);
-        }
-      }
-    }
   });
 </script>
