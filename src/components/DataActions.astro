@@ -1,0 +1,1076 @@
+---
+import { getIssues } from '../lib/github';
+
+// グローバルスコープに渡すためのIssue JSONデータを取得（クライアントサイドで使用）
+const issues = await getIssues();
+const issuesData = JSON.stringify(issues);
+const exportFormats = ['json', 'csv', 'markdown', 'html'];
+---
+
+<div class="data-actions-container">
+  <h2 class="section-title">データ操作</h2>
+  <p class="section-description">Wikiのデータをインポートおよびエクスポートすることができます。</p>
+  
+  <div class="actions-grid">
+    <!-- エクスポート機能 -->
+    <div class="action-card export-card">
+      <h3>データエクスポート</h3>
+      <p>現在のIssueデータを様々な形式でエクスポートできます。</p>
+      
+      <div class="action-form">
+        <div class="form-group">
+          <label for="export-format">エクスポート形式</label>
+          <select id="export-format" class="form-select">
+            {exportFormats.map(format => (
+              <option value={format}>{format.toUpperCase()}</option>
+            ))}
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label>オプション</label>
+          <div class="checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="include-details" checked>
+              詳細情報を含める (JSONのみ)
+            </label>
+          </div>
+        </div>
+        
+        <button id="export-button" class="action-button">
+          エクスポート
+        </button>
+      </div>
+    </div>
+    
+    <!-- インポート機能 -->
+    <div class="action-card import-card">
+      <h3>データインポート</h3>
+      <p>JSON、CSVデータからIssue情報を取り込みます。ローカル処理のみです。</p>
+      
+      <div class="action-form">
+        <div class="form-group">
+          <label for="import-file">インポートファイル選択</label>
+          <input type="file" id="import-file" class="form-file" accept=".json,.csv">
+        </div>
+        
+        <div class="form-group">
+          <label>インポート設定</label>
+          <div class="checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="preview-import" checked>
+              インポート前にプレビュー
+            </label>
+          </div>
+        </div>
+        
+        <button id="import-button" class="action-button import-button" disabled>
+          データをインポート
+        </button>
+      </div>
+    </div>
+    
+    <!-- レポート生成機能 -->
+    <div class="action-card report-card">
+      <h3>レポート生成</h3>
+      <p>現在のIssueデータを基にしたレポートを生成します。</p>
+      
+      <div class="action-form">
+        <div class="form-group">
+          <label for="report-type">レポートタイプ</label>
+          <select id="report-type" class="form-select">
+            <option value="summary">サマリーレポート</option>
+            <option value="detailed">詳細レポート</option>
+            <option value="analysis">分析レポート</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label>レポート形式</label>
+          <select id="report-format" class="form-select">
+            <option value="html">HTML</option>
+            <option value="markdown">Markdown</option>
+          </select>
+        </div>
+        
+        <button id="generate-report-button" class="action-button">
+          レポート生成
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- プレビューモーダル -->
+  <div id="data-preview-modal" class="preview-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="preview-title">データプレビュー</h3>
+        <button id="close-preview" class="close-button">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="preview-content" class="preview-content"></div>
+      </div>
+      <div class="modal-footer">
+        <button id="confirm-import" class="action-button">インポートを実行</button>
+        <button id="cancel-import" class="cancel-button">キャンセル</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .data-actions-container {
+    margin-top: 2rem;
+    padding: 0 1rem;
+  }
+  
+  .section-title {
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .section-description {
+    color: var(--sl-color-gray-3);
+    margin-bottom: 2rem;
+  }
+  
+  .actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+  
+  .action-card {
+    background-color: var(--sl-color-gray-6);
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+  
+  .action-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  .action-card h3 {
+    font-size: 1.25rem;
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+  }
+  
+  .action-card p {
+    font-size: 0.95rem;
+    color: var(--sl-color-gray-2);
+    margin-bottom: 1.5rem;
+  }
+  
+  .action-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .form-group label {
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+  
+  .form-select {
+    padding: 0.6rem;
+    border: 1px solid var(--sl-color-gray-4);
+    border-radius: 4px;
+    background-color: var(--sl-color-white);
+    font-size: 0.9rem;
+  }
+  
+  .form-file {
+    padding: 0.5rem 0;
+  }
+  
+  .checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  
+  .action-button {
+    padding: 0.75rem 1rem;
+    background-color: var(--sl-color-accent-high);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 0.5rem;
+  }
+  
+  .action-button:hover {
+    background-color: var(--sl-color-accent);
+    transform: translateY(-2px);
+  }
+  
+  .action-button:disabled {
+    background-color: var(--sl-color-gray-4);
+    cursor: not-allowed;
+    transform: none;
+  }
+  
+  .import-button {
+    background-color: var(--sl-color-gray-4);
+  }
+  
+  .import-button:not(:disabled) {
+    background-color: var(--sl-color-accent-high);
+  }
+  
+  .cancel-button {
+    padding: 0.75rem 1rem;
+    background-color: var(--sl-color-gray-5);
+    color: var(--sl-color-gray-1);
+    border: none;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .cancel-button:hover {
+    background-color: var(--sl-color-gray-4);
+  }
+  
+  /* モーダルスタイル */
+  .preview-modal {
+    display: none;
+    position: fixed;
+    z-index: 100;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+  
+  .modal-content {
+    position: relative;
+    background-color: var(--sl-color-white);
+    margin: 5% auto;
+    padding: 1.5rem;
+    width: 90%;
+    max-width: 900px;
+    max-height: 80vh;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  
+  .modal-header h3 {
+    margin: 0;
+  }
+  
+  .close-button {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--sl-color-gray-3);
+  }
+  
+  .modal-body {
+    flex-grow: 1;
+    overflow-y: auto;
+  }
+  
+  .preview-content {
+    border: 1px solid var(--sl-color-gray-4);
+    padding: 1rem;
+    border-radius: 4px;
+    max-height: 50vh;
+    overflow-y: auto;
+    font-family: monospace;
+    background-color: var(--sl-color-gray-6);
+  }
+  
+  .modal-footer {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+  }
+  
+  /* ダークモード対応 */
+  :global(.dark) .action-card {
+    background-color: var(--sl-color-black);
+  }
+  
+  :global(.dark) .form-select {
+    background-color: var(--sl-color-gray-6);
+    color: var(--sl-color-white);
+    border-color: var(--sl-color-gray-3);
+  }
+  
+  :global(.dark) .modal-content {
+    background-color: var(--sl-color-gray-6);
+    color: var(--sl-color-white);
+  }
+  
+  :global(.dark) .preview-content {
+    background-color: var(--sl-color-black);
+    border-color: var(--sl-color-gray-3);
+  }
+  
+  /* レスポンシブ対応 */
+  @media (max-width: 768px) {
+    .actions-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .modal-content {
+      width: 95%;
+      margin: 10% auto;
+    }
+  }
+</style>
+
+<script define:vars={{ issuesData }}>
+  document.addEventListener('DOMContentLoaded', () => {
+    // 必要なモジュールを動的にインポート
+    import('../lib/export.js').then(module => {
+      const exportModule = module;
+      
+      // DOM要素の取得
+      const exportFormat = document.getElementById('export-format');
+      const includeDetails = document.getElementById('include-details');
+      const exportButton = document.getElementById('export-button');
+      
+      const importFile = document.getElementById('import-file');
+      const previewImport = document.getElementById('preview-import');
+      const importButton = document.getElementById('import-button');
+      
+      const reportType = document.getElementById('report-type');
+      const reportFormat = document.getElementById('report-format');
+      const generateReportButton = document.getElementById('generate-report-button');
+      
+      const previewModal = document.getElementById('data-preview-modal');
+      const previewTitle = document.getElementById('preview-title');
+      const previewContent = document.getElementById('preview-content');
+      const closePreview = document.getElementById('close-preview');
+      const confirmImport = document.getElementById('confirm-import');
+      const cancelImport = document.getElementById('cancel-import');
+      
+      // データの初期化
+      const issues = JSON.parse(issuesData);
+      let importedData = null;
+      
+      // エクスポート機能
+      if (exportButton) {
+        exportButton.addEventListener('click', () => {
+          const format = exportFormat.value;
+          const details = includeDetails.checked;
+          
+          // 選択した形式でエクスポート
+          const exportData = exportModule.exportIssuesTo(issues, format, details);
+          
+          // ファイル拡張子とコンテンツタイプを設定
+          let extension = format;
+          let contentType = 'application/json';
+          
+          if (format === 'csv') {
+            contentType = 'text/csv';
+          } else if (format === 'markdown') {
+            extension = 'md';
+            contentType = 'text/markdown';
+          } else if (format === 'html') {
+            contentType = 'text/html';
+          }
+          
+          // ファイル名を生成
+          const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+          const fileName = `issues-export-${timestamp}.${extension}`;
+          
+          // ファイルをダウンロード
+          exportModule.downloadFile(exportData, fileName, contentType);
+        });
+      }
+      
+      // インポート機能
+      if (importFile) {
+        importFile.addEventListener('change', () => {
+          // ファイルが選択されたらインポートボタンを有効化
+          importButton.disabled = !importFile.files.length;
+        });
+      }
+      
+      if (importButton) {
+        importButton.addEventListener('click', async () => {
+          if (!importFile.files.length) return;
+          
+          const file = importFile.files[0];
+          try {
+            // ファイル内容を読み込む
+            const fileContent = await exportModule.readFile(file);
+            
+            // ファイル拡張子に基づいてインポート処理
+            const extension = file.name.split('.').pop().toLowerCase();
+            
+            if (extension === 'json') {
+              importedData = exportModule.importIssuesFromJSON(fileContent);
+            } else if (extension === 'csv') {
+              importedData = exportModule.importIssuesFromCSV(fileContent);
+            } else {
+              alert('サポートされていないファイル形式です。JSONまたはCSVファイルを選択してください。');
+              return;
+            }
+            
+            if (!importedData || importedData.length === 0) {
+              alert('インポートするデータがありません。ファイル形式を確認してください。');
+              return;
+            }
+            
+            // プレビューを表示するか直接インポート
+            if (previewImport.checked) {
+              // プレビューモーダルを表示
+              previewTitle.textContent = `インポートプレビュー (${importedData.length} 件のIssue)`;
+              previewContent.innerHTML = `<pre>${JSON.stringify(importedData, null, 2)}</pre>`;
+              previewModal.style.display = 'block';
+            } else {
+              // 直接インポート処理
+              processImport(importedData);
+            }
+          } catch (error) {
+            console.error('インポート処理エラー:', error);
+            alert('ファイルの読み込みに失敗しました。ファイル形式を確認してください。');
+          }
+        });
+      }
+      
+      // レポート生成機能
+      if (generateReportButton) {
+        generateReportButton.addEventListener('click', () => {
+          const type = reportType.value;
+          const format = reportFormat.value;
+          
+          // レポートタイプに基づいてレポートを生成
+          generateReport(type, format);
+        });
+      }
+      
+      // モーダル関連の処理
+      if (closePreview) {
+        closePreview.addEventListener('click', () => {
+          previewModal.style.display = 'none';
+        });
+      }
+      
+      if (confirmImport) {
+        confirmImport.addEventListener('click', () => {
+          if (importedData) {
+            processImport(importedData);
+            previewModal.style.display = 'none';
+          }
+        });
+      }
+      
+      if (cancelImport) {
+        cancelImport.addEventListener('click', () => {
+          previewModal.style.display = 'none';
+          importedData = null;
+        });
+      }
+      
+      // モーダル外クリックで閉じる
+      window.addEventListener('click', (event) => {
+        if (event.target === previewModal) {
+          previewModal.style.display = 'none';
+        }
+      });
+      
+      // データをインポートして処理
+      function processImport(data) {
+        // ローカルストレージに一時保存
+        localStorage.setItem('importedIssues', JSON.stringify(data));
+        alert(`${data.length} 件のIssueデータをインポートしました。ブラウザキャッシュに保存されたデータは次回の読み込みまで利用可能です。`);
+        
+        // ファイル選択をリセット
+        importFile.value = '';
+        importButton.disabled = true;
+      }
+      
+      // レポート生成関数
+      function generateReport(type, format) {
+        // レポートタイプに基づいたデータを準備
+        let reportData = '';
+        let fileName = '';
+        
+        if (format === 'html') {
+          if (type === 'summary') {
+            reportData = generateSummaryReportHTML(issues);
+            fileName = 'summary-report.html';
+          } else if (type === 'detailed') {
+            reportData = exportModule.exportIssuesToHTML(issues);
+            fileName = 'detailed-report.html';
+          } else if (type === 'analysis') {
+            reportData = generateAnalysisReportHTML(issues);
+            fileName = 'analysis-report.html';
+          }
+        } else if (format === 'markdown') {
+          if (type === 'summary') {
+            reportData = generateSummaryReportMD(issues);
+            fileName = 'summary-report.md';
+          } else if (type === 'detailed') {
+            reportData = exportModule.exportIssuesToMarkdown(issues);
+            fileName = 'detailed-report.md';
+          } else if (type === 'analysis') {
+            reportData = generateAnalysisReportMD(issues);
+            fileName = 'analysis-report.md';
+          }
+        }
+        
+        // レポートをダウンロード
+        const contentType = format === 'html' ? 'text/html' : 'text/markdown';
+        exportModule.downloadFile(reportData, fileName, contentType);
+      }
+      
+      // サマリーレポート (HTML形式)
+      function generateSummaryReportHTML(issues) {
+        // Issueの状態ごとのカウント
+        const statusCount = {
+          open: issues.filter(i => i.state === 'open').length,
+          closed: issues.filter(i => i.state === 'closed').length
+        };
+        
+        // ラベルのカウント
+        const labelCount = {};
+        issues.forEach(issue => {
+          if (issue.labels) {
+            issue.labels.forEach(label => {
+              if (!labelCount[label.name]) {
+                labelCount[label.name] = 0;
+              }
+              labelCount[label.name]++;
+            });
+          }
+        });
+        
+        // ラベルの表を作成
+        let labelRows = '';
+        Object.entries(labelCount)
+          .sort((a, b) => b[1] - a[1])
+          .forEach(([name, count]) => {
+            labelRows += `
+              <tr>
+                <td>${name}</td>
+                <td>${count}</td>
+                <td>${Math.round((count / issues.length) * 100)}%</td>
+              </tr>
+            `;
+          });
+        
+        // 最近のIssueを日付でソート
+        const recentIssues = [...issues]
+          .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
+          .slice(0, 5);
+        
+        // 最近のIssueの表を作成
+        let recentRows = '';
+        recentIssues.forEach(issue => {
+          const updatedDate = new Date(issue.updated_at).toLocaleDateString();
+          recentRows += `
+            <tr>
+              <td>#${issue.number}</td>
+              <td>${issue.title}</td>
+              <td>${issue.state}</td>
+              <td>${updatedDate}</td>
+            </tr>
+          `;
+        });
+        
+        // HTMLレポートを返す
+        return `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <title>Issue Summary Report</title>
+            <style>
+              body { font-family: Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; }
+              h1, h2 { color: #333; }
+              table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+              th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+              th { background-color: #f2f2f2; }
+              tr:hover { background-color: #f5f5f5; }
+              .summary-card { background-color: #f9f9f9; border-radius: 4px; padding: 15px; margin-bottom: 20px; }
+              .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
+              .stat-card { background-color: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 15px; text-align: center; }
+              .stat-value { font-size: 24px; font-weight: bold; margin-bottom: 5px; }
+              .stat-label { color: #666; }
+              .footer { margin-top: 30px; font-size: 12px; color: #888; text-align: center; }
+            </style>
+          </head>
+          <body>
+            <h1>Issue Summary Report</h1>
+            <p>Generated on: ${new Date().toLocaleString()}</p>
+            
+            <div class="summary-card">
+              <h2>Overview</h2>
+              <div class="card-grid">
+                <div class="stat-card">
+                  <div class="stat-value">${issues.length}</div>
+                  <div class="stat-label">Total Issues</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value">${statusCount.open}</div>
+                  <div class="stat-label">Open Issues</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value">${statusCount.closed}</div>
+                  <div class="stat-label">Closed Issues</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value">${Object.keys(labelCount).length}</div>
+                  <div class="stat-label">Unique Labels</div>
+                </div>
+              </div>
+            </div>
+            
+            <h2>Labels Distribution</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Label</th>
+                  <th>Count</th>
+                  <th>Percentage</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${labelRows}
+              </tbody>
+            </table>
+            
+            <h2>Recently Updated Issues</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Number</th>
+                  <th>Title</th>
+                  <th>State</th>
+                  <th>Updated</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${recentRows}
+              </tbody>
+            </table>
+            
+            <div class="footer">
+              Generated by Starlight Issue Wiki Export Tool
+            </div>
+          </body>
+          </html>
+        `;
+      }
+      
+      // サマリーレポート (Markdown形式)
+      function generateSummaryReportMD(issues) {
+        // Issueの状態ごとのカウント
+        const statusCount = {
+          open: issues.filter(i => i.state === 'open').length,
+          closed: issues.filter(i => i.state === 'closed').length
+        };
+        
+        // ラベルのカウント
+        const labelCount = {};
+        issues.forEach(issue => {
+          if (issue.labels) {
+            issue.labels.forEach(label => {
+              if (!labelCount[label.name]) {
+                labelCount[label.name] = 0;
+              }
+              labelCount[label.name]++;
+            });
+          }
+        });
+        
+        // ラベルテーブル
+        let labelTable = '| Label | Count | Percentage |\n| ----- | ----- | ---------- |\n';
+        Object.entries(labelCount)
+          .sort((a, b) => b[1] - a[1])
+          .forEach(([name, count]) => {
+            const percent = Math.round((count / issues.length) * 100);
+            labelTable += `| ${name} | ${count} | ${percent}% |\n`;
+          });
+        
+        // 最近のIssue
+        const recentIssues = [...issues]
+          .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
+          .slice(0, 5);
+        
+        let recentTable = '| Number | Title | State | Updated |\n| ------ | ----- | ----- | ------- |\n';
+        recentIssues.forEach(issue => {
+          const updatedDate = new Date(issue.updated_at).toLocaleDateString();
+          recentTable += `| #${issue.number} | ${issue.title} | ${issue.state} | ${updatedDate} |\n`;
+        });
+        
+        // Markdownレポートを返す
+        return `# Issue Summary Report
+
+Generated on: ${new Date().toLocaleString()}
+
+## Overview
+
+- **Total Issues:** ${issues.length}
+- **Open Issues:** ${statusCount.open}
+- **Closed Issues:** ${statusCount.closed}
+- **Unique Labels:** ${Object.keys(labelCount).length}
+
+## Labels Distribution
+
+${labelTable}
+
+## Recently Updated Issues
+
+${recentTable}
+
+---
+
+*Generated by Starlight Issue Wiki Export Tool*
+`;
+      }
+      
+      // 分析レポート (HTML形式)
+      function generateAnalysisReportHTML(issues) {
+        // 月ごとの作成されたIssue数
+        const monthlyCreation = {};
+        issues.forEach(issue => {
+          const date = new Date(issue.created_at);
+          const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+          
+          if (!monthlyCreation[monthKey]) {
+            monthlyCreation[monthKey] = 0;
+          }
+          monthlyCreation[monthKey]++;
+        });
+        
+        // 月ごとのグラフ用データを作成
+        let monthlyData = '';
+        Object.entries(monthlyCreation)
+          .sort((a, b) => a[0].localeCompare(b[0]))
+          .forEach(([month, count]) => {
+            const barHeight = Math.min(count * 10, 200);
+            monthlyData += `
+              <div class="chart-bar">
+                <div class="bar-value" style="height: ${barHeight}px;">${count}</div>
+                <div class="bar-label">${month}</div>
+              </div>
+            `;
+          });
+        
+        // ラベルの分布
+        const labelStats = {};
+        issues.forEach(issue => {
+          if (issue.labels) {
+            issue.labels.forEach(label => {
+              if (!labelStats[label.name]) {
+                labelStats[label.name] = {
+                  count: 0,
+                  color: label.color || '888888'
+                };
+              }
+              labelStats[label.name].count++;
+            });
+          }
+        });
+        
+        // ラベルの円グラフ用データ
+        const topLabels = Object.entries(labelStats)
+          .sort((a, b) => b[1].count - a[1].count)
+          .slice(0, 5);
+        
+        let donutSegments = '';
+        let cumulativeAngle = 0;
+        let legendItems = '';
+        
+        topLabels.forEach(([name, data], index) => {
+          const percentage = Math.round((data.count / issues.length) * 100);
+          const angle = 3.6 * percentage; // 1% = 3.6度
+          
+          donutSegments += `
+            <circle
+              class="donut-segment"
+              cx="100" cy="100" r="70"
+              fill="transparent"
+              stroke="#${data.color}"
+              stroke-width="40"
+              stroke-dasharray="${angle} ${360 - angle}"
+              stroke-dashoffset="${-cumulativeAngle}"
+            ></circle>
+          `;
+          
+          cumulativeAngle += angle;
+          
+          legendItems += `
+            <div class="legend-item">
+              <span class="legend-color" style="background-color: #${data.color};"></span>
+              <span>${name} (${percentage}%)</span>
+            </div>
+          `;
+        });
+        
+        // 作成日からの経過期間
+        const ageBuckets = {
+          '0-30 days': 0,
+          '31-90 days': 0,
+          '91-180 days': 0,
+          '181-365 days': 0,
+          'Over 1 year': 0
+        };
+        
+        const now = new Date();
+        issues.forEach(issue => {
+          const created = new Date(issue.created_at);
+          const daysDiff = Math.floor((now - created) / (1000 * 60 * 60 * 24));
+          
+          if (daysDiff <= 30) {
+            ageBuckets['0-30 days']++;
+          } else if (daysDiff <= 90) {
+            ageBuckets['31-90 days']++;
+          } else if (daysDiff <= 180) {
+            ageBuckets['91-180 days']++;
+          } else if (daysDiff <= 365) {
+            ageBuckets['181-365 days']++;
+          } else {
+            ageBuckets['Over 1 year']++;
+          }
+        });
+        
+        // 年齢分布の棒グラフ
+        let ageData = '';
+        Object.entries(ageBuckets).forEach(([label, count]) => {
+          const percentage = Math.round((count / issues.length) * 100);
+          ageData += `
+            <div class="age-row">
+              <div class="age-label">${label}</div>
+              <div class="age-bar-container">
+                <div class="age-bar" style="width: ${percentage}%;">${count} (${percentage}%)</div>
+              </div>
+            </div>
+          `;
+        });
+        
+        // HTMLレポートを返す
+        return `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <title>Issue Analysis Report</title>
+            <style>
+              body { font-family: Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; line-height: 1.6; }
+              h1, h2 { color: #333; }
+              .report-section { margin-bottom: 40px; }
+              
+              /* 月次グラフ */
+              .monthly-chart { display: flex; height: 220px; align-items: flex-end; margin-top: 20px; gap: 2px; }
+              .chart-bar { display: flex; flex-direction: column; align-items: center; flex: 1; }
+              .bar-value { background-color: #4f6df5; color: white; display: flex; justify-content: center; align-items: center; width: 100%; min-height: 25px; }
+              .bar-label { padding-top: 5px; font-size: 12px; transform: rotate(-45deg); white-space: nowrap; }
+              
+              /* ラベル円グラフ */
+              .donut-container { display: flex; margin-top: 20px; }
+              .donut-chart { width: 200px; height: 200px; }
+              .donut-segment { transform-origin: center; }
+              .donut-hole { fill: white; }
+              .legend { margin-left: 20px; }
+              .legend-item { display: flex; align-items: center; margin-bottom: 10px; }
+              .legend-color { width: 16px; height: 16px; border-radius: 3px; margin-right: 8px; }
+              
+              /* 年齢分布グラフ */
+              .age-distribution { margin-top: 20px; }
+              .age-row { display: flex; margin-bottom: 10px; align-items: center; }
+              .age-label { width: 120px; font-size: 14px; }
+              .age-bar-container { flex: 1; background-color: #f0f0f0; border-radius: 3px; overflow: hidden; }
+              .age-bar { background-color: #4f6df5; color: white; padding: 6px 10px; font-size: 14px; text-align: right; }
+              
+              .footer { margin-top: 30px; font-size: 12px; color: #888; text-align: center; }
+            </style>
+          </head>
+          <body>
+            <h1>Issue Analysis Report</h1>
+            <p>Generated on: ${new Date().toLocaleString()}</p>
+            
+            <div class="report-section">
+              <h2>Monthly Issue Creation</h2>
+              <p>This chart shows the number of issues created per month.</p>
+              <div class="monthly-chart">
+                ${monthlyData}
+              </div>
+            </div>
+            
+            <div class="report-section">
+              <h2>Top 5 Labels Distribution</h2>
+              <p>This chart shows the distribution of the most used labels.</p>
+              <div class="donut-container">
+                <svg class="donut-chart" viewBox="0 0 200 200">
+                  ${donutSegments}
+                  <circle class="donut-hole" cx="100" cy="100" r="50"></circle>
+                </svg>
+                <div class="legend">
+                  ${legendItems}
+                </div>
+              </div>
+            </div>
+            
+            <div class="report-section">
+              <h2>Issue Age Distribution</h2>
+              <p>This chart shows how old the issues are (based on creation date).</p>
+              <div class="age-distribution">
+                ${ageData}
+              </div>
+            </div>
+            
+            <div class="footer">
+              Generated by Starlight Issue Wiki Analysis Tool
+            </div>
+          </body>
+          </html>
+        `;
+      }
+      
+      // 分析レポート (Markdown形式)
+      function generateAnalysisReportMD(issues) {
+        // 月ごとの作成されたIssue数
+        const monthlyCreation = {};
+        issues.forEach(issue => {
+          const date = new Date(issue.created_at);
+          const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+          
+          if (!monthlyCreation[monthKey]) {
+            monthlyCreation[monthKey] = 0;
+          }
+          monthlyCreation[monthKey]++;
+        });
+        
+        // 月ごとの表を作成
+        let monthlyTable = '| Month | Issues Created |\n| ----- | -------------- |\n';
+        Object.entries(monthlyCreation)
+          .sort((a, b) => a[0].localeCompare(b[0]))
+          .forEach(([month, count]) => {
+            monthlyTable += `| ${month} | ${count} |\n`;
+          });
+        
+        // ラベルの分布
+        const labelStats = {};
+        issues.forEach(issue => {
+          if (issue.labels) {
+            issue.labels.forEach(label => {
+              if (!labelStats[label.name]) {
+                labelStats[label.name] = {
+                  count: 0
+                };
+              }
+              labelStats[label.name].count++;
+            });
+          }
+        });
+        
+        // ラベルの表を作成
+        let labelTable = '| Label | Count | Percentage |\n| ----- | ----- | ---------- |\n';
+        Object.entries(labelStats)
+          .sort((a, b) => b[1].count - a[1].count)
+          .forEach(([name, data]) => {
+            const percentage = Math.round((data.count / issues.length) * 100);
+            labelTable += `| ${name} | ${data.count} | ${percentage}% |\n`;
+          });
+        
+        // 作成日からの経過期間
+        const ageBuckets = {
+          '0-30 days': 0,
+          '31-90 days': 0,
+          '91-180 days': 0,
+          '181-365 days': 0,
+          'Over 1 year': 0
+        };
+        
+        const now = new Date();
+        issues.forEach(issue => {
+          const created = new Date(issue.created_at);
+          const daysDiff = Math.floor((now - created) / (1000 * 60 * 60 * 24));
+          
+          if (daysDiff <= 30) {
+            ageBuckets['0-30 days']++;
+          } else if (daysDiff <= 90) {
+            ageBuckets['31-90 days']++;
+          } else if (daysDiff <= 180) {
+            ageBuckets['91-180 days']++;
+          } else if (daysDiff <= 365) {
+            ageBuckets['181-365 days']++;
+          } else {
+            ageBuckets['Over 1 year']++;
+          }
+        });
+        
+        // 年齢分布の表を作成
+        let ageTable = '| Age | Count | Percentage |\n| --- | ----- | ---------- |\n';
+        Object.entries(ageBuckets).forEach(([label, count]) => {
+          const percentage = Math.round((count / issues.length) * 100);
+          ageTable += `| ${label} | ${count} | ${percentage}% |\n`;
+        });
+        
+        // Markdownレポートを返す
+        return `# Issue Analysis Report
+
+Generated on: ${new Date().toLocaleString()}
+
+## Monthly Issue Creation
+
+This table shows the number of issues created per month.
+
+${monthlyTable}
+
+## Labels Distribution
+
+This table shows the distribution of all labels used in issues.
+
+${labelTable}
+
+## Issue Age Distribution
+
+This table shows how old the issues are (based on creation date).
+
+${ageTable}
+
+---
+
+*Generated by Starlight Issue Wiki Analysis Tool*
+`;
+      }
+    }).catch(error => {
+      console.error('Failed to load export module:', error);
+    });
+  });
+</script>
