@@ -126,8 +126,34 @@ const pageTitle = `データ管理 - ${SITE_TITLE}`;
           <div id="url-import-options" class="source-options" style="display: none;">
             <h3>URLを入力</h3>
             <input type="url" id="import-url" class="import-input" placeholder="https://example.com/content.md">
+            <div class="url-form-container">
+              <div class="url-form-group">
+                <label for="url-content-type">コンテンツタイプ</label>
+                <select id="url-content-type" class="url-select">
+                  <option value="auto">自動検出</option>
+                  <option value="markdown">Markdown</option>
+                  <option value="html">HTML</option>
+                  <option value="json">JSON</option>
+                  <option value="rss">RSS/Atom</option>
+                </select>
+              </div>
+              <div class="url-form-group">
+                <label for="url-content-selector">コンテンツセレクタ（HTML用）</label>
+                <input type="text" id="url-content-selector" class="import-input" placeholder=".content, .article, main, article">
+              </div>
+            </div>
+            <div class="url-preview">
+              <button id="url-preview-button" class="secondary-button">URLをプレビュー</button>
+              <div id="url-preview-container" style="display: none;" class="url-preview-content">
+                <div class="url-preview-header">
+                  <h4>プレビュー</h4>
+                  <button id="url-preview-close" class="url-preview-close">×</button>
+                </div>
+                <div id="url-preview-content"></div>
+              </div>
+            </div>
             <p class="import-help">
-              公開されているMarkdown、HTML、JSONファイルのURLを入力してください。
+              公開されているMarkdown、HTML、JSON、RSSフィード等のURLを入力してください。
             </p>
           </div>
           
@@ -158,6 +184,10 @@ const pageTitle = `データ管理 - ${SITE_TITLE}`;
               <label class="checkbox-label">
                 <input type="checkbox" id="auto-categorize" checked>
                 自動カテゴリ分類
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="extract-links" checked>
+                リンクを自動抽出
               </label>
             </div>
           </div>
@@ -490,7 +520,8 @@ const pageTitle = `データ管理 - ${SITE_TITLE}`;
   .export-select,
   .import-select,
   .report-select,
-  .backup-select {
+  .backup-select,
+  .url-select {
     width: 100%;
     padding: 0.5rem;
     border: 1px solid #ddd;
@@ -502,7 +533,8 @@ const pageTitle = `データ管理 - ${SITE_TITLE}`;
   .dark .export-select,
   .dark .import-select,
   .dark .report-select,
-  .dark .backup-select {
+  .dark .backup-select,
+  .dark .url-select {
     background-color: #333;
     border-color: #555;
     color: #ddd;
@@ -840,6 +872,109 @@ const pageTitle = `データ管理 - ${SITE_TITLE}`;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
   }
   
+  /* URLインポート関連の新しいスタイル */
+  .url-form-container {
+    margin-top: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .url-form-group {
+    width: 100%;
+  }
+  
+  .url-form-group label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.85rem;
+    color: #64748b;
+  }
+  
+  .dark .url-form-group label {
+    color: #94a3b8;
+  }
+  
+  .url-preview {
+    margin-top: 1rem;
+  }
+  
+  .url-preview-content {
+    margin-top: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background-color: #f8fafc;
+    overflow: hidden;
+  }
+  
+  .dark .url-preview-content {
+    background-color: #1e293b;
+    border-color: #444;
+  }
+  
+  .url-preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    background-color: #f1f5f9;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  .dark .url-preview-header {
+    background-color: #2d3748;
+    border-color: #444;
+  }
+  
+  .url-preview-header h4 {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #475569;
+  }
+  
+  .dark .url-preview-header h4 {
+    color: #e2e8f0;
+  }
+  
+  .url-preview-close {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    color: #64748b;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+  }
+  
+  .url-preview-close:hover {
+    color: #475569;
+  }
+  
+  .dark .url-preview-close {
+    color: #94a3b8;
+  }
+  
+  .dark .url-preview-close:hover {
+    color: #e2e8f0;
+  }
+  
+  #url-preview-content {
+    padding: 0.75rem;
+    max-height: 300px;
+    overflow-y: auto;
+    font-size: 0.9rem;
+    color: #333;
+    white-space: pre-wrap;
+  }
+  
+  .dark #url-preview-content {
+    color: #eee;
+  }
+  
   /* レスポンシブ対応 */
   @media (max-width: 768px) {
     .data-management-grid {
@@ -924,6 +1059,73 @@ const pageTitle = `データ管理 - ${SITE_TITLE}`;
       });
     }
     
+    // URLプレビュー機能
+    const urlPreviewButton = document.getElementById('url-preview-button');
+    const urlPreviewContainer = document.getElementById('url-preview-container');
+    const urlPreviewContent = document.getElementById('url-preview-content');
+    const urlPreviewClose = document.getElementById('url-preview-close');
+    const urlInput = document.getElementById('import-url');
+    const urlContentType = document.getElementById('url-content-type');
+    const urlContentSelector = document.getElementById('url-content-selector');
+    
+    if (urlPreviewButton && urlPreviewContainer && urlPreviewContent && urlPreviewClose && urlInput) {
+      urlPreviewButton.addEventListener('click', async () => {
+        const url = urlInput.value.trim();
+        if (!url) {
+          alert('URLを入力してください');
+          return;
+        }
+        
+        // プレビューボタンの状態を更新
+        urlPreviewButton.disabled = true;
+        urlPreviewButton.textContent = 'プレビュー取得中...';
+        
+        try {
+          // 実際の実装では、サーバーサイドのAPIを呼び出してURLのコンテンツを取得
+          // このデモではモック応答を使用
+          await new Promise(resolve => setTimeout(resolve, 1000)); // 読み込み体験をシミュレート
+          
+          const contentType = urlContentType.value;
+          const selector = urlContentSelector.value;
+          
+          let previewContent = '';
+          
+          // URLの種類によって異なるプレビューコンテンツを生成
+          if (url.endsWith('.md') || contentType === 'markdown') {
+            previewContent = `# サンプルMarkdownコンテンツ\n\nこれは ${url} から取得したMarkdownコンテンツのプレビューです。\n\n## セクション\n\n- 箇条書き1\n- 箇条書き2\n\n詳細については[リンク](#)を参照してください。`;
+          } else if (url.endsWith('.json') || contentType === 'json') {
+            const jsonSample = {
+              title: "サンプルJSON",
+              description: `${url} から取得したJSONデータ`,
+              items: [
+                { id: 1, name: "アイテム1" },
+                { id: 2, name: "アイテム2" }
+              ]
+            };
+            previewContent = JSON.stringify(jsonSample, null, 2);
+          } else if (url.includes('rss') || url.includes('feed') || contentType === 'rss') {
+            previewContent = `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0">\n  <channel>\n    <title>サンプルRSSフィード</title>\n    <link>${url}</link>\n    <description>${url} から取得したRSSフィード</description>\n    <item>\n      <title>記事1</title>\n      <link>${url}/1</link>\n      <description>最初の記事の説明</description>\n    </item>\n    <item>\n      <title>記事2</title>\n      <link>${url}/2</link>\n      <description>2番目の記事の説明</description>\n    </item>\n  </channel>\n</rss>`;
+          } else {
+            // HTML（デフォルト）
+            previewContent = `<!DOCTYPE html>\n<html>\n<head>\n  <title>サンプルHTML</title>\n</head>\n<body>\n  <h1>サンプルHTMLコンテンツ</h1>\n  <p>これは ${url} から取得したHTMLコンテンツのプレビューです。</p>\n  ${selector ? `<div class="${selector.split(',')[0].trim()}">\n    <p>セレクタ「${selector}」で選択された部分のコンテンツ</p>\n  </div>` : ''}\n</body>\n</html>`;
+          }
+          
+          urlPreviewContent.textContent = previewContent;
+          urlPreviewContainer.style.display = 'block';
+        } catch (error) {
+          console.error('URLのプレビュー取得に失敗:', error);
+          alert('URLのプレビュー取得に失敗しました: ' + error.message);
+        } finally {
+          urlPreviewButton.disabled = false;
+          urlPreviewButton.textContent = 'URLをプレビュー';
+        }
+      });
+      
+      urlPreviewClose.addEventListener('click', () => {
+        urlPreviewContainer.style.display = 'none';
+      });
+    }
+    
     // ファイル選択のイベントハンドラ
     const importFile = document.getElementById('import-file');
     const fileName = document.getElementById('file-name');
@@ -970,7 +1172,48 @@ const pageTitle = `データ管理 - ${SITE_TITLE}`;
     
     if (importButton) {
       importButton.addEventListener('click', () => {
-        alert('インポート機能は開発中です。実際の実装では、選択された設定に基づいてインポート処理を実行します。');
+        const selectedSource = document.getElementById('import-source').value;
+        let message = '';
+        
+        switch (selectedSource) {
+          case 'file':
+            const files = document.getElementById('import-file').files;
+            if (files.length === 0) {
+              alert('ファイルを選択してください');
+              return;
+            }
+            message = `選択された${files.length}個のファイルをインポートします...`;
+            break;
+            
+          case 'url':
+            const url = document.getElementById('import-url').value;
+            if (!url) {
+              alert('URLを入力してください');
+              return;
+            }
+            message = `${url} からコンテンツをインポートします...`;
+            break;
+            
+          case 'github':
+            const repo = document.getElementById('import-github-repo').value;
+            if (!repo) {
+              alert('GitHubリポジトリを指定してください');
+              return;
+            }
+            message = `GitHub リポジトリ ${repo} からインポートします...`;
+            break;
+            
+          case 'notion':
+            const notionUrl = document.getElementById('import-notion-url').value;
+            if (!notionUrl) {
+              alert('Notion URLを入力してください');
+              return;
+            }
+            message = `Notion ページ ${notionUrl} からインポートします...`;
+            break;
+        }
+        
+        alert(message);
       });
     }
     
