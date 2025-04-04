@@ -9,64 +9,240 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
     <button class="close-button" id="close-settings" aria-label="閉じる">✕</button>
   </div>
   
-  <div class="settings-section">
-    <h3>Zettelkastenモード</h3>
-    <p>メモ同士のリンクを自動で検出し、ナレッジベースのように利用できます。</p>
-    
-    <div class="setting-item">
-      <label class="switch">
-        <input type="checkbox" id="zettelkasten-enabled" checked>
-        <span class="slider"></span>
-      </label>
-      <span class="setting-label">Zettelkastenモードを有効にする</span>
+  <div class="tabs">
+    <button class="tab active" data-tab="zettelkasten">Zettelkasten</button>
+    <button class="tab" data-tab="display">表示設定</button>
+    <button class="tab" data-tab="data">データ管理</button>
+  </div>
+  
+  <!-- Zettelkasten設定タブ -->
+  <div class="tab-content active" id="zettelkasten-tab">
+    <div class="settings-section">
+      <h3>Zettelkastenモード</h3>
+      <p>メモ同士のリンクを自動で検出し、ナレッジベースのように利用できます。</p>
+      
+      <div class="setting-item">
+        <label class="switch">
+          <input type="checkbox" id="zettelkasten-enabled" checked>
+          <span class="slider"></span>
+        </label>
+        <span class="setting-label">Zettelkastenモードを有効にする</span>
+      </div>
+      
+      <div class="sub-settings" id="zettelkasten-sub-settings">
+        <div class="setting-item select-container">
+          <label for="zettelkasten-mode">Zettelkastenタイプ:</label>
+          <select id="zettelkasten-mode" class="mode-select">
+            <option value="standard">スタンダード</option>
+            <option value="atomic">アトミック</option>
+            <option value="hierarchical">階層型</option>
+          </select>
+          <div class="description">
+            <span class="mode-description" id="standard-description">
+              標準的なZettelkastenモードです。リンクと参照を使った基本的なナレッジベースを構築できます。
+            </span>
+            <span class="mode-description" id="atomic-description" style="display: none;">
+              最小限の内容を持つ「アトミックノート」を作成・リンクして、より柔軟なナレッジネットワークを構築します。
+            </span>
+            <span class="mode-description" id="hierarchical-description" style="display: none;">
+              階層構造を持つノートシステムです。カテゴリとサブカテゴリによる整理された知識体系を構築できます。
+            </span>
+          </div>
+        </div>
+        
+        <!-- 基本設定 -->
+        <div class="setting-group">
+          <h4>基本設定</h4>
+          <div class="setting-item">
+            <label class="switch">
+              <input type="checkbox" id="autolink-keywords" checked>
+              <span class="slider"></span>
+            </label>
+            <span class="setting-label">キーワードを自動的にリンクする</span>
+          </div>
+          
+          <div class="setting-item">
+            <label class="switch">
+              <input type="checkbox" id="highlight-bidirectional" checked>
+              <span class="slider"></span>
+            </label>
+            <span class="setting-label">双方向リンクを強調表示する</span>
+          </div>
+          
+          <div class="setting-item">
+            <label class="switch">
+              <input type="checkbox" id="show-backlinks" checked>
+              <span class="slider"></span>
+            </label>
+            <span class="setting-label">バックリンク一覧を表示する</span>
+          </div>
+          
+          <div class="setting-item slider-container">
+            <label for="keyword-min-length" class="slider-label">
+              自動リンクする最小キーワード長: <span id="keyword-length-value">3</span>
+            </label>
+            <input type="range" id="keyword-min-length" min="2" max="8" value="3" class="range-slider">
+          </div>
+        </div>
+        
+        <!-- 拡張設定 -->
+        <div class="setting-group advanced-settings">
+          <h4>拡張設定</h4>
+          <div class="setting-item">
+            <label class="switch">
+              <input type="checkbox" id="markdown-links" checked>
+              <span class="slider"></span>
+            </label>
+            <span class="setting-label">Markdown形式の[[ページ名]]リンクを有効にする</span>
+          </div>
+          
+          <div class="setting-item">
+            <label class="switch">
+              <input type="checkbox" id="context-awareness" checked>
+              <span class="slider"></span>
+            </label>
+            <span class="setting-label">コンテキスト認識機能（関連コンテンツの自動表示）</span>
+          </div>
+          
+          <div class="setting-item">
+            <label class="switch">
+              <input type="checkbox" id="auto-suggest-links" checked>
+              <span class="slider"></span>
+            </label>
+            <span class="setting-label">関連リンクの自動提案</span>
+          </div>
+          
+          <div class="setting-item">
+            <label class="switch">
+              <input type="checkbox" id="tag-hierarchy" checked>
+              <span class="slider"></span>
+            </label>
+            <span class="setting-label">タグの階層構造を有効にする</span>
+          </div>
+          
+          <div class="setting-item">
+            <label class="switch">
+              <input type="checkbox" id="smart-backlinks" checked>
+              <span class="slider"></span>
+            </label>
+            <span class="setting-label">スマートバックリンク（コンテキスト付き）</span>
+          </div>
+          
+          <div class="setting-item">
+            <label class="switch">
+              <input type="checkbox" id="graph-visualization" checked>
+              <span class="slider"></span>
+            </label>
+            <span class="setting-label">関連グラフの視覚化</span>
+          </div>
+          
+          <div class="setting-item select-container">
+            <label for="atomic-note-size">アトミックノートのサイズ:</label>
+            <select id="atomic-note-size" class="mode-select">
+              <option value="small">小（150-250文字程度）</option>
+              <option value="medium" selected>中（250-500文字程度）</option>
+              <option value="large">大（500-1000文字程度）</option>
+            </select>
+          </div>
+        </div>
+      </div>
     </div>
-    
-    <div class="sub-settings" id="zettelkasten-sub-settings">
-      <div class="setting-item">
-        <label class="switch">
-          <input type="checkbox" id="autolink-keywords" checked>
-          <span class="slider"></span>
-        </label>
-        <span class="setting-label">キーワードを自動的にリンクする</span>
-      </div>
-      
-      <div class="setting-item">
-        <label class="switch">
-          <input type="checkbox" id="highlight-bidirectional" checked>
-          <span class="slider"></span>
-        </label>
-        <span class="setting-label">双方向リンクを強調表示する</span>
-      </div>
-      
-      <div class="setting-item">
-        <label class="switch">
-          <input type="checkbox" id="show-backlinks" checked>
-          <span class="slider"></span>
-        </label>
-        <span class="setting-label">バックリンク一覧を表示する</span>
-      </div>
-      
-      <div class="setting-item slider-container">
-        <label for="keyword-min-length" class="slider-label">
-          自動リンクする最小キーワード長: <span id="keyword-length-value">3</span>
-        </label>
-        <input type="range" id="keyword-min-length" min="2" max="8" value="3" class="range-slider">
+  
+    <div class="live-preview">
+      <h4>リアルタイムプレビュー</h4>
+      <div class="preview-container">
+        <div class="preview-mode-tag" id="preview-mode-tag">スタンダードモード</div>
+        <div class="preview-sample">
+          <p>これは<span class="sample-keyword">キーワード</span>です。<span class="sample-bidirectional">双方向リンク</span>の例も表示しています。</p>
+          <p class="markdown-sample">これは[[MarkdownWiki]]形式のリンクの例です。</p>
+          <div id="context-preview" class="context-preview">
+            <p><strong>関連コンテキスト</strong>: このページは<a href="#">概念管理</a>と<a href="#">知識の整理</a>に関連しています。</p>
+          </div>
+          <div class="sample-backlinks" id="sample-backlinks">
+            <h5>バックリンク</h5>
+            <ul>
+              <li><a href="#" class="backlink-with-context">サンプルページ1</a><span class="backlink-context">「...このキーワードを詳しく説明しています...」</span></li>
+              <li><a href="#">サンプルページ2</a></li>
+            </ul>
+          </div>
+          <div id="graph-preview" class="graph-preview">
+            <svg width="100%" height="80" viewBox="0 0 200 80">
+              <circle cx="100" cy="40" r="15" fill="#4f6df5" />
+              <circle cx="40" cy="60" r="10" fill="#aaa" />
+              <circle cx="160" cy="60" r="10" fill="#aaa" />
+              <circle cx="70" cy="20" r="10" fill="#aaa" />
+              <circle cx="130" cy="20" r="10" fill="#aaa" />
+              <line x1="100" y1="40" x2="40" y2="60" stroke="#999" stroke-width="1" />
+              <line x1="100" y1="40" x2="160" y2="60" stroke="#999" stroke-width="1" />
+              <line x1="100" y1="40" x2="70" y2="20" stroke="#0a0" stroke-width="2" />
+              <line x1="100" y1="40" x2="130" y2="20" stroke="#999" stroke-width="1" />
+            </svg>
+          </div>
+        </div>
       </div>
     </div>
   </div>
   
-  <div class="live-preview">
-    <h4>リアルタイムプレビュー</h4>
-    <div class="preview-container">
-      <div class="preview-sample">
-        <p>これは<span class="sample-keyword">キーワード</span>です。<span class="sample-bidirectional">双方向リンク</span>の例も表示しています。</p>
-        <div class="sample-backlinks" id="sample-backlinks">
-          <h5>バックリンク</h5>
-          <ul>
-            <li><a href="#">サンプルページ1</a></li>
-            <li><a href="#">サンプルページ2</a></li>
-          </ul>
-        </div>
+  <!-- 表示設定タブ -->
+  <div class="tab-content" id="display-tab">
+    <div class="settings-section">
+      <h3>テーマ設定</h3>
+      <div class="setting-item select-container">
+        <label for="theme-mode">表示モード:</label>
+        <select id="theme-mode" class="mode-select">
+          <option value="light">ライトモード</option>
+          <option value="dark">ダークモード</option>
+          <option value="auto">自動（システム設定に合わせる）</option>
+        </select>
+      </div>
+      
+      <div class="setting-item select-container">
+        <label for="font-size">フォントサイズ:</label>
+        <select id="font-size" class="mode-select">
+          <option value="small">小</option>
+          <option value="medium" selected>中</option>
+          <option value="large">大</option>
+        </select>
+      </div>
+      
+      <div class="setting-item">
+        <label class="switch">
+          <input type="checkbox" id="show-toc" checked>
+          <span class="slider"></span>
+        </label>
+        <span class="setting-label">目次を表示する</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- データ管理タブ -->
+  <div class="tab-content" id="data-tab">
+    <div class="settings-section">
+      <h3>データ管理設定</h3>
+      <p>データ管理機能に関連する設定です。</p>
+      
+      <div class="quick-access-links">
+        <a href="/starlight-issue-wiki/data-management" class="quick-link">
+          <span class="quick-link-icon">📤</span>
+          <span class="quick-link-text">データ管理ページへ</span>
+        </a>
+      </div>
+      
+      <div class="setting-item">
+        <label class="switch">
+          <input type="checkbox" id="auto-backup" checked>
+          <span class="slider"></span>
+        </label>
+        <span class="setting-label">自動バックアップを有効にする</span>
+      </div>
+      
+      <div class="setting-item select-container">
+        <label for="backup-frequency">バックアップ頻度:</label>
+        <select id="backup-frequency" class="mode-select">
+          <option value="daily">毎日</option>
+          <option value="weekly" selected>毎週</option>
+          <option value="monthly">毎月</option>
+        </select>
       </div>
     </div>
   </div>
@@ -84,7 +260,7 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
     left: 50%;
     transform: translate(-50%, -50%);
     width: 90%;
-    max-width: 550px;
+    max-width: 650px;
     background-color: white;
     border-radius: 0.5rem;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
@@ -105,13 +281,55 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.5rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid #eee;
+    margin-bottom: 1rem;
   }
   
-  .dark .settings-header {
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 1.5rem;
+  }
+  
+  .dark .tabs {
     border-bottom-color: #444;
+  }
+  
+  .tab {
+    padding: 0.75rem 1.5rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #666;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+  }
+  
+  .dark .tab {
+    color: #aaa;
+  }
+  
+  .tab:hover {
+    color: #333;
+    background-color: #f9f9f9;
+  }
+  
+  .dark .tab:hover {
+    color: #eee;
+    background-color: #333;
+  }
+  
+  .tab.active {
+    color: var(--color-primary, #4f6df5);
+    border-bottom-color: var(--color-primary, #4f6df5);
+    font-weight: 500;
+  }
+  
+  .tab-content {
+    display: none;
+  }
+  
+  .tab-content.active {
+    display: block;
   }
   
   .settings-header h2 {
@@ -168,6 +386,35 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
     margin-left: 1rem;
   }
   
+  .setting-group {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background-color: #f9f9f9;
+    border-radius: 0.5rem;
+  }
+  
+  .dark .setting-group {
+    background-color: #2a2a2a;
+  }
+  
+  .setting-group h4 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1rem;
+    color: #333;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 0.5rem;
+  }
+  
+  .dark .setting-group h4 {
+    color: #ddd;
+    border-bottom-color: #444;
+  }
+  
+  .advanced-settings {
+    border-left: 3px solid var(--color-primary, #4f6df5);
+  }
+  
   .sub-settings {
     margin-left: 1.5rem;
     margin-top: 1rem;
@@ -177,6 +424,40 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
   
   .dark .sub-settings {
     border-left-color: #444;
+  }
+  
+  .select-container {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .select-container label {
+    margin-bottom: 0.5rem;
+  }
+  
+  .mode-select {
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    border: 1px solid #ddd;
+    background-color: white;
+    margin-bottom: 0.5rem;
+  }
+  
+  .dark .mode-select {
+    background-color: #333;
+    border-color: #555;
+    color: #eee;
+  }
+  
+  .description {
+    font-size: 0.85rem;
+    color: #666;
+    margin-top: 0.25rem;
+    font-style: italic;
+  }
+  
+  .dark .description {
+    color: #aaa;
   }
   
   /* リアルタイムプレビュー */
@@ -204,11 +485,24 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
     background-color: white;
     border-radius: 0.25rem;
     border: 1px solid #eee;
+    position: relative;
   }
   
   .dark .preview-container {
     background-color: #222;
     border-color: #333;
+  }
+  
+  .preview-mode-tag {
+    position: absolute;
+    top: -10px;
+    right: 10px;
+    background-color: var(--color-primary, #4f6df5);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: 500;
   }
   
   .sample-keyword {
@@ -219,6 +513,22 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
   .sample-bidirectional {
     cursor: pointer;
     transition: all 0.2s;
+  }
+  
+  .markdown-sample {
+    margin: 0.5rem 0;
+  }
+  
+  .context-preview {
+    margin: 1rem 0;
+    padding: 0.5rem;
+    background-color: #f0f7ff;
+    border-radius: 0.25rem;
+    font-size: 0.9rem;
+  }
+  
+  .dark .context-preview {
+    background-color: #1a2942;
   }
   
   .sample-backlinks {
@@ -265,6 +575,7 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
   
   .sample-backlinks li {
     margin-bottom: 0.25rem;
+    position: relative;
   }
   
   .sample-backlinks a {
@@ -281,6 +592,40 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
   
   .dark .sample-backlinks a:hover {
     background-color: #333;
+  }
+  
+  .backlink-with-context {
+    color: var(--color-primary, #4f6df5);
+  }
+  
+  .backlink-context {
+    display: block;
+    padding-left: 1.5rem;
+    font-size: 0.85rem;
+    color: #777;
+    font-style: italic;
+  }
+  
+  .dark .backlink-context {
+    color: #999;
+  }
+  
+  .graph-preview {
+    margin-top: 1rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #eee;
+  }
+  
+  .dark .graph-preview {
+    border-top-color: #444;
+  }
+  
+  .dark .graph-preview svg circle {
+    stroke: #444;
+  }
+  
+  .dark .graph-preview svg line {
+    stroke-opacity: 0.6;
   }
   
   /* トグルスイッチのスタイル */
@@ -372,6 +717,46 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
     cursor: pointer;
   }
   
+  /* クイックリンク */
+  .quick-access-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .quick-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background-color: #f0f0f0;
+    border-radius: 0.5rem;
+    text-decoration: none;
+    color: #333;
+    transition: all 0.2s;
+  }
+  
+  .dark .quick-link {
+    background-color: #333;
+    color: #eee;
+  }
+  
+  .quick-link:hover {
+    background-color: #e8e8e8;
+    transform: translateY(-2px);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .dark .quick-link:hover {
+    background-color: #444;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+  }
+  
+  .quick-link-icon {
+    font-size: 1.2rem;
+  }
+  
   /* フッターのスタイル */
   .settings-footer {
     display: flex;
@@ -456,6 +841,15 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
       width: 95%;
       padding: 1rem;
     }
+    
+    .tabs {
+      overflow-x: auto;
+    }
+    
+    .tab {
+      padding: 0.75rem 0.75rem;
+      white-space: nowrap;
+    }
   }
 </style>
 
@@ -466,8 +860,23 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
     const saveButton = document.getElementById('save-settings');
     const resetButton = document.getElementById('reset-settings');
     
-    // 設定フォーム要素
+    // タブ管理
+    const tabs = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tabContents.forEach(c => c.classList.remove('active'));
+        
+        tab.classList.add('active');
+        document.getElementById(`${tab.dataset.tab}-tab`).classList.add('active');
+      });
+    });
+    
+    // 設定フォーム要素 - Zettelkasten
     const zettelkastenEnabled = document.getElementById('zettelkasten-enabled');
+    const zettelkastenMode = document.getElementById('zettelkasten-mode');
     const autolinkKeywords = document.getElementById('autolink-keywords');
     const highlightBidirectional = document.getElementById('highlight-bidirectional');
     const showBacklinks = document.getElementById('show-backlinks');
@@ -475,41 +884,93 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
     const keywordLengthValue = document.getElementById('keyword-length-value');
     const subSettings = document.getElementById('zettelkasten-sub-settings');
     
+    // 拡張設定
+    const markdownLinks = document.getElementById('markdown-links');
+    const contextAwareness = document.getElementById('context-awareness');
+    const atomicNoteSize = document.getElementById('atomic-note-size');
+    const autoSuggestLinks = document.getElementById('auto-suggest-links');
+    const tagHierarchy = document.getElementById('tag-hierarchy');
+    const smartBacklinks = document.getElementById('smart-backlinks');
+    const graphVisualization = document.getElementById('graph-visualization');
+    
     // プレビュー要素
+    const previewModeTag = document.getElementById('preview-mode-tag');
     const sampleKeyword = document.querySelector('.sample-keyword');
     const sampleBidirectional = document.querySelector('.sample-bidirectional');
+    const markdownSample = document.querySelector('.markdown-sample');
+    const contextPreview = document.getElementById('context-preview');
     const sampleBacklinks = document.getElementById('sample-backlinks');
+    const graphPreview = document.getElementById('graph-preview');
     
-    // デフォルト設定（設定がない場合用）
+    // モード説明
+    const modeDescriptions = {
+      standard: document.getElementById('standard-description'),
+      atomic: document.getElementById('atomic-description'),
+      hierarchical: document.getElementById('hierarchical-description')
+    };
+    
+    // 表示設定
+    const themeMode = document.getElementById('theme-mode');
+    const fontSize = document.getElementById('font-size');
+    const showToc = document.getElementById('show-toc');
+    
+    // データ管理設定
+    const autoBackup = document.getElementById('auto-backup');
+    const backupFrequency = document.getElementById('backup-frequency');
+    
+    // デフォルト設定
     const defaultConfig = {
+      // Zettelkasten
       enabled: true,
+      visualMode: 'standard',
       autoLinkKeywords: true,
       highlightBidirectional: true,
       showBacklinks: true,
-      keywordMinLength: 3
+      keywordMinLength: 3,
+      markdownLinks: true,
+      contextAwareness: true,
+      atomicNoteSize: 'medium',
+      autoSuggestLinks: true,
+      tagHierarchy: true,
+      smartBacklinks: true,
+      graphVisualization: true,
+      
+      // 表示設定
+      themeMode: 'auto',
+      fontSize: 'medium',
+      showToc: true,
+      
+      // データ管理
+      autoBackup: true,
+      backupFrequency: 'weekly'
     };
     
-    // 初期設定の強制保存（バグ修正用）
-    if (!localStorage.getItem('zettelkastenConfig')) {
-      console.log('No Zettelkasten config found. Setting default config.');
-      localStorage.setItem('zettelkastenConfig', JSON.stringify(defaultConfig));
-    } else {
-      // 既存の設定を取得して強制的に有効化
-      try {
-        const savedConfig = JSON.parse(localStorage.getItem('zettelkastenConfig'));
-        savedConfig.enabled = true;
-        localStorage.setItem('zettelkastenConfig', JSON.stringify(savedConfig));
-        console.log('Zettelkasten config updated to ensure enabled=true');
-      } catch (e) {
-        console.error('Error updating Zettelkasten config:', e);
-        localStorage.setItem('zettelkastenConfig', JSON.stringify(defaultConfig));
-      }
-    }
+    // ZettelkastenModeに応じたUI更新
+    zettelkastenMode.addEventListener('change', () => {
+      const mode = zettelkastenMode.value;
+      
+      // モード説明を更新
+      Object.keys(modeDescriptions).forEach(key => {
+        modeDescriptions[key].style.display = key === mode ? 'block' : 'none';
+      });
+      
+      // プレビューモードタグを更新
+      previewModeTag.textContent = ({
+        'standard': 'スタンダードモード',
+        'atomic': 'アトミックモード',
+        'hierarchical': '階層型モード'
+      })[mode];
+      
+      updatePreview();
+    });
     
     // プレビューを更新する関数
     function updatePreview() {
       // 有効/無効状態
       if (zettelkastenEnabled.checked) {
+        // モードに応じた見た目の変更
+        const mode = zettelkastenMode.value;
+        
         // 自動リンク（キーワード）
         if (autolinkKeywords.checked) {
           sampleKeyword.style.textDecoration = 'none';
@@ -534,8 +995,41 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
           sampleBidirectional.style.fontWeight = 'normal';
         }
         
+        // Markdown形式リンク
+        markdownSample.style.display = markdownLinks.checked ? 'block' : 'none';
+        
+        // コンテキスト認識
+        contextPreview.style.display = contextAwareness.checked ? 'block' : 'none';
+        
+        // スマートバックリンク
+        const backlinkContext = document.querySelector('.backlink-context');
+        if (backlinkContext) {
+          backlinkContext.style.display = smartBacklinks.checked ? 'block' : 'none';
+        }
+        
         // バックリンクの表示
         sampleBacklinks.style.display = showBacklinks.checked ? 'block' : 'none';
+        
+        // グラフの表示
+        graphPreview.style.display = graphVisualization.checked ? 'block' : 'none';
+        
+        // モード固有のスタイル
+        if (mode === 'atomic') {
+          document.querySelector('.preview-sample').style.padding = '0.5rem';
+          document.querySelector('.preview-sample').style.border = '1px solid #eee';
+          document.querySelector('.preview-sample').style.borderRadius = '0.25rem';
+          document.querySelector('.preview-sample').style.backgroundColor = '#fafafa';
+        } else if (mode === 'hierarchical') {
+          document.querySelector('.preview-sample').style.paddingLeft = '1rem';
+          document.querySelector('.preview-sample').style.borderLeft = '3px solid var(--color-primary, #4f6df5)';
+        } else {
+          // スタンダードモード
+          document.querySelector('.preview-sample').style.padding = '0';
+          document.querySelector('.preview-sample').style.border = 'none';
+          document.querySelector('.preview-sample').style.borderRadius = '0';
+          document.querySelector('.preview-sample').style.backgroundColor = 'transparent';
+          document.querySelector('.preview-sample').style.borderLeft = 'none';
+        }
       } else {
         // Zettelkastenモードが無効の場合
         sampleKeyword.style.textDecoration = 'none';
@@ -546,6 +1040,12 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
         sampleBidirectional.style.color = 'inherit';
         sampleBidirectional.style.fontWeight = 'normal';
         sampleBacklinks.style.display = 'none';
+        markdownSample.style.display = 'none';
+        contextPreview.style.display = 'none';
+        graphPreview.style.display = 'none';
+        document.querySelector('.preview-sample').style.padding = '0';
+        document.querySelector('.preview-sample').style.border = 'none';
+        document.querySelector('.preview-sample').style.backgroundColor = 'transparent';
       }
     }
     
@@ -572,8 +1072,12 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
     }
     
     // 各設定変更時にプレビューを更新
-    [autolinkKeywords, highlightBidirectional, showBacklinks].forEach(input => {
-      input.addEventListener('change', updatePreview);
+    [
+      autolinkKeywords, highlightBidirectional, showBacklinks, 
+      markdownLinks, contextAwareness, atomicNoteSize, 
+      autoSuggestLinks, tagHierarchy, smartBacklinks, graphVisualization
+    ].forEach(input => {
+      if (input) input.addEventListener('change', updatePreview);
     });
     
     // 設定を保存
@@ -605,12 +1109,50 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
           config = JSON.parse(savedConfig);
         }
         
+        // Zettelkasten設定
         zettelkastenEnabled.checked = config.enabled;
+        if (zettelkastenMode) zettelkastenMode.value = config.visualMode || 'standard';
         autolinkKeywords.checked = config.autoLinkKeywords;
         highlightBidirectional.checked = config.highlightBidirectional;
         showBacklinks.checked = config.showBacklinks;
         keywordMinLength.value = config.keywordMinLength;
         keywordLengthValue.textContent = config.keywordMinLength;
+        
+        // 拡張設定
+        if (markdownLinks) markdownLinks.checked = config.markdownLinks !== undefined ? config.markdownLinks : true;
+        if (contextAwareness) contextAwareness.checked = config.contextAwareness !== undefined ? config.contextAwareness : true;
+        if (atomicNoteSize) atomicNoteSize.value = config.atomicNoteSize || 'medium';
+        if (autoSuggestLinks) autoSuggestLinks.checked = config.autoSuggestLinks !== undefined ? config.autoSuggestLinks : true;
+        if (tagHierarchy) tagHierarchy.checked = config.tagHierarchy !== undefined ? config.tagHierarchy : true;
+        if (smartBacklinks) smartBacklinks.checked = config.smartBacklinks !== undefined ? config.smartBacklinks : true;
+        if (graphVisualization) graphVisualization.checked = config.graphVisualization !== undefined ? config.graphVisualization : true;
+        
+        // 表示設定
+        if (themeMode) themeMode.value = config.themeMode || 'auto';
+        if (fontSize) fontSize.value = config.fontSize || 'medium';
+        if (showToc) showToc.checked = config.showToc !== undefined ? config.showToc : true;
+        
+        // データ管理設定
+        if (autoBackup) autoBackup.checked = config.autoBackup !== undefined ? config.autoBackup : true;
+        if (backupFrequency) backupFrequency.value = config.backupFrequency || 'weekly';
+        
+        // モード説明を更新
+        if (modeDescriptions) {
+          Object.keys(modeDescriptions).forEach(key => {
+            if (modeDescriptions[key]) {
+              modeDescriptions[key].style.display = key === (config.visualMode || 'standard') ? 'block' : 'none';
+            }
+          });
+        }
+        
+        // プレビューモードタグを更新
+        if (previewModeTag) {
+          previewModeTag.textContent = ({
+            'standard': 'スタンダードモード',
+            'atomic': 'アトミックモード',
+            'hierarchical': '階層型モード'
+          })[config.visualMode || 'standard'];
+        }
         
         subSettings.style.display = config.enabled ? 'block' : 'none';
         
@@ -627,11 +1169,31 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
     function saveSettings() {
       try {
         const config = {
+          // Zettelkasten設定
           enabled: zettelkastenEnabled.checked,
+          visualMode: zettelkastenMode.value,
           autoLinkKeywords: autolinkKeywords.checked,
           highlightBidirectional: highlightBidirectional.checked,
           showBacklinks: showBacklinks.checked,
-          keywordMinLength: parseInt(keywordMinLength.value, 10)
+          keywordMinLength: parseInt(keywordMinLength.value, 10),
+          
+          // 拡張設定
+          markdownLinks: markdownLinks.checked,
+          contextAwareness: contextAwareness.checked,
+          atomicNoteSize: atomicNoteSize.value,
+          autoSuggestLinks: autoSuggestLinks.checked,
+          tagHierarchy: tagHierarchy.checked,
+          smartBacklinks: smartBacklinks.checked,
+          graphVisualization: graphVisualization.checked,
+          
+          // 表示設定
+          themeMode: themeMode.value,
+          fontSize: fontSize.value,
+          showToc: showToc.checked,
+          
+          // データ管理設定
+          autoBackup: autoBackup.checked,
+          backupFrequency: backupFrequency.value
         };
         
         localStorage.setItem('zettelkastenConfig', JSON.stringify(config));
@@ -656,12 +1218,44 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
     
     // 設定をリセット
     function resetSettings() {
+      // Zettelkasten設定
       zettelkastenEnabled.checked = defaultConfig.enabled;
+      zettelkastenMode.value = defaultConfig.visualMode;
       autolinkKeywords.checked = defaultConfig.autoLinkKeywords;
       highlightBidirectional.checked = defaultConfig.highlightBidirectional;
       showBacklinks.checked = defaultConfig.showBacklinks;
       keywordMinLength.value = defaultConfig.keywordMinLength;
       keywordLengthValue.textContent = defaultConfig.keywordMinLength;
+      
+      // 拡張設定
+      markdownLinks.checked = defaultConfig.markdownLinks;
+      contextAwareness.checked = defaultConfig.contextAwareness;
+      atomicNoteSize.value = defaultConfig.atomicNoteSize;
+      autoSuggestLinks.checked = defaultConfig.autoSuggestLinks;
+      tagHierarchy.checked = defaultConfig.tagHierarchy;
+      smartBacklinks.checked = defaultConfig.smartBacklinks;
+      graphVisualization.checked = defaultConfig.graphVisualization;
+      
+      // 表示設定
+      themeMode.value = defaultConfig.themeMode;
+      fontSize.value = defaultConfig.fontSize;
+      showToc.checked = defaultConfig.showToc;
+      
+      // データ管理設定
+      autoBackup.checked = defaultConfig.autoBackup;
+      backupFrequency.value = defaultConfig.backupFrequency;
+      
+      // モード説明を更新
+      Object.keys(modeDescriptions).forEach(key => {
+        modeDescriptions[key].style.display = key === defaultConfig.visualMode ? 'block' : 'none';
+      });
+      
+      // プレビューモードタグを更新
+      previewModeTag.textContent = ({
+        'standard': 'スタンダードモード',
+        'atomic': 'アトミックモード',
+        'hierarchical': '階層型モード'
+      })[defaultConfig.visualMode];
       
       subSettings.style.display = defaultConfig.enabled ? 'block' : 'none';
     }
@@ -670,10 +1264,18 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
     function applySettingsToCurrentPage() {
       const config = {
         enabled: zettelkastenEnabled.checked,
+        visualMode: zettelkastenMode.value,
         autoLinkKeywords: autolinkKeywords.checked,
         highlightBidirectional: highlightBidirectional.checked,
         showBacklinks: showBacklinks.checked,
-        keywordMinLength: parseInt(keywordMinLength.value, 10)
+        keywordMinLength: parseInt(keywordMinLength.value, 10),
+        markdownLinks: markdownLinks.checked,
+        contextAwareness: contextAwareness.checked,
+        atomicNoteSize: atomicNoteSize.value,
+        autoSuggestLinks: autoSuggestLinks.checked,
+        tagHierarchy: tagHierarchy.checked,
+        smartBacklinks: smartBacklinks.checked,
+        graphVisualization: graphVisualization.checked
       };
       
       // バックリンクの表示/非表示
@@ -694,6 +1296,32 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
           link.style.color = 'var(--color-primary, #4f6df5)';
           link.style.fontWeight = 'normal';
         }
+      });
+      
+      // コンテキスト認識コンテナの表示/非表示
+      const contextContainer = document.querySelector('.context-container');
+      if (contextContainer) {
+        contextContainer.style.display = config.contextAwareness ? 'block' : 'none';
+      }
+      
+      // グラフの表示/非表示
+      const graphContainer = document.querySelector('.knowledge-graph-container');
+      if (graphContainer) {
+        graphContainer.style.display = config.graphVisualization ? 'block' : 'none';
+      }
+      
+      // モードに応じたノートスタイル
+      const contentContainer = document.querySelector('.wiki-content');
+      if (contentContainer) {
+        // モードごとのスタイル適用
+        contentContainer.classList.remove('mode-standard', 'mode-atomic', 'mode-hierarchical');
+        contentContainer.classList.add(`mode-${config.visualMode}`);
+      }
+      
+      // スマートバックリンク
+      const backlinkContexts = document.querySelectorAll('.backlink-context');
+      backlinkContexts.forEach(context => {
+        context.style.display = config.smartBacklinks ? 'block' : 'none';
       });
       
       console.log('Applied settings to current page');
