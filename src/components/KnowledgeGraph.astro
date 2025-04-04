@@ -1,0 +1,284 @@
+---
+import type { GitHubIssue } from '../data/types';
+import { findBidirectionalLinks } from '../lib/zettelkasten';
+import { BASE_PATH } from '../config';
+
+export interface Props {
+  issues: GitHubIssue[];
+  currentIssueNumber?: number;
+  showFullGraph?: boolean;
+}
+
+const { issues, currentIssueNumber, showFullGraph = false } = Astro.props;
+
+// 双方向リンクを検出
+const bidirectionalLinks = findBidirectionalLinks(issues);
+
+// グラフデータの準備
+const graphData = {
+  nodes: issues.map(issue => ({
+    id: issue.number,
+    title: issue.title,
+    url: `${BASE_PATH}/wiki/${issue.number}`,
+    isCurrent: issue.number === currentIssueNumber
+  })),
+  links: []
+};
+
+// リンクデータの準備
+issues.forEach(issue => {
+  if (!issue.body) return;
+  
+  // [[...]]形式のリンクを検出
+  const wikiLinks = issue.body.match(/\[\[(.*?)\]\]/g);
+  if (wikiLinks) {
+    wikiLinks.forEach(link => {
+      const linkedTitle = link.substring(2, link.length - 2).trim();
+      const linkedIssue = issues.find(i => 
+        i.title.toLowerCase() === linkedTitle.toLowerCase() ||
+        i.title.toLowerCase().includes(linkedTitle.toLowerCase())
+      );
+      
+      if (linkedIssue && linkedIssue.number !== issue.number) {
+        graphData.links.push({
+          source: issue.number,
+          target: linkedIssue.number,
+          bidirectional: bidirectionalLinks.has(issue.number) && 
+            bidirectionalLinks.get(issue.number)?.includes(linkedIssue.number)
+        });
+      }
+    });
+  }
+  
+  // #番号形式のリンクを検出
+  const issueRefs = issue.body.match(/#(\d+)/g);
+  if (issueRefs) {
+    issueRefs.forEach(ref => {
+      const refNumber = parseInt(ref.substring(1), 10);
+      const refIssue = issues.find(i => i.number === refNumber);
+      
+      if (refIssue && refIssue.number !== issue.number) {
+        // 重複リンクを防ぐ
+        const existingLink = graphData.links.find(
+          link => (link.source === issue.number && link.target === refIssue.number) ||
+                 (link.source === refIssue.number && link.target === issue.number)
+        );
+        
+        if (!existingLink) {
+          graphData.links.push({
+            source: issue.number,
+            target: refIssue.number,
+            bidirectional: bidirectionalLinks.has(issue.number) && 
+              bidirectionalLinks.get(issue.number)?.includes(refIssue.number)
+          });
+        }
+      }
+    });
+  }
+});
+
+// 小さいグラフの場合はフィルタリング
+let filteredGraphData = graphData;
+if (!showFullGraph && currentIssueNumber) {
+  // 現在のノードと直接リンクしているノードのみを表示
+  const connectedNodeIds = new Set();
+  connectedNodeIds.add(currentIssueNumber);
+  
+  graphData.links.forEach(link => {
+    if (link.source === currentIssueNumber) {
+      connectedNodeIds.add(link.target);
+    }
+    if (link.target === currentIssueNumber) {
+      connectedNodeIds.add(link.source);
+    }
+  });
+  
+  filteredGraphData = {
+    nodes: graphData.nodes.filter(node => connectedNodeIds.has(node.id)),
+    links: graphData.links.filter(link => 
+      connectedNodeIds.has(link.source) && connectedNodeIds.has(link.target)
+    )
+  };
+}
+
+// D3.jsにわたすデータをJSON文字列として埋め込む
+const dataJson = JSON.stringify(showFullGraph ? graphData : filteredGraphData);
+---
+
+<div class="knowledge-graph-container">
+  <div id="knowledge-graph" class={showFullGraph ? 'full-graph' : 'mini-graph'}></div>
+</div>
+
+<style>
+  .knowledge-graph-container {
+    width: 100%;
+    overflow: hidden;
+    border-radius: 8px;
+    border: 1px solid #eee;
+    margin: 1rem 0;
+  }
+  
+  .dark .knowledge-graph-container {
+    border-color: #444;
+  }
+  
+  #knowledge-graph {
+    width: 100%;
+    background-color: #f9f9f9;
+  }
+  
+  .dark #knowledge-graph {
+    background-color: #222;
+  }
+  
+  .mini-graph {
+    height: 200px;
+  }
+  
+  .full-graph {
+    height: 600px;
+  }
+  
+  :global(.graph-node) {
+    cursor: pointer;
+  }
+  
+  :global(.graph-node:hover) {
+    stroke: #f04050;
+    stroke-width: 2px;
+  }
+  
+  :global(.graph-link) {
+    stroke-opacity: 0.6;
+  }
+  
+  :global(.graph-link.bidirectional) {
+    stroke-width: 2px;
+  }
+  
+  :global(.node-label) {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 10px;
+    pointer-events: none;
+    text-anchor: middle;
+  }
+  
+  .dark :global(.node-label) {
+    fill: #eee;
+  }
+</style>
+
+<script>
+  // D3.jsを使用したグラフの描画
+  document.addEventListener('DOMContentLoaded', () => {
+    // 必要なライブラリを動的にロード
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/d3@7';
+    script.onload = initGraph;
+    document.head.appendChild(script);
+    
+    function initGraph() {
+      const graphElement = document.getElementById('knowledge-graph');
+      if (!graphElement) return;
+      
+      // コンテナデータ
+      const dataElm = document.getElementById('graph-data');
+      const graphData = JSON.parse(graphElement.getAttribute('data-graph') || '{"nodes":[],"links":[]}');
+      const isFullGraph = graphElement.classList.contains('full-graph');
+      
+      // D3.jsグラフの設定
+      const width = graphElement.clientWidth;
+      const height = graphElement.clientHeight;
+      
+      // SVG要素の作成
+      const svg = d3.select('#knowledge-graph')
+        .append('svg')
+        .attr('width', width)
+        .attr('height', height);
+      
+      // シミュレーションの設定
+      const simulation = d3.forceSimulation(graphData.nodes)
+        .force('link', d3.forceLink(graphData.links).id(d => d.id).distance(70))
+        .force('charge', d3.forceManyBody().strength(-150))
+        .force('center', d3.forceCenter(width / 2, height / 2))
+        .on('tick', ticked);
+      
+      // リンクの描画
+      const link = svg.append('g')
+        .selectAll('line')
+        .data(graphData.links)
+        .enter().append('line')
+        .attr('class', d => `graph-link ${d.bidirectional ? 'bidirectional' : ''}`)
+        .attr('stroke', d => d.bidirectional ? '#0fa968' : '#999')
+        .attr('stroke-width', d => d.bidirectional ? 2 : 1);
+      
+      // ノードの描画
+      const node = svg.append('g')
+        .selectAll('circle')
+        .data(graphData.nodes)
+        .enter().append('circle')
+        .attr('class', 'graph-node')
+        .attr('r', d => d.isCurrent ? 8 : 5)
+        .attr('fill', d => d.isCurrent ? '#f04050' : '#4f6df5')
+        .on('click', clicked);
+      
+      // ラベルの描画（全体グラフの場合のみ）
+      if (isFullGraph) {
+        const label = svg.append('g')
+          .selectAll('text')
+          .data(graphData.nodes)
+          .enter().append('text')
+          .attr('class', 'node-label')
+          .attr('dy', '0.35em')
+          .text(d => d.title.length > 15 ? d.title.substring(0, 15) + '...' : d.title);
+      }
+      
+      // シミュレーション更新時の処理
+      function ticked() {
+        link
+          .attr('x1', d => d.source.x)
+          .attr('y1', d => d.source.y)
+          .attr('x2', d => d.target.x)
+          .attr('y2', d => d.target.y);
+        
+        node
+          .attr('cx', d => d.x = Math.max(5, Math.min(width - 5, d.x)))
+          .attr('cy', d => d.y = Math.max(5, Math.min(height - 5, d.y)));
+        
+        if (isFullGraph) {
+          svg.selectAll('.node-label')
+            .attr('x', d => d.x)
+            .attr('y', d => d.y - 10);
+        }
+      }
+      
+      // ノードクリック時の処理
+      function clicked(event, d) {
+        if (event.defaultPrevented) return;
+        
+        // ノードをクリックした場合、対応するページに遷移
+        window.location.href = d.url;
+      }
+      
+      // ズーム機能の追加（全体グラフの場合）
+      if (isFullGraph) {
+        const zoom = d3.zoom()
+          .scaleExtent([0.1, 3])
+          .on('zoom', (event) => {
+            svg.selectAll('g').attr('transform', event.transform);
+          });
+        
+        svg.call(zoom);
+      }
+    }
+  });
+</script>
+
+<script is:inline define:vars={{dataJson}}>
+  document.addEventListener('DOMContentLoaded', () => {
+    const graph = document.getElementById('knowledge-graph');
+    if (graph) {
+      graph.setAttribute('data-graph', dataJson);
+    }
+  });
+</script>
