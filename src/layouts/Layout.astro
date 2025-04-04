@@ -1,249 +1,282 @@
 ---
-import { BASE_PATH, SITE_TITLE, REPO_URL } from '../config';
 import SettingsPanel from '../components/SettingsPanel.astro';
+import { BASE_PATH, SITE_TITLE } from '../config';
 
 export interface Props {
   title: string;
   description?: string;
 }
 
-const { title, description = 'GitHubのIssueを使って管理するWikiサイト' } = Astro.props;
+const { title, description = 'GitHubのIssueを使って管理するドキュメントサイト' } = Astro.props;
 ---
 
 <!DOCTYPE html>
 <html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{title} | {SITE_TITLE}</title>
-  <meta name="description" content={description}>
-  <link rel="stylesheet" href={`${BASE_PATH}/styles/global.css`}>
-  <link rel="stylesheet" href={`${BASE_PATH}/styles/zettelkasten.css`}>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-</head>
-<body>
-  <header>
-    <div class="container">
-      <div class="header-content">
-        <h1><a href={BASE_PATH + "/"} class="title-link">GitWiki Hub</a></h1>
-        <div class="nav-container">
-          <nav>
-            <a href={BASE_PATH + "/"}>ホーム</a>
-            <a href={`${BASE_PATH}/wiki/1`}>はじめに</a>
-            <a href={`${BASE_PATH}/knowledge-graph`}>知識グラフ</a>
-            <a href={`${BASE_PATH}/analysis`}>分析</a>
-            <a href={REPO_URL}>GitHub</a>
-          </nav>
-          <button id="settings-toggle-btn" class="settings-toggle-btn">設定</button>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    
+    <link rel="stylesheet" href={`${BASE_PATH}/styles/global.css`} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet" />
+    
+    <!-- テーママネージャーのスクリプト -->
+    <script src="../utils/themeManager.js" type="module"></script>
+  </head>
+  <body>
+    <header>
+      <div class="container">
+        <div class="header-content">
+          <h1><a href={BASE_PATH + "/"}>{SITE_TITLE}</a></h1>
+          <div class="nav-container">
+            <nav>
+              <a href={BASE_PATH + "/"}>ホーム</a>
+              <a href={`${BASE_PATH}/wiki/1`}>はじめに</a>
+              <a href={`${BASE_PATH}/wiki`}>ページ一覧</a>
+              <a href={`${BASE_PATH}/data-management`}>データ管理</a>
+              <a href={`${BASE_PATH}/analysis`}>分析</a>
+              <a href="https://github.com/nao-amj/starlight-issue-wiki" target="_blank">GitHub</a>
+            </nav>
+            <button id="settings-toggle-btn" class="settings-toggle-btn">設定</button>
+          </div>
         </div>
       </div>
-    </div>
-  </header>
-
-  <main class="container">
-    <slot />
-  </main>
-
-  <footer>
-    <div class="container">
-      <p>&copy; 2025 Starlight Issue Wiki</p>
-    </div>
-  </footer>
-
-  <!-- Zettelkastenインディケーター -->
-  <div class="zettelkasten-indicator" title="Zettelkastenモード有効" id="zettelkasten-indicator">Z</div>
-
-  <!-- 設定パネル -->
-  <SettingsPanel />
-
-  <style is:global>
-    /* Zettelkastenモードのスタイルを追加 */
-    body.zettelkasten-mode {
-      --zettelkasten-color: var(--color-primary, #4f6df5);
-      --zettelkasten-bidirectional-color: var(--color-success, #0fa968);
-    }
+    </header>
     
-    /* Zettelkastenインディケーターのスタイル */
-    .zettelkasten-indicator {
-      position: fixed;
-      bottom: 1.5rem;
-      right: 1.5rem;
-      width: 2.5rem;
-      height: 2.5rem;
-      background-color: var(--color-primary, #4f6df5);
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      font-size: 1.2rem;
-      border-radius: 50%;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-      cursor: pointer;
-      transition: all 0.2s;
-      z-index: 999;
-      opacity: 0;
-      transform: scale(0.8);
-      pointer-events: none;
-    }
+    <main class="container">
+      <slot />
+    </main>
     
-    body.zettelkasten-mode .zettelkasten-indicator {
-      opacity: 1;
-      transform: scale(1);
-      pointer-events: auto;
-    }
+    <footer>
+      <div class="container">
+        <div class="footer-content">
+          <div class="footer-links">
+            <a href={BASE_PATH + "/"}>ホーム</a>
+            <a href={`${BASE_PATH}/wiki`}>ページ一覧</a>
+            <a href={`${BASE_PATH}/data-management`}>データ管理</a>
+            <a href={`${BASE_PATH}/analysis`}>分析</a>
+            <a href="https://github.com/nao-amj/starlight-issue-wiki" target="_blank">GitHub</a>
+          </div>
+          <div class="footer-copyright">
+            &copy; {new Date().getFullYear()} GitWiki Hub
+          </div>
+        </div>
+      </div>
+    </footer>
     
-    .zettelkasten-indicator:hover {
-      transform: scale(1.1);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    }
-
-    /* フラッシュメッセージのスタイル */
-    .save-message {
-      position: fixed;
-      bottom: 2rem;
-      left: 50%;
-      transform: translateX(-50%);
-      background-color: var(--color-success, #0fa968);
-      color: white;
-      padding: 0.75rem 1.5rem;
-      border-radius: 0.5rem;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-      z-index: 1000;
-      animation: fadeInOut 2s ease-in-out;
-      text-align: center;
-    }
-
-    /* ヘッダーのタイトルリンクを白色に */
-    .title-link {
-      color: white !important;
-      text-decoration: none;
-    }
+    <SettingsPanel />
     
-    /* ナビゲーションとボタンを整列するためのコンテナ */
-    .nav-container {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-
-    /* 設定ボタンのスタイル */
-    .settings-toggle-btn {
-      background-color: #4f6df5;
-      color: white;
-      padding: 0.5rem 1rem;
-      border: none;
-      border-radius: 0.375rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s;
-      white-space: nowrap;
-    }
-
-    .settings-toggle-btn:hover {
-      background-color: #3a5ad9;
-      transform: translateY(-1px);
-    }
-
-    @keyframes fadeInOut {
-      0%, 100% { opacity: 0; }
-      10%, 90% { opacity: 1; }
-    }
-    
-    /* スマホ表示の改善 */
-    @media (max-width: 768px) {
+    <style>
+      header {
+        background-color: white;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+        padding: 1rem 0;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+      
+      .dark header {
+        background-color: #111;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+      }
+      
       .header-content {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      
+      header h1 {
+        margin: 0;
+        font-size: 1.5rem;
+      }
+      
+      header h1 a {
+        text-decoration: none;
+        color: var(--color-primary);
+        transition: all 0.2s;
+      }
+      
+      header h1 a:hover {
+        color: var(--color-primary-dark);
       }
       
       .nav-container {
-        width: 100%;
         display: flex;
-        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
       }
       
       nav {
         display: flex;
-        gap: 1rem;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        max-width: calc(100% - 80px);
-        padding-bottom: 0.5rem;
+        gap: 1.5rem;
       }
       
       nav a {
+        color: var(--color-text);
+        text-decoration: none;
+        padding: 0.5rem 0;
+        position: relative;
+        transition: color 0.2s;
+      }
+      
+      nav a:hover {
+        color: var(--color-primary);
+      }
+      
+      nav a.active {
+        color: var(--color-primary);
+      }
+      
+      nav a.active::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background-color: var(--color-primary);
+      }
+      
+      .settings-toggle-btn {
+        background-color: var(--color-primary);
+        color: white;
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
         white-space: nowrap;
       }
-    }
-  </style>
-
-  <script is:inline>
-    // Zettelkastenモードの設定を読み込み、適用する
-    document.addEventListener('DOMContentLoaded', () => {
-      try {
-        // ローカルストレージから設定を読み込み
-        const savedConfig = localStorage.getItem('zettelkastenConfig');
-        if (savedConfig) {
-          const config = JSON.parse(savedConfig);
-          
-          // Zettelkastenモードが有効ならbodyにクラスを追加
-          if (config.enabled) {
-            document.body.classList.add('zettelkasten-mode');
-          } else {
-            document.body.classList.remove('zettelkasten-mode');
-          }
+      
+      .settings-toggle-btn:hover {
+        background-color: var(--color-primary-dark);
+        transform: translateY(-1px);
+      }
+      
+      footer {
+        background-color: #f9f9fb;
+        padding: 2rem 0;
+        margin-top: 5rem;
+        border-top: 1px solid #eee;
+      }
+      
+      .dark footer {
+        background-color: #111;
+        border-top-color: #333;
+      }
+      
+      .footer-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+      }
+      
+      .footer-links {
+        display: flex;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      
+      .footer-links a {
+        color: #666;
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+      
+      .dark .footer-links a {
+        color: #aaa;
+      }
+      
+      .footer-links a:hover {
+        color: var(--color-primary);
+      }
+      
+      .footer-copyright {
+        color: #999;
+        font-size: 0.875rem;
+      }
+      
+      .dark .footer-copyright {
+        color: #777;
+      }
+      
+      @media (max-width: 768px) {
+        .header-content {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 1rem;
         }
         
-        // 設定変更時のイベントリスナー
-        window.addEventListener('zettelkasten-settings-changed', () => {
-          setTimeout(() => {
-            try {
-              const updatedConfig = JSON.parse(localStorage.getItem('zettelkastenConfig'));
-              if (updatedConfig && updatedConfig.enabled) {
-                document.body.classList.add('zettelkasten-mode');
-              } else {
-                document.body.classList.remove('zettelkasten-mode');
-              }
-            } catch (e) {
-              console.error('設定の反映中にエラーが発生しました:', e);
-            }
-          }, 100);
+        .nav-container {
+          width: 100%;
+          justify-content: space-between;
+        }
+        
+        nav {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          display: flex;
+          flex-wrap: nowrap;
+          max-width: calc(100% - 80px);
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+          padding-bottom: 0.5rem;
+          gap: 1rem;
+        }
+        
+        nav::-webkit-scrollbar {
+          display: none;
+        }
+        
+        nav a {
+          white-space: nowrap;
+        }
+      }
+    </style>
+    
+    <script>
+      // ヘッダーのナビゲーションにアクティブクラスを設定
+      document.addEventListener('DOMContentLoaded', () => {
+        const pathname = window.location.pathname;
+        const navLinks = document.querySelectorAll('nav a');
+        
+        navLinks.forEach(link => {
+          const href = link.getAttribute('href');
+          if (href && pathname.startsWith(href) && href !== '/') {
+            link.classList.add('active');
+          } else if (href === '/' && pathname === '/') {
+            link.classList.add('active');
+          }
         });
         
-        // ヘッダーの設定ボタンのクリックイベント
-        const headerSettingsBtn = document.getElementById('settings-toggle-btn');
-        if (headerSettingsBtn) {
-          headerSettingsBtn.addEventListener('click', () => {
-            // 設定パネルを表示
+        // 設定パネルの表示トグル
+        const settingsBtn = document.getElementById('settings-toggle-btn');
+        if (settingsBtn) {
+          settingsBtn.addEventListener('click', () => {
             const settingsPanel = document.getElementById('settings-panel');
             if (settingsPanel) {
               settingsPanel.style.display = 'block';
-              // イベント発火して設定を読み込む
+              // カスタムイベントを発火して設定パネルが開いたことを通知
               window.dispatchEvent(new CustomEvent('settings-panel-open'));
             }
           });
         }
-        
-        // Zettelkastenインディケーターのクリックイベント
-        const indicator = document.getElementById('zettelkasten-indicator');
-        if (indicator) {
-          indicator.addEventListener('click', () => {
-            // 設定パネルを表示
-            const settingsPanel = document.getElementById('settings-panel');
-            if (settingsPanel) {
-              settingsPanel.style.display = 'block';
-              window.dispatchEvent(new CustomEvent('settings-panel-open'));
-            }
-          });
-        }
-      } catch (error) {
-        console.error('Zettelkasten設定の読み込みに失敗しました:', error);
-      }
-    });
-  </script>
-</body>
+      });
+
+      // テーマ変更イベントのリスナー
+      window.addEventListener('theme-changed', (event) => {
+        console.log('Theme changed:', event.detail);
+      });
+    </script>
+  </body>
 </html>
