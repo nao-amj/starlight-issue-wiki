@@ -271,12 +271,15 @@ export function convertWikiLinksToHtml(
   bidirectionalLinks: Map<number, number[]>,
   currentIssueNumber: number
 ): string {
-  const config = loadZettelkastenSettings();
-  if (!config.enabled) return body;
+  // Zettelkastenモードに関わらず常にリンク変換を行う（enabled条件を削除）
+  
+  // デバッグログ
+  console.log(`convertWikiLinksToHtml: Processing ${body.length} characters`);
   
   // 正規表現で[[...]]形式のリンクを検索して置換
-  return body.replace(/\[\[(.*?)\]\]/g, (match, linkedTitle) => {
+  const result = body.replace(/\[\[(.*?)\]\]/g, (match, linkedTitle) => {
     linkedTitle = linkedTitle.trim();
+    console.log(`Found wiki link: [[${linkedTitle}]]`);
     
     // タイトルから対応するIssueを探す
     const linkedIssue = issues.find(issue => 
@@ -285,19 +288,24 @@ export function convertWikiLinksToHtml(
     );
     
     if (linkedIssue) {
+      console.log(`Matched to issue #${linkedIssue.number}`);
+      
       // 双方向リンクかどうかを確認
       const isBidirectional = bidirectionalLinks.has(currentIssueNumber) && 
         bidirectionalLinks.get(currentIssueNumber)?.includes(linkedIssue.number);
       
-      const linkClass = isBidirectional && config.highlightBidirectional
+      const linkClass = isBidirectional
         ? 'wiki-link bidirectional' 
         : 'wiki-link';
       
-      return `<a href="${BASE_PATH}/wiki/${linkedIssue.number}" class="${linkClass}" 
-               data-issue="${linkedIssue.number}">${linkedTitle}</a>`;
+      return `<a href="${BASE_PATH}/wiki/${linkedIssue.number}" class="${linkClass}" data-issue="${linkedIssue.number}">${linkedTitle}</a>`;
     }
     
     // 対応するIssueが見つからない場合は未リンクとして表示
+    console.log(`No matching issue found for: ${linkedTitle}`);
     return `<span class="wiki-link-unlinked">${linkedTitle}</span>`;
   });
+  
+  console.log('Wiki links conversion completed');
+  return result;
 }
