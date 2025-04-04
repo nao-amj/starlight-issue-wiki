@@ -195,6 +195,26 @@ issues.forEach(issue => {
     recencyCategories.old.count++;
   }
 });
+
+// フロントエンド用データのシリアライズ
+const serializedLabelData = JSON.stringify(labelData);
+const serializedActivityData = JSON.stringify(activityData);
+const serializedLengthData = JSON.stringify({
+  short: lengthCategories.short.count,
+  medium: lengthCategories.medium.count,
+  long: lengthCategories.long.count
+});
+const serializedRecencyData = JSON.stringify({
+  recent: recencyCategories.recent.count,
+  medium: recencyCategories.medium.count,
+  old: recencyCategories.old.count
+});
+const serializedLinkData = JSON.stringify({
+  internal: linkAnalysis.internalLinks,
+  external: linkAnalysis.externalLinks,
+  wikiLinks: linkAnalysis.wikiLinks,
+  issueRefs: linkAnalysis.issueRefs
+});
 ---
 
 <Layout title={pageTitle}>
@@ -649,28 +669,21 @@ issues.forEach(issue => {
   }
 </style>
 
-<script>
+<script define:vars={{ 
+  labelData: serializedLabelData, 
+  activityData: serializedActivityData,
+  lengthData: serializedLengthData,
+  recencyData: serializedRecencyData,
+  linkData: serializedLinkData
+}}>
   document.addEventListener('DOMContentLoaded', () => {
-    // データをHTML要素から取得
+    // データを解析
     const issueData = {
-      labels: JSON.parse(`{JSON.stringify(labelData)}`),
-      activity: JSON.parse(`{JSON.stringify(activityData)}`),
-      length: {
-        short: {JSON.stringify(lengthCategories.short.count)},
-        medium: {JSON.stringify(lengthCategories.medium.count)},
-        long: {JSON.stringify(lengthCategories.long.count)}
-      },
-      recency: {
-        recent: {JSON.stringify(recencyCategories.recent.count)},
-        medium: {JSON.stringify(recencyCategories.medium.count)},
-        old: {JSON.stringify(recencyCategories.old.count)}
-      },
-      links: {
-        internal: {JSON.stringify(linkAnalysis.internalLinks)},
-        external: {JSON.stringify(linkAnalysis.externalLinks)},
-        wikiLinks: {JSON.stringify(linkAnalysis.wikiLinks)},
-        issueRefs: {JSON.stringify(linkAnalysis.issueRefs)}
-      }
+      labels: JSON.parse(labelData),
+      activity: JSON.parse(activityData),
+      length: JSON.parse(lengthData),
+      recency: JSON.parse(recencyData),
+      links: JSON.parse(linkData)
     };
     
     // D3.jsを使用してチャートを描画
