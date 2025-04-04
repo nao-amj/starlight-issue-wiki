@@ -1,6 +1,7 @@
 ---
 import { findBacklinks, loadZettelkastenSettings, convertWikiLinksToHtml, findBidirectionalLinks } from '../lib/zettelkasten';
 import BacklinkList from './BacklinkList.astro';
+import KnowledgeGraph from './KnowledgeGraph.astro';
 import type { GitHubIssue } from '../data/types';
 import { BASE_PATH } from '../config';
 
@@ -32,6 +33,18 @@ try {
 
 <div class="wiki-content">
   <div class="content" set:html={content} />
+  
+  <div class="knowledge-graph-section">
+    <h3>知識グラフ（接続ノード）</h3>
+    <KnowledgeGraph 
+      issues={allIssues} 
+      currentIssueNumber={currentIssue.number} 
+      showFullGraph={false} 
+    />
+    <div class="graph-link-container">
+      <a href={`${BASE_PATH}/knowledge-graph`} class="graph-link">全体の知識グラフを表示</a>
+    </div>
+  </div>
   
   {backlinks.length > 0 && (
     <BacklinkList backlinks={backlinks} currentIssueNumber={currentIssue.number} />
@@ -88,6 +101,40 @@ try {
     text-decoration: none;
     border-bottom: 1px dotted #999;
     color: #666;
+  }
+  
+  .knowledge-graph-section {
+    margin: 2rem 0;
+    padding: 1rem 0;
+    border-top: 1px solid var(--sl-color-gray-5);
+  }
+  
+  .knowledge-graph-section h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+  }
+  
+  .graph-link-container {
+    text-align: center;
+    margin-top: 0.5rem;
+  }
+  
+  .graph-link {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background-color: var(--color-primary, #4f6df5);
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+  }
+  
+  .graph-link:hover {
+    background-color: var(--color-primary-dark, #3a50c5);
+    transform: translateY(-2px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   }
   
   .edit-links {
