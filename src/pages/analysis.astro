@@ -1,0 +1,1037 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { BASE_PATH, SITE_TITLE } from '../config';
+
+// GitHub API からIssueを取得する関数
+async function fetchIssues() {
+  try {
+    // GitHub APIを使用してissueを取得（プルリクエストを除外）
+    const response = await fetch('https://api.github.com/repos/nao-amj/starlight-issue-wiki/issues?state=all&per_page=100');
+    if (!response.ok) {
+      throw new Error(`GitHub API error: ${response.status}`);
+    }
+    const allItems = await response.json();
+    // プルリクエストを除外する
+    return allItems.filter(item => !item.pull_request);
+  } catch (error) {
+    console.error('Error fetching issues:', error);
+    return [];
+  }
+}
+
+const issues = await fetchIssues();
+const pageTitle = `コンテンツ分析 - ${SITE_TITLE}`;
+
+// ラベルの集計
+const labelCounts = {};
+issues.forEach(issue => {
+  if (issue.labels && issue.labels.length > 0) {
+    issue.labels.forEach(label => {
+      if (!labelCounts[label.name]) {
+        labelCounts[label.name] = {
+          count: 0,
+          color: label.color || '888888'
+        };
+      }
+      labelCounts[label.name].count++;
+    });
+  }
+});
+
+// ラベルデータを配列に変換しソート
+const labelData = Object.entries(labelCounts)
+  .map(([name, data]) => ({ name, ...data }))
+  .sort((a, b) => b.count - a.count);
+
+// 更新頻度の分析
+const monthlyActivity = {};
+issues.forEach(issue => {
+  const createdDate = new Date(issue.created_at);
+  const createdMonth = `${createdDate.getFullYear()}-${String(createdDate.getMonth() + 1).padStart(2, '0')}`;
+  
+  if (!monthlyActivity[createdMonth]) {
+    monthlyActivity[createdMonth] = { created: 0, updated: 0 };
+  }
+  monthlyActivity[createdMonth].created++;
+  
+  const updatedDate = new Date(issue.updated_at);
+  const updatedMonth = `${updatedDate.getFullYear()}-${String(updatedDate.getMonth() + 1).padStart(2, '0')}`;
+  
+  if (!monthlyActivity[updatedMonth]) {
+    monthlyActivity[updatedMonth] = { created: 0, updated: 0 };
+  }
+  monthlyActivity[updatedMonth].updated++;
+});
+
+// 月次データを配列に変換し時系列でソート
+const activityData = Object.entries(monthlyActivity)
+  .map(([month, data]) => ({ month, ...data }))
+  .sort((a, b) => a.month.localeCompare(b.month));
+
+// コンテンツ長さの分析（文字数）
+const lengthCategories = {
+  short: { count: 0, label: '短い (< 500字)' },
+  medium: { count: 0, label: '中程度 (500-2000字)' },
+  long: { count: 0, label: '長い (> 2000字)' }
+};
+
+issues.forEach(issue => {
+  const contentLength = (issue.body || '').length;
+  
+  if (contentLength < 500) {
+    lengthCategories.short.count++;
+  } else if (contentLength < 2000) {
+    lengthCategories.medium.count++;
+  } else {
+    lengthCategories.long.count++;
+  }
+});
+
+// リンク関係の分析
+const linkAnalysis = {
+  totalLinks: 0,
+  internalLinks: 0,
+  externalLinks: 0,
+  wikiLinks: 0,
+  issueRefs: 0,
+  mostLinkedPages: {}
+};
+
+issues.forEach(issue => {
+  if (!issue.body) return;
+  
+  // [[...]]形式のリンクを検出
+  const wikiLinks = issue.body.match(/\[\[(.*?)\]\]/g);
+  if (wikiLinks) {
+    linkAnalysis.wikiLinks += wikiLinks.length;
+    linkAnalysis.totalLinks += wikiLinks.length;
+    
+    // リンク先のページをカウント
+    wikiLinks.forEach(link => {
+      const linkedTitle = link.substring(2, link.length - 2).trim();
+      const linkedIssue = issues.find(i => 
+        i.title.toLowerCase() === linkedTitle.toLowerCase() ||
+        i.title.toLowerCase().includes(linkedTitle.toLowerCase())
+      );
+      
+      if (linkedIssue) {
+        const targetId = linkedIssue.number;
+        if (!linkAnalysis.mostLinkedPages[targetId]) {
+          linkAnalysis.mostLinkedPages[targetId] = {
+            title: linkedIssue.title,
+            count: 0
+          };
+        }
+        linkAnalysis.mostLinkedPages[targetId].count++;
+      }
+    });
+  }
+  
+  // #番号形式のリンクを検出
+  const issueRefs = issue.body.match(/#(\d+)/g);
+  if (issueRefs) {
+    linkAnalysis.issueRefs += issueRefs.length;
+    linkAnalysis.totalLinks += issueRefs.length;
+    
+    // リンク先のIssueをカウント
+    issueRefs.forEach(ref => {
+      const refNumber = parseInt(ref.substring(1), 10);
+      const refIssue = issues.find(i => i.number === refNumber);
+      
+      if (refIssue) {
+        const targetId = refIssue.number;
+        if (!linkAnalysis.mostLinkedPages[targetId]) {
+          linkAnalysis.mostLinkedPages[targetId] = {
+            title: refIssue.title,
+            count: 0
+          };
+        }
+        linkAnalysis.mostLinkedPages[targetId].count++;
+      }
+    });
+  }
+  
+  // Markdown外部リンクを検出 [text](url)
+  const markdownLinks = issue.body.match(/\[.+?\]\((https?:\/\/[^)]+)\)/g);
+  if (markdownLinks) {
+    linkAnalysis.externalLinks += markdownLinks.length;
+    linkAnalysis.totalLinks += markdownLinks.length;
+  }
+  
+  // URLのみのリンクを検出
+  const plainUrls = issue.body.match(/(?<!\()https?:\/\/[^\s)]+/g);
+  if (plainUrls) {
+    linkAnalysis.externalLinks += plainUrls.length;
+    linkAnalysis.totalLinks += plainUrls.length;
+  }
+});
+
+// 内部リンク（Wikiリンク + Issueリファレンス）
+linkAnalysis.internalLinks = linkAnalysis.wikiLinks + linkAnalysis.issueRefs;
+
+// 最もリンクが多いページをソート
+const topLinkedPages = Object.entries(linkAnalysis.mostLinkedPages)
+  .map(([id, data]) => ({ id, ...data }))
+  .sort((a, b) => b.count - a.count)
+  .slice(0, 5);
+
+// 更新日時による分類
+const recencyCategories = {
+  recent: { count: 0, label: '最近 (30日以内)' },
+  medium: { count: 0, label: '中程度 (30-90日)' },
+  old: { count: 0, label: '古い (90日以上)' }
+};
+
+const now = new Date();
+issues.forEach(issue => {
+  const updatedDate = new Date(issue.updated_at);
+  const daysDifference = Math.floor((now - updatedDate) / (1000 * 60 * 60 * 24));
+  
+  if (daysDifference < 30) {
+    recencyCategories.recent.count++;
+  } else if (daysDifference < 90) {
+    recencyCategories.medium.count++;
+  } else {
+    recencyCategories.old.count++;
+  }
+});
+---
+
+<Layout title={pageTitle}>
+  <div class="analysis-page">
+    <header class="page-header">
+      <h1>コンテンツ分析ダッシュボード</h1>
+      <p class="page-description">
+        このページではWikiのコンテンツ構成や更新状況、リンク関係などを視覚的に表示しています。
+      </p>
+    </header>
+    
+    <div class="analysis-grid">
+      <!-- 概要カード -->
+      <div class="analysis-card" id="summary-card">
+        <h2 class="card-title">コンテンツ概要</h2>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-value">{issues.length}</div>
+            <div class="stat-label">総ページ数</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">{linkAnalysis.totalLinks}</div>
+            <div class="stat-label">総リンク数</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">{Object.keys(labelCounts).length}</div>
+            <div class="stat-label">カテゴリ数</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">{activityData.length}</div>
+            <div class="stat-label">活動月数</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- カテゴリ分布カード -->
+      <div class="analysis-card" id="category-card">
+        <h2 class="card-title">カテゴリ分布</h2>
+        <div class="category-chart-container">
+          <div id="category-chart"></div>
+          <div class="category-legend">
+            {labelData.slice(0, 6).map(label => (
+              <div class="legend-item">
+                <span class="legend-color" style={`background-color: #${label.color}`}></span>
+                <span class="legend-text">{label.name} ({label.count})</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      
+      <!-- 更新頻度カード -->
+      <div class="analysis-card" id="activity-card">
+        <h2 class="card-title">更新頻度</h2>
+        <div id="activity-chart"></div>
+      </div>
+      
+      <!-- コンテンツ長さカード -->
+      <div class="analysis-card" id="length-card">
+        <h2 class="card-title">コンテンツの長さ</h2>
+        <div class="donut-container">
+          <div id="length-chart"></div>
+          <div class="donut-legend">
+            <div class="legend-item">
+              <span class="legend-color" style="background-color: #E9D5FF"></span>
+              <span class="legend-text">{lengthCategories.short.label} ({lengthCategories.short.count})</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color" style="background-color: #C084FC"></span>
+              <span class="legend-text">{lengthCategories.medium.label} ({lengthCategories.medium.count})</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color" style="background-color: #6B21A8"></span>
+              <span class="legend-text">{lengthCategories.long.label} ({lengthCategories.long.count})</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 更新日時カード -->
+      <div class="analysis-card" id="recency-card">
+        <h2 class="card-title">更新日時の分布</h2>
+        <div class="donut-container">
+          <div id="recency-chart"></div>
+          <div class="donut-legend">
+            <div class="legend-item">
+              <span class="legend-color" style="background-color: #86EFAC"></span>
+              <span class="legend-text">{recencyCategories.recent.label} ({recencyCategories.recent.count})</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color" style="background-color: #4ADE80"></span>
+              <span class="legend-text">{recencyCategories.medium.label} ({recencyCategories.medium.count})</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color" style="background-color: #16A34A"></span>
+              <span class="legend-text">{recencyCategories.old.label} ({recencyCategories.old.count})</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- リンク分析カード -->
+      <div class="analysis-card" id="links-card">
+        <h2 class="card-title">リンク分析</h2>
+        <div class="links-container">
+          <div id="links-chart"></div>
+          <div class="links-stats">
+            <h3>最も参照されているページ</h3>
+            <ul class="links-list">
+              {topLinkedPages.map(page => (
+                <li>
+                  <a href={`${BASE_PATH}/wiki/${page.id}`} class="page-link">
+                    {page.title}
+                  </a>
+                  <span class="link-count">{page.count} リンク</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="action-buttons">
+      <a href={`${BASE_PATH}/`} class="action-button">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+          <polyline points="9 22 9 12 15 12 15 22"></polyline>
+        </svg>
+        トップページに戻る
+      </a>
+      <a href={`${BASE_PATH}/knowledge-graph`} class="action-button">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+          <line x1="12" y1="22.08" x2="12" y2="12"></line>
+        </svg>
+        知識グラフを見る
+      </a>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .analysis-page {
+    padding-bottom: 3rem;
+  }
+  
+  .page-header {
+    margin-bottom: 2rem;
+    text-align: center;
+  }
+  
+  .page-header h1 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .page-description {
+    color: #666;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  
+  .dark .page-description {
+    color: #aaa;
+  }
+  
+  .analysis-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  .analysis-card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .dark .analysis-card {
+    background: #222;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  }
+  
+  .card-title {
+    font-size: 1.25rem;
+    margin-top: 0;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .dark .card-title {
+    border-bottom-color: #444;
+  }
+  
+  /* サマリーカードのスタイル */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  
+  .stat-item {
+    text-align: center;
+    padding: 1rem;
+    background-color: #f8fafc;
+    border-radius: 8px;
+  }
+  
+  .dark .stat-item {
+    background-color: #333;
+  }
+  
+  .stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #4f6df5;
+    margin-bottom: 0.25rem;
+  }
+  
+  .dark .stat-value {
+    color: #7b96ff;
+  }
+  
+  .stat-label {
+    font-size: 0.875rem;
+    color: #64748b;
+  }
+  
+  .dark .stat-label {
+    color: #94a3b8;
+  }
+  
+  /* カテゴリチャートのスタイル */
+  .category-chart-container {
+    height: 300px;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  #category-chart {
+    flex: 1;
+    min-height: 220px;
+  }
+  
+  .category-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1rem;
+  }
+  
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+  }
+  
+  .legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+  }
+  
+  /* アクティビティチャート */
+  #activity-chart {
+    height: 250px;
+  }
+  
+  /* ドーナツチャート共通スタイル */
+  .donut-container {
+    display: flex;
+    align-items: center;
+    height: 250px;
+  }
+  
+  #length-chart,
+  #recency-chart {
+    width: 50%;
+    height: 200px;
+  }
+  
+  .donut-legend {
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding-left: 1rem;
+  }
+  
+  /* リンク分析カード */
+  #links-card {
+    grid-column: span 2;
+  }
+  
+  .links-container {
+    display: flex;
+    height: 300px;
+  }
+  
+  #links-chart {
+    width: 50%;
+    height: 100%;
+  }
+  
+  .links-stats {
+    width: 50%;
+    padding-left: 2rem;
+  }
+  
+  .links-stats h3 {
+    font-size: 1rem;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: #4b5563;
+  }
+  
+  .dark .links-stats h3 {
+    color: #e5e7eb;
+  }
+  
+  .links-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .links-list li {
+    margin-bottom: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background-color: #f9fafb;
+    border-radius: 4px;
+  }
+  
+  .dark .links-list li {
+    background-color: #374151;
+  }
+  
+  .page-link {
+    color: #4f6df5;
+    text-decoration: none;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    max-width: 70%;
+  }
+  
+  .dark .page-link {
+    color: #93c5fd;
+  }
+  
+  .link-count {
+    font-size: 0.875rem;
+    color: #6b7280;
+    white-space: nowrap;
+  }
+  
+  .dark .link-count {
+    color: #9ca3af;
+  }
+  
+  /* アクションボタン */
+  .action-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+  
+  .action-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    background-color: var(--color-primary);
+    color: white;
+    text-decoration: none;
+    border-radius: 50px;
+    font-weight: 500;
+    transition: all 0.3s;
+  }
+  
+  .action-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(79, 109, 245, 0.3);
+  }
+  
+  .dark .action-button:hover {
+    box-shadow: 0 5px 15px rgba(79, 109, 245, 0.5);
+  }
+  
+  /* レスポンシブ対応 */
+  @media (max-width: 768px) {
+    .links-container {
+      flex-direction: column;
+      height: auto;
+    }
+    
+    #links-chart {
+      width: 100%;
+      height: 220px;
+      margin-bottom: 1.5rem;
+    }
+    
+    .links-stats {
+      width: 100%;
+      padding-left: 0;
+    }
+    
+    .donut-container {
+      flex-direction: column;
+      height: auto;
+    }
+    
+    #length-chart,
+    #recency-chart {
+      width: 100%;
+      height: 200px;
+      margin-bottom: 1rem;
+    }
+    
+    .donut-legend {
+      width: 100%;
+      padding-left: 0;
+    }
+    
+    #links-card {
+      grid-column: span 1;
+    }
+    
+    .action-buttons {
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .action-button {
+      width: 100%;
+      max-width: 300px;
+      justify-content: center;
+    }
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // データをHTML要素から取得
+    const issueData = {
+      labels: JSON.parse(`{JSON.stringify(labelData)}`),
+      activity: JSON.parse(`{JSON.stringify(activityData)}`),
+      length: {
+        short: {JSON.stringify(lengthCategories.short.count)},
+        medium: {JSON.stringify(lengthCategories.medium.count)},
+        long: {JSON.stringify(lengthCategories.long.count)}
+      },
+      recency: {
+        recent: {JSON.stringify(recencyCategories.recent.count)},
+        medium: {JSON.stringify(recencyCategories.medium.count)},
+        old: {JSON.stringify(recencyCategories.old.count)}
+      },
+      links: {
+        internal: {JSON.stringify(linkAnalysis.internalLinks)},
+        external: {JSON.stringify(linkAnalysis.externalLinks)},
+        wikiLinks: {JSON.stringify(linkAnalysis.wikiLinks)},
+        issueRefs: {JSON.stringify(linkAnalysis.issueRefs)}
+      }
+    };
+    
+    // D3.jsを使用してチャートを描画
+    renderCategoryChart();
+    renderActivityChart();
+    renderLengthChart();
+    renderRecencyChart();
+    renderLinksChart();
+    
+    // カテゴリ分布チャート
+    function renderCategoryChart() {
+      // d3.jsを使って水平バーチャートを作成
+      const container = document.getElementById('category-chart');
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      const margin = { top: 20, right: 10, bottom: 30, left: 120 };
+      
+      const svg = d3.create('svg')
+        .attr('width', width)
+        .attr('height', height)
+        .attr('viewBox', [0, 0, width, height])
+        .attr('style', 'max-width: 100%; height: auto;');
+      
+      const labels = issueData.labels.slice(0, 6); // 上位6つのみ表示
+      
+      const x = d3.scaleLinear()
+        .domain([0, d3.max(labels, d => d.count)])
+        .range([margin.left, width - margin.right]);
+      
+      const y = d3.scaleBand()
+        .domain(labels.map(d => d.name))
+        .range([margin.top, height - margin.bottom])
+        .padding(0.2);
+      
+      // X軸を追加
+      svg.append('g')
+        .attr('transform', `translate(0,${height - margin.bottom})`)
+        .call(d3.axisBottom(x).ticks(5))
+        .call(g => g.select('.domain').remove());
+      
+      // Y軸を追加
+      svg.append('g')
+        .attr('transform', `translate(${margin.left},0)`)
+        .call(d3.axisLeft(y).tickSize(0).tickPadding(10))
+        .call(g => g.select('.domain').remove());
+      
+      // バーを追加
+      svg.append('g')
+        .selectAll('rect')
+        .data(labels)
+        .join('rect')
+        .attr('x', margin.left)
+        .attr('y', d => y(d.name))
+        .attr('width', d => x(d.count) - margin.left)
+        .attr('height', y.bandwidth())
+        .attr('fill', d => `#${d.color}`);
+      
+      // 値ラベルを追加
+      svg.append('g')
+        .selectAll('text')
+        .data(labels)
+        .join('text')
+        .attr('x', d => x(d.count) + 5)
+        .attr('y', d => y(d.name) + y.bandwidth() / 2)
+        .attr('dy', '0.35em')
+        .style('font-size', '12px')
+        .style('fill', '#666')
+        .text(d => d.count);
+      
+      container.innerHTML = '';
+      container.appendChild(svg.node());
+    }
+    
+    // 更新頻度チャート
+    function renderActivityChart() {
+      const container = document.getElementById('activity-chart');
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      const margin = { top: 20, right: 20, bottom: 50, left: 50 };
+      
+      const svg = d3.create('svg')
+        .attr('width', width)
+        .attr('height', height)
+        .attr('viewBox', [0, 0, width, height])
+        .attr('style', 'max-width: 100%; height: auto;');
+      
+      const activity = issueData.activity;
+      
+      // 最近6ヶ月のデータのみ表示
+      const recentActivity = activity.slice(-6);
+      
+      const x = d3.scaleBand()
+        .domain(recentActivity.map(d => d.month))
+        .range([margin.left, width - margin.right])
+        .padding(0.2);
+      
+      const y = d3.scaleLinear()
+        .domain([0, d3.max(recentActivity, d => Math.max(d.created, d.updated))])
+        .nice()
+        .range([height - margin.bottom, margin.top]);
+      
+      // X軸を追加
+      svg.append('g')
+        .attr('transform', `translate(0,${height - margin.bottom})`)
+        .call(d3.axisBottom(x).tickFormat(d => {
+          const [year, month] = d.split('-');
+          return `${year.slice(2)}/${month}`;
+        }))
+        .call(g => g.select('.domain').remove())
+        .selectAll('text')
+        .attr('transform', 'rotate(-45)')
+        .style('text-anchor', 'end')
+        .attr('dx', '-.8em')
+        .attr('dy', '.15em');
+      
+      // Y軸を追加
+      svg.append('g')
+        .attr('transform', `translate(${margin.left},0)`)
+        .call(d3.axisLeft(y).ticks(5))
+        .call(g => g.select('.domain').remove());
+      
+      // 作成バーを追加
+      svg.append('g')
+        .selectAll('rect.created')
+        .data(recentActivity)
+        .join('rect')
+        .attr('class', 'created')
+        .attr('x', d => x(d.month))
+        .attr('y', d => y(d.created))
+        .attr('width', x.bandwidth() / 2 - 2)
+        .attr('height', d => height - margin.bottom - y(d.created))
+        .attr('fill', '#4f6df5');
+      
+      // 更新バーを追加
+      svg.append('g')
+        .selectAll('rect.updated')
+        .data(recentActivity)
+        .join('rect')
+        .attr('class', 'updated')
+        .attr('x', d => x(d.month) + x.bandwidth() / 2)
+        .attr('y', d => y(d.updated))
+        .attr('width', x.bandwidth() / 2 - 2)
+        .attr('height', d => height - margin.bottom - y(d.updated))
+        .attr('fill', '#10B981');
+      
+      // 凡例を追加
+      const legend = svg.append('g')
+        .attr('transform', `translate(${width / 2 - 90},${height - 20})`);
+      
+      // 作成の凡例
+      legend.append('rect')
+        .attr('x', 0)
+        .attr('width', 14)
+        .attr('height', 14)
+        .attr('fill', '#4f6df5');
+      
+      legend.append('text')
+        .attr('x', 20)
+        .attr('y', 10)
+        .text('新規作成')
+        .style('font-size', '12px');
+      
+      // 更新の凡例
+      legend.append('rect')
+        .attr('x', 90)
+        .attr('width', 14)
+        .attr('height', 14)
+        .attr('fill', '#10B981');
+      
+      legend.append('text')
+        .attr('x', 110)
+        .attr('y', 10)
+        .text('更新')
+        .style('font-size', '12px');
+      
+      container.innerHTML = '';
+      container.appendChild(svg.node());
+    }
+    
+    // コンテンツ長さドーナツチャート
+    function renderLengthChart() {
+      const container = document.getElementById('length-chart');
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      
+      const svg = d3.create('svg')
+        .attr('width', width)
+        .attr('height', height)
+        .attr('viewBox', [0, 0, width, height])
+        .attr('style', 'max-width: 100%; height: auto;');
+      
+      const length = issueData.length;
+      const data = [
+        { name: 'short', value: length.short, color: '#E9D5FF' },
+        { name: 'medium', value: length.medium, color: '#C084FC' },
+        { name: 'long', value: length.long, color: '#6B21A8' }
+      ];
+      
+      const radius = Math.min(width, height) / 2;
+      const arcGenerator = d3.arc()
+        .innerRadius(radius * 0.5)
+        .outerRadius(radius * 0.9);
+      
+      const pieGenerator = d3.pie()
+        .value(d => d.value)
+        .sort(null);
+      
+      const g = svg.append('g')
+        .attr('transform', `translate(${width / 2},${height / 2})`);
+      
+      g.selectAll('path')
+        .data(pieGenerator(data))
+        .join('path')
+        .attr('d', arcGenerator)
+        .attr('fill', d => d.data.color)
+        .attr('stroke', 'white')
+        .style('stroke-width', '2px');
+      
+      container.innerHTML = '';
+      container.appendChild(svg.node());
+    }
+    
+    // 更新日時ドーナツチャート
+    function renderRecencyChart() {
+      const container = document.getElementById('recency-chart');
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      
+      const svg = d3.create('svg')
+        .attr('width', width)
+        .attr('height', height)
+        .attr('viewBox', [0, 0, width, height])
+        .attr('style', 'max-width: 100%; height: auto;');
+      
+      const recency = issueData.recency;
+      const data = [
+        { name: 'recent', value: recency.recent, color: '#86EFAC' },
+        { name: 'medium', value: recency.medium, color: '#4ADE80' },
+        { name: 'old', value: recency.old, color: '#16A34A' }
+      ];
+      
+      const radius = Math.min(width, height) / 2;
+      const arcGenerator = d3.arc()
+        .innerRadius(radius * 0.5)
+        .outerRadius(radius * 0.9);
+      
+      const pieGenerator = d3.pie()
+        .value(d => d.value)
+        .sort(null);
+      
+      const g = svg.append('g')
+        .attr('transform', `translate(${width / 2},${height / 2})`);
+      
+      g.selectAll('path')
+        .data(pieGenerator(data))
+        .join('path')
+        .attr('d', arcGenerator)
+        .attr('fill', d => d.data.color)
+        .attr('stroke', 'white')
+        .style('stroke-width', '2px');
+      
+      container.innerHTML = '';
+      container.appendChild(svg.node());
+    }
+    
+    // リンク分析チャート
+    function renderLinksChart() {
+      const container = document.getElementById('links-chart');
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      const margin = { top: 30, right: 20, bottom: 70, left: 40 };
+      
+      const svg = d3.create('svg')
+        .attr('width', width)
+        .attr('height', height)
+        .attr('viewBox', [0, 0, width, height])
+        .attr('style', 'max-width: 100%; height: auto;');
+      
+      const links = issueData.links;
+      const data = [
+        { name: 'Wiki形式', value: links.wikiLinks, color: '#FCD34D' },
+        { name: 'Issue参照', value: links.issueRefs, color: '#F59E0B' },
+        { name: '外部リンク', value: links.external, color: '#FBBF24' }
+      ];
+      
+      const x = d3.scaleBand()
+        .domain(data.map(d => d.name))
+        .range([margin.left, width - margin.right])
+        .padding(0.2);
+      
+      const y = d3.scaleLinear()
+        .domain([0, d3.max(data, d => d.value)])
+        .nice()
+        .range([height - margin.bottom, margin.top]);
+      
+      // X軸を追加
+      svg.append('g')
+        .attr('transform', `translate(0,${height - margin.bottom})`)
+        .call(d3.axisBottom(x).tickSizeOuter(0))
+        .call(g => g.select('.domain').remove());
+      
+      // Y軸を追加
+      svg.append('g')
+        .attr('transform', `translate(${margin.left},0)`)
+        .call(d3.axisLeft(y).ticks(5))
+        .call(g => g.select('.domain').remove());
+      
+      // バーを追加
+      svg.append('g')
+        .selectAll('rect')
+        .data(data)
+        .join('rect')
+        .attr('x', d => x(d.name))
+        .attr('y', d => y(d.value))
+        .attr('width', x.bandwidth())
+        .attr('height', d => height - margin.bottom - y(d.value))
+        .attr('fill', d => d.color);
+      
+      // 値ラベルを追加
+      svg.append('g')
+        .selectAll('text')
+        .data(data)
+        .join('text')
+        .attr('x', d => x(d.name) + x.bandwidth() / 2)
+        .attr('y', d => y(d.value) - 5)
+        .attr('text-anchor', 'middle')
+        .style('font-size', '12px')
+        .style('fill', '#666')
+        .text(d => d.value);
+      
+      // タイトルを追加
+      svg.append('text')
+        .attr('x', width / 2)
+        .attr('y', margin.top / 2)
+        .attr('text-anchor', 'middle')
+        .style('font-size', '14px')
+        .style('font-weight', 'bold')
+        .text('リンクタイプの分布');
+      
+      // リンク合計を追加
+      svg.append('text')
+        .attr('x', width / 2)
+        .attr('y', height - 10)
+        .attr('text-anchor', 'middle')
+        .style('font-size', '12px')
+        .text(`総リンク数: ${links.internal + links.external}`);
+      
+      container.innerHTML = '';
+      container.appendChild(svg.node());
+    }
+    
+    // ウィンドウリサイズでチャートを再描画
+    window.addEventListener('resize', () => {
+      renderCategoryChart();
+      renderActivityChart();
+      renderLengthChart();
+      renderRecencyChart();
+      renderLinksChart();
+    });
+  });
+</script>
+
+<!-- D3.jsの読み込み -->
+<script is:inline src="https://d3js.org/d3.v7.min.js"></script>
