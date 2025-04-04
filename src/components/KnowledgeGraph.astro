@@ -723,7 +723,7 @@ const dataJson = JSON.stringify(showFullGraph ? graphData : filteredGraphData);
         .on('mouseout', nodeMouseOut)
         .on('click', nodeClicked);
       
-      // ラベルの描画（デフォルトでは非表示）
+      // ラベルの描画（デフォルトでは表示）
       const label = container.append('g')
         .attr('class', 'labels')
         .selectAll('text')
@@ -732,7 +732,7 @@ const dataJson = JSON.stringify(showFullGraph ? graphData : filteredGraphData);
         .attr('class', d => `node-label ${d.isCurrent ? 'current' : ''}`)
         .attr('dy', d => d.isCurrent ? '-1.2em' : '-0.5em')
         .text(d => truncateLabel(d.title))
-        .style('opacity', isFullGraph ? (d => d.isCurrent ? 1 : 0) : 1); // フルグラフの場合は現在ノードのみ表示
+        .style('opacity', 1); // デフォルトで全てのラベルを表示
       
       // ツールチップの作成
       const tooltip = d3.select('body').append('div')
@@ -788,8 +788,11 @@ const dataJson = JSON.stringify(showFullGraph ? graphData : filteredGraphData);
           d3.select('#toggle-legend').classed('active', false);
         });
 
-        // ラベル表示切り替え
-        d3.select('#toggle-labels').on('click', function() {
+        // ラベル表示切り替え（デフォルトでオン）
+        const toggleLabelsBtn = d3.select('#toggle-labels');
+        toggleLabelsBtn.classed('active', true);
+        
+        toggleLabelsBtn.on('click', function() {
           const button = d3.select(this);
           const showLabels = button.classed('active');
           
