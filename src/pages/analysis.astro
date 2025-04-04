@@ -5,8 +5,8 @@ import { BASE_PATH, SITE_TITLE } from '../config';
 // GitHub API からIssueを取得する関数
 async function fetchIssues() {
   try {
-    // GitHub APIを使用してissueを取得（プルリクエストを除外）
-    const response = await fetch('https://api.github.com/repos/nao-amj/starlight-issue-wiki/issues?state=all&per_page=100');
+    // GitHub APIを使用してOPENのissueのみを取得（プルリクエストを除外）
+    const response = await fetch('https://api.github.com/repos/nao-amj/starlight-issue-wiki/issues?state=open&per_page=100');
     if (!response.ok) {
       throw new Error(`GitHub API error: ${response.status}`);
     }
@@ -330,6 +330,69 @@ issues.forEach(issue => {
   }
 });
 
+// 担当者（アサイニー）分析
+const assigneeAnalysis = {};
+let totalAssignedIssues = 0;
+
+issues.forEach(issue => {
+  if (issue.assignees && issue.assignees.length > 0) {
+    totalAssignedIssues++;
+    
+    issue.assignees.forEach(assignee => {
+      const login = assignee.login;
+      
+      if (!assigneeAnalysis[login]) {
+        assigneeAnalysis[login] = {
+          login,
+          name: assignee.login,
+          avatar: assignee.avatar_url,
+          assignedCount: 0,
+          issues: []
+        };
+      }
+      
+      assigneeAnalysis[login].assignedCount++;
+      assigneeAnalysis[login].issues.push({
+        number: issue.number,
+        title: issue.title
+      });
+    });
+  }
+});
+
+// 担当者データを配列に変換しソート
+const assigneeData = Object.values(assigneeAnalysis)
+  .sort((a, b) => b.assignedCount - a.assignedCount);
+
+// コメント分析
+const commentsAnalysis = {
+  totalComments: 0,
+  issuesWithComments: 0,
+  avgCommentsPerIssue: 0,
+  mostCommentedIssues: []
+};
+
+issues.forEach(issue => {
+  if (issue.comments > 0) {
+    commentsAnalysis.totalComments += issue.comments;
+    commentsAnalysis.issuesWithComments++;
+    
+    commentsAnalysis.mostCommentedIssues.push({
+      number: issue.number,
+      title: issue.title,
+      comments: issue.comments
+    });
+  }
+});
+
+commentsAnalysis.avgCommentsPerIssue = 
+  commentsAnalysis.issuesWithComments > 0 
+    ? commentsAnalysis.totalComments / commentsAnalysis.issuesWithComments 
+    : 0;
+
+commentsAnalysis.mostCommentedIssues.sort((a, b) => b.comments - a.comments);
+commentsAnalysis.mostCommentedIssues = commentsAnalysis.mostCommentedIssues.slice(0, 5);
+
 // フロントエンド用データのシリアライズ
 const serializedLabelData = JSON.stringify(labelData);
 const serializedActivityData = JSON.stringify(activityData);
@@ -354,6 +417,8 @@ const serializedLinkData = JSON.stringify({
   issueRefs: linkAnalysis.issueRefs
 });
 const serializedLinkNetworkData = JSON.stringify(linkNetworkData);
+const serializedAssigneeData = JSON.stringify(assigneeData);
+const serializedCommentsData = JSON.stringify(commentsAnalysis);
 ---
 
 <Layout title={pageTitle}>
@@ -377,6 +442,7 @@ const serializedLinkNetworkData = JSON.stringify(linkNetworkData);
         <button class="tab active" data-tab="overview">Overview</button>
         <button class="tab" data-tab="activity">Activity</button>
         <button class="tab" data-tab="content">Content</button>
+        <button class="tab" data-tab="contributors">Contributors</button>
         <button class="tab" data-tab="network">Network</button>
       </div>
     </div>
@@ -494,6 +560,41 @@ const serializedLinkNetworkData = JSON.stringify(linkNetworkData);
               </div>
             </div>
           </div>
+          
+          <!-- Comments Analysis Card -->
+          <div class="analysis-card" id="comments-card">
+            <h2 class="card-title">Comments Analysis</h2>
+            <div class="comments-container">
+              <div class="comments-stats">
+                <div class="stat-item">
+                  <div class="stat-value">{commentsAnalysis.totalComments}</div>
+                  <div class="stat-label">Total Comments</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-value">{commentsAnalysis.issuesWithComments}</div>
+                  <div class="stat-label">Issues With Comments</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-value">{commentsAnalysis.avgCommentsPerIssue.toFixed(1)}</div>
+                  <div class="stat-label">Avg. Comments/Issue</div>
+                </div>
+              </div>
+              
+              <div class="most-commented">
+                <h3>Most Commented Issues</h3>
+                <ul class="comments-list">
+                  {commentsAnalysis.mostCommentedIssues.map(issue => (
+                    <li>
+                      <a href={`${BASE_PATH}/wiki/${issue.number}`} class="page-link">
+                        {issue.title}
+                      </a>
+                      <span class="comment-count">{issue.comments} {issue.comments === 1 ? 'comment' : 'comments'}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
       
@@ -545,6 +646,59 @@ const serializedLinkNetworkData = JSON.stringify(linkNetworkData);
           <div class="analysis-card" id="content-growth-card">
             <h2 class="card-title">Content Growth Over Time</h2>
             <div id="content-growth-chart"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Contributors Tab (新しく追加) -->
+      <section class="dashboard-section" id="contributors-section">
+        <div class="analysis-grid">
+          <!-- Assignees Overview -->
+          <div class="analysis-card" id="assignees-card">
+            <h2 class="card-title">Issue Assignees Overview</h2>
+            <div class="assignees-overview">
+              <div class="stat-item">
+                <div class="stat-value">{assigneeData.length}</div>
+                <div class="stat-label">Total Contributors</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">{totalAssignedIssues}</div>
+                <div class="stat-label">Assigned Issues</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">{issues.length - totalAssignedIssues}</div>
+                <div class="stat-label">Unassigned Issues</div>
+              </div>
+            </div>
+            
+            <h3>Top Contributors</h3>
+            <div class="assignees-list">
+              {assigneeData.slice(0, 5).map(assignee => (
+                <div class="assignee-card">
+                  <div class="assignee-avatar">
+                    <img src={assignee.avatar} alt={assignee.name} />
+                  </div>
+                  <div class="assignee-info">
+                    <div class="assignee-name">{assignee.name}</div>
+                    <div class="assignee-stats">
+                      <span class="assignee-count">{assignee.assignedCount} issues</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <!-- Assignee Distribution -->
+          <div class="analysis-card" id="assignee-distribution-card">
+            <h2 class="card-title">Issue Assignment Distribution</h2>
+            <div id="assignee-distribution-chart"></div>
+          </div>
+          
+          <!-- Contributor Activity Timeline -->
+          <div class="analysis-card" id="contributor-timeline-card">
+            <h2 class="card-title">Contributor Activity Timeline</h2>
+            <div id="contributor-timeline-chart"></div>
           </div>
         </div>
       </section>
@@ -645,6 +799,9 @@ const serializedLinkNetworkData = JSON.stringify(linkNetworkData);
   .tabs {
     display: flex;
     border-bottom: 1px solid #ddd;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
   }
   
   .tab {
@@ -656,6 +813,7 @@ const serializedLinkNetworkData = JSON.stringify(linkNetworkData);
     font-weight: 500;
     transition: all 0.2s;
     color: #666;
+    white-space: nowrap;
   }
   
   .tab:hover {
@@ -818,7 +976,9 @@ const serializedLinkNetworkData = JSON.stringify(linkNetworkData);
   #age-distribution-chart,
   #detailed-length-chart,
   #content-type-chart,
-  #content-growth-chart {
+  #content-growth-chart,
+  #assignee-distribution-chart,
+  #contributor-timeline-chart {
     height: 250px;
   }
   
@@ -927,6 +1087,155 @@ const serializedLinkNetworkData = JSON.stringify(linkNetworkData);
     color: #9ca3af;
   }
   
+  /* Comments Analysis Card */
+  #comments-card {
+    grid-column: span 2;
+  }
+  
+  .comments-container {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .comments-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .most-commented h3 {
+    font-size: 1rem;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: #4b5563;
+  }
+  
+  .dark .most-commented h3 {
+    color: #e5e7eb;
+  }
+  
+  .comments-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .comments-list li {
+    margin-bottom: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background-color: #f9fafb;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+  }
+  
+  .comments-list li:hover {
+    transform: translateX(5px);
+    background-color: #f0f4f8;
+  }
+  
+  .dark .comments-list li {
+    background-color: #374151;
+  }
+  
+  .dark .comments-list li:hover {
+    background-color: #4b5563;
+  }
+  
+  .comment-count {
+    font-size: 0.875rem;
+    color: #6b7280;
+    white-space: nowrap;
+  }
+  
+  .dark .comment-count {
+    color: #9ca3af;
+  }
+  
+  /* Contributors Tab Styles */
+  .assignees-overview {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  #assignees-card h3 {
+    font-size: 1rem;
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+    color: #4b5563;
+  }
+  
+  .dark #assignees-card h3 {
+    color: #e5e7eb;
+  }
+  
+  .assignees-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+  
+  .assignee-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background-color: #f9fafb;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+  }
+  
+  .assignee-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+    background-color: #f0f4f8;
+  }
+  
+  .dark .assignee-card {
+    background-color: #374151;
+  }
+  
+  .dark .assignee-card:hover {
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+    background-color: #4b5563;
+  }
+  
+  .assignee-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    overflow: hidden;
+  }
+  
+  .assignee-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .assignee-info {
+    flex: 1;
+  }
+  
+  .assignee-name {
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+  }
+  
+  .assignee-stats {
+    font-size: 0.75rem;
+    color: #6b7280;
+  }
+  
+  .dark .assignee-stats {
+    color: #9ca3af;
+  }
+  
   /* Network Graph Styles */
   #network-card {
     grid-column: 1 / -1;
@@ -984,7 +1293,7 @@ const serializedLinkNetworkData = JSON.stringify(linkNetworkData);
   .legend-line {
     display: inline-block;
     width: 30px;
-    height: A2px;
+    height: 2px;
     vertical-align: middle;
   }
   
@@ -1067,7 +1376,8 @@ const serializedLinkNetworkData = JSON.stringify(linkNetworkData);
       padding-left: 0;
     }
     
-    #links-card {
+    #links-card,
+    #comments-card {
       grid-column: span 1;
     }
     
@@ -1080,6 +1390,14 @@ const serializedLinkNetworkData = JSON.stringify(linkNetworkData);
       width: 100%;
       max-width: 300px;
       justify-content: center;
+    }
+    
+    .comments-stats {
+      grid-template-columns: 1fr;
+    }
+    
+    .assignees-overview {
+      grid-template-columns: 1fr;
     }
   }
 </style>
@@ -1094,7 +1412,9 @@ const serializedLinkNetworkData = JSON.stringify(linkNetworkData);
   recencyData: serializedRecencyData,
   ageDistribution: serializedAgeDistribution,
   linkData: serializedLinkData,
-  linkNetworkData: serializedLinkNetworkData
+  linkNetworkData: serializedLinkNetworkData,
+  assigneeData: serializedAssigneeData,
+  commentsData: serializedCommentsData
 }}>
   document.addEventListener('DOMContentLoaded', () => {
     // Parse the data
@@ -1108,7 +1428,9 @@ const serializedLinkNetworkData = JSON.stringify(linkNetworkData);
       recency: JSON.parse(recencyData),
       ageDist: JSON.parse(ageDistribution),
       links: JSON.parse(linkData),
-      network: JSON.parse(linkNetworkData)
+      network: JSON.parse(linkNetworkData),
+      assignees: JSON.parse(assigneeData),
+      comments: JSON.parse(commentsData)
     };
     
     // Tab switching functionality
@@ -1153,6 +1475,10 @@ const serializedLinkNetworkData = JSON.stringify(linkNetworkData);
           renderDetailedLengthChart();
           renderContentTypeChart();
           renderContentGrowthChart();
+          break;
+        case 'contributors':
+          renderAssigneeDistributionChart();
+          renderContributorTimelineChart();
           break;
         case 'network':
           renderNetworkChart();
@@ -1891,6 +2217,22 @@ const serializedLinkNetworkData = JSON.stringify(linkNetworkData);
       
       // Similar implementation to other charts
       container.innerHTML = '<div style="height: 100%; display: flex; align-items: center; justify-content: center; color: #666;">Content growth chart will be implemented in future updates</div>';
+    }
+
+    function renderAssigneeDistributionChart() {
+      const container = document.getElementById('assignee-distribution-chart');
+      if (!container) return;
+      
+      // Similar implementation to other charts
+      container.innerHTML = '<div style="height: 100%; display: flex; align-items: center; justify-content: center; color: #666;">Assignee distribution chart will be implemented in future updates</div>';
+    }
+    
+    function renderContributorTimelineChart() {
+      const container = document.getElementById('contributor-timeline-chart');
+      if (!container) return;
+      
+      // Similar implementation to other charts
+      container.innerHTML = '<div style="height: 100%; display: flex; align-items: center; justify-content: center; color: #666;">Contributor timeline chart will be implemented in future updates</div>';
     }
     
     function renderNetworkChart() {
