@@ -2,6 +2,7 @@
 import { findBacklinks, loadZettelkastenSettings, convertWikiLinksToHtml, findBidirectionalLinks } from '../lib/zettelkasten';
 import BacklinkList from './BacklinkList.astro';
 import KnowledgeGraph from './KnowledgeGraph.astro';
+import CommentSection from './CommentSection.astro';
 import type { GitHubIssue } from '../data/types';
 import { BASE_PATH } from '../config';
 
@@ -73,6 +74,9 @@ if (currentIssue.body) {
       <BacklinkList backlinks={backlinks} currentIssueNumber={currentIssue.number} />
     )}
   </div>
+  
+  <!-- コメントセクション -->
+  <CommentSection currentIssue={currentIssue} />
   
   <div class="edit-links">
     <a href={issueUrl} target="_blank" rel="noopener noreferrer">
