@@ -33,6 +33,7 @@ export function getStaticPaths() {
     { params: { tag: 'wiki' } },
     { params: { tag: 'documentation' } },
     { params: { tag: 'feature' } },
+    { params: { tag: '15' } }, // Zettelkastenモードテスト用
   ];
 }
 
@@ -90,6 +91,9 @@ const pageTitle = `#${tag} - タグページ - ${SITE_TITLE}`;
         </a>
         <a href={`${BASE_PATH}/tag/documentation`} class="tag-link">
           #documentation
+        </a>
+        <a href={`${BASE_PATH}/tag/15`} class="tag-link">
+          #15
         </a>
       </div>
     </div>
