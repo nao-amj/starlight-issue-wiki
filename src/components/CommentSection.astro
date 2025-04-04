@@ -341,7 +341,7 @@ function formatDate(dateString) {
   }
 </style>
 
-<script>
+<script define:vars={{ issueNumber }}>
   document.addEventListener('DOMContentLoaded', () => {
     // マークダウンライブラリのロード
     const script = document.createElement('script');
@@ -404,12 +404,8 @@ function formatDate(dateString) {
             return;
           }
           
-          // GitHubのIssueページにリダイレクト
-          // URLのパターンからissue番号を抽出
-          const pathParts = window.location.pathname.split('/');
-          const issueNumber = parseInt(pathParts[pathParts.length - 1], 10);
-          
-          if (!isNaN(issueNumber)) {
+          // Issue番号はプロップスから直接取得
+          if (issueNumber) {
             // クエリパラメータとしてコメント内容を付加
             const encodedComment = encodeURIComponent(commentContent);
             window.open(`https://github.com/nao-amj/starlight-issue-wiki/issues/${issueNumber}?body=${encodedComment}`, '_blank');
