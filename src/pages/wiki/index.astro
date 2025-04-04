@@ -6,8 +6,8 @@ import CustomFooter from '../../components/CustomFooter.astro';
 // Issueデータを取得
 async function fetchIssues() {
   try {
-    // GitHub APIを使用してissueを取得
-    const response = await fetch('https://api.github.com/repos/nao-amj/starlight-issue-wiki/issues?state=all&per_page=100');
+    // GitHub APIを使用してissueを取得（openのみ）
+    const response = await fetch('https://api.github.com/repos/nao-amj/starlight-issue-wiki/issues?state=open&per_page=100');
     if (!response.ok) {
       throw new Error(`GitHub API error: ${response.status}`);
     }
@@ -172,6 +172,7 @@ const recentIssues = [...issues].sort((a, b) =>
           <ul class="quick-links">
             <li><a href={`${BASE_PATH}/`}>ホームに戻る</a></li>
             <li><a href={`${BASE_PATH}/wiki/1`}>使い方ガイド</a></li>
+            <li><a href={`${BASE_PATH}/data-management`}>データ管理</a></li>
             <li><a href="https://github.com/nao-amj/starlight-issue-wiki/issues/new" target="_blank">新規ページを作成</a></li>
           </ul>
         </div>
