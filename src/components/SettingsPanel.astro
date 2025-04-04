@@ -55,6 +55,22 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
     </div>
   </div>
   
+  <div class="live-preview">
+    <h4>リアルタイムプレビュー</h4>
+    <div class="preview-container">
+      <div class="preview-sample">
+        <p>これは<span class="sample-keyword">キーワード</span>です。<span class="sample-bidirectional">双方向リンク</span>の例も表示しています。</p>
+        <div class="sample-backlinks" id="sample-backlinks">
+          <h5>バックリンク</h5>
+          <ul>
+            <li><a href="#">サンプルページ1</a></li>
+            <li><a href="#">サンプルページ2</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  
   <div class="settings-footer">
     <button class="save-button" id="save-settings">設定を保存</button>
     <button class="reset-button" id="reset-settings">初期値に戻す</button>
@@ -68,7 +84,7 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
     left: 50%;
     transform: translate(-50%, -50%);
     width: 90%;
-    max-width: 500px;
+    max-width: 550px;
     background-color: white;
     border-radius: 0.5rem;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
@@ -124,7 +140,7 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
   }
   
   .settings-section {
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
   }
   
   .settings-section h3 {
@@ -161,6 +177,110 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
   
   .dark .sub-settings {
     border-left-color: #444;
+  }
+  
+  /* リアルタイムプレビュー */
+  .live-preview {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    border: 1px solid #eee;
+    border-radius: 0.5rem;
+    background-color: #f9f9f9;
+  }
+  
+  .dark .live-preview {
+    border-color: #444;
+    background-color: #1a1a1a;
+  }
+  
+  .live-preview h4 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+  }
+  
+  .preview-container {
+    padding: 1rem;
+    background-color: white;
+    border-radius: 0.25rem;
+    border: 1px solid #eee;
+  }
+  
+  .dark .preview-container {
+    background-color: #222;
+    border-color: #333;
+  }
+  
+  .sample-keyword {
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .sample-bidirectional {
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .sample-backlinks {
+    margin-top: 1rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #eee;
+    font-size: 0.9rem;
+  }
+  
+  .dark .sample-backlinks {
+    border-top-color: #444;
+  }
+  
+  .sample-backlinks h5 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+  }
+  
+  .sample-backlinks h5::after {
+    content: "2";
+    display: inline-block;
+    background-color: #f0f0f0;
+    color: #555;
+    padding: 0.1rem 0.4rem;
+    border-radius: 1rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-left: 0.5rem;
+  }
+  
+  .dark .sample-backlinks h5::after {
+    background-color: #333;
+    color: #ccc;
+  }
+  
+  .sample-backlinks ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .sample-backlinks li {
+    margin-bottom: 0.25rem;
+  }
+  
+  .sample-backlinks a {
+    display: block;
+    padding: 0.25rem 0.5rem;
+    text-decoration: none;
+    border-radius: 0.25rem;
+    transition: background-color 0.2s;
+  }
+  
+  .sample-backlinks a:hover {
+    background-color: #f5f5f5;
+  }
+  
+  .dark .sample-backlinks a:hover {
+    background-color: #333;
   }
   
   /* トグルスイッチのスタイル */
@@ -355,6 +475,11 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
     const keywordLengthValue = document.getElementById('keyword-length-value');
     const subSettings = document.getElementById('zettelkasten-sub-settings');
     
+    // プレビュー要素
+    const sampleKeyword = document.querySelector('.sample-keyword');
+    const sampleBidirectional = document.querySelector('.sample-bidirectional');
+    const sampleBacklinks = document.getElementById('sample-backlinks');
+    
     // デフォルト設定（設定がない場合用）
     const defaultConfig = {
       enabled: true,
@@ -381,6 +506,49 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
       }
     }
     
+    // プレビューを更新する関数
+    function updatePreview() {
+      // 有効/無効状態
+      if (zettelkastenEnabled.checked) {
+        // 自動リンク（キーワード）
+        if (autolinkKeywords.checked) {
+          sampleKeyword.style.textDecoration = 'none';
+          sampleKeyword.style.borderBottom = '1px dashed var(--color-primary, #4f6df5)';
+          sampleKeyword.style.color = 'var(--color-primary, #4f6df5)';
+        } else {
+          sampleKeyword.style.textDecoration = 'none';
+          sampleKeyword.style.borderBottom = 'none';
+          sampleKeyword.style.color = 'inherit';
+        }
+        
+        // 双方向リンクの強調表示
+        if (highlightBidirectional.checked) {
+          sampleBidirectional.style.textDecoration = 'none';
+          sampleBidirectional.style.borderBottom = '2px solid var(--color-success, #0fa968)';
+          sampleBidirectional.style.color = 'var(--color-success, #0fa968)';
+          sampleBidirectional.style.fontWeight = '500';
+        } else {
+          sampleBidirectional.style.textDecoration = 'none';
+          sampleBidirectional.style.borderBottom = '1px dashed var(--color-primary, #4f6df5)';
+          sampleBidirectional.style.color = 'var(--color-primary, #4f6df5)';
+          sampleBidirectional.style.fontWeight = 'normal';
+        }
+        
+        // バックリンクの表示
+        sampleBacklinks.style.display = showBacklinks.checked ? 'block' : 'none';
+      } else {
+        // Zettelkastenモードが無効の場合
+        sampleKeyword.style.textDecoration = 'none';
+        sampleKeyword.style.borderBottom = 'none';
+        sampleKeyword.style.color = 'inherit';
+        sampleBidirectional.style.textDecoration = 'none';
+        sampleBidirectional.style.borderBottom = 'none';
+        sampleBidirectional.style.color = 'inherit';
+        sampleBidirectional.style.fontWeight = 'normal';
+        sampleBacklinks.style.display = 'none';
+      }
+    }
+    
     // 設定パネルを閉じる
     if (closeButton) {
       closeButton.addEventListener('click', () => {
@@ -392,6 +560,7 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
     if (zettelkastenEnabled && subSettings) {
       zettelkastenEnabled.addEventListener('change', () => {
         subSettings.style.display = zettelkastenEnabled.checked ? 'block' : 'none';
+        updatePreview();
       });
     }
     
@@ -402,13 +571,19 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
       });
     }
     
+    // 各設定変更時にプレビューを更新
+    [autolinkKeywords, highlightBidirectional, showBacklinks].forEach(input => {
+      input.addEventListener('change', updatePreview);
+    });
+    
     // 設定を保存
     if (saveButton) {
       saveButton.addEventListener('click', () => {
         saveSettings();
         settingsPanel.style.display = 'none';
-        // 設定が変更されたことを通知
-        window.dispatchEvent(new CustomEvent('zettelkasten-settings-changed'));
+        
+        // 現在のページのコンテンツに対してZettelkastenの設定を即時適用
+        applySettingsToCurrentPage();
       });
     }
     
@@ -416,6 +591,7 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
     if (resetButton) {
       resetButton.addEventListener('click', () => {
         resetSettings();
+        updatePreview();
       });
     }
     
@@ -437,6 +613,9 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
         keywordLengthValue.textContent = config.keywordMinLength;
         
         subSettings.style.display = config.enabled ? 'block' : 'none';
+        
+        // プレビューを更新
+        updatePreview();
         
         console.log('Loaded Zettelkasten config:', config);
       } catch (error) {
@@ -467,6 +646,9 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
         setTimeout(() => {
           saveMessage.remove();
         }, 2000);
+        
+        // 設定変更イベントを発火
+        window.dispatchEvent(new CustomEvent('zettelkasten-settings-changed', { detail: config }));
       } catch (error) {
         console.error('設定の保存に失敗しました:', error);
       }
@@ -482,9 +664,39 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
       keywordLengthValue.textContent = defaultConfig.keywordMinLength;
       
       subSettings.style.display = defaultConfig.enabled ? 'block' : 'none';
+    }
+    
+    // 現在のページに設定を適用
+    function applySettingsToCurrentPage() {
+      const config = {
+        enabled: zettelkastenEnabled.checked,
+        autoLinkKeywords: autolinkKeywords.checked,
+        highlightBidirectional: highlightBidirectional.checked,
+        showBacklinks: showBacklinks.checked,
+        keywordMinLength: parseInt(keywordMinLength.value, 10)
+      };
       
-      // リセット後にすぐに保存
-      saveSettings();
+      // バックリンクの表示/非表示
+      const backlinksContainer = document.querySelector('.backlinks-container');
+      if (backlinksContainer) {
+        backlinksContainer.style.display = config.showBacklinks ? 'block' : 'none';
+      }
+      
+      // 双方向リンクの強調表示
+      const bidirectionalLinks = document.querySelectorAll('.wiki-link.bidirectional');
+      bidirectionalLinks.forEach(link => {
+        if (config.highlightBidirectional) {
+          link.style.borderBottom = '2px solid var(--color-success, #0fa968)';
+          link.style.color = 'var(--color-success, #0fa968)';
+          link.style.fontWeight = '500';
+        } else {
+          link.style.borderBottom = '1px dashed var(--color-primary, #4f6df5)';
+          link.style.color = 'var(--color-primary, #4f6df5)';
+          link.style.fontWeight = 'normal';
+        }
+      });
+      
+      console.log('Applied settings to current page');
     }
     
     // 設定パネルが開かれたときに設定を読み込む
