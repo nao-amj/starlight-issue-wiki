@@ -75,6 +75,8 @@ const popularContent = [...filteredIssues]
             <a href={BASE_PATH + "/"} class="active">ホーム</a>
             <a href={`${BASE_PATH}/wiki/index`}>ページ一覧</a>
             <a href={`${BASE_PATH}/wiki/welcome`}>はじめに</a>
+            <a href={`${BASE_PATH}/knowledge-graph`}>知識グラフ</a>
+            <a href={`${BASE_PATH}/analysis`}>分析</a>
             <a href={REPO_URL}>GitHub</a>
           </nav>
           <button id="settings-toggle-btn" class="settings-toggle-btn">設定</button>
@@ -92,7 +94,7 @@ const popularContent = [...filteredIssues]
       </div>
       <div class="hero-buttons">
         <a href={`${BASE_PATH}/wiki/welcome`} class="hero-button primary">はじめてみる</a>
-        <a href={REPO_URL} class="hero-button secondary">GitHub</a>
+        <a href={`${BASE_PATH}/analysis`} class="hero-button secondary">分析ダッシュボード</a>
       </div>
     </div>
   </div>
@@ -120,7 +122,7 @@ const popularContent = [...filteredIssues]
                   </h3>
                   <div class="timeline-labels">
                     {issue.labels?.map(label => (
-                      <a href={`${BASE_PATH}/category/${encodeURIComponent(label.name)}`} 
+                      <a href={`${BASE_PATH}/tag/${encodeURIComponent(label.name)}`} 
                          class="timeline-label" 
                          style={`background-color: #${label.color}`}>
                         {label.name}
@@ -143,7 +145,7 @@ const popularContent = [...filteredIssues]
           <ul class="categories-list">
             {categories.map(category => (
               <li class="category-item">
-                <a href={`${BASE_PATH}/category/${encodeURIComponent(category)}`}>
+                <a href={`${BASE_PATH}/tag/${encodeURIComponent(category)}`}>
                   {category}
                   <span class="category-count">{categorizedIssues[category].length}</span>
                 </a>
@@ -162,7 +164,7 @@ const popularContent = [...filteredIssues]
                   <a href={`${BASE_PATH}/wiki/${issue.number}`}>{issue.title}</a>
                   <div class="popular-labels">
                     {issue.labels?.slice(0, 3).map(label => (
-                      <a href={`${BASE_PATH}/category/${encodeURIComponent(label.name)}`}
+                      <a href={`${BASE_PATH}/tag/${encodeURIComponent(label.name)}`}
                          class="popular-label" 
                          style={`background-color: #${label.color}`}>
                         {label.name}
@@ -184,9 +186,13 @@ const popularContent = [...filteredIssues]
           <span class="action-icon">📚</span>
           <span class="action-text">はじめてみる</span>
         </a>
-        <a href={`${BASE_PATH}/wiki/index`} class="action-button">
-          <span class="action-icon">📋</span>
-          <span class="action-text">ページ一覧</span>
+        <a href={`${BASE_PATH}/knowledge-graph`} class="action-button">
+          <span class="action-icon">🔍</span>
+          <span class="action-text">知識グラフ</span>
+        </a>
+        <a href={`${BASE_PATH}/analysis`} class="action-button">
+          <span class="action-icon">📊</span>
+          <span class="action-text">分析ダッシュボード</span>
         </a>
         <a href={REPO_URL + "/issues/new"} class="action-button">
           <span class="action-icon">✏️</span>
