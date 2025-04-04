@@ -1,7 +1,8 @@
 ---
-import { findBacklinks, loadZettelkastenSettings } from '../lib/zettelkasten';
+import { findBacklinks, loadZettelkastenSettings, convertWikiLinksToHtml, findBidirectionalLinks } from '../lib/zettelkasten';
 import BacklinkList from './BacklinkList.astro';
 import type { GitHubIssue } from '../data/types';
+import { BASE_PATH } from '../config';
 
 export interface Props {
   content: string;
@@ -15,7 +16,7 @@ const { content, issueUrl, currentIssue, allIssues } = Astro.props;
 // Zettelkasten設定を読み込み
 const zettelkastenConfig = {
   ...loadZettelkastenSettings(),
-  enabled: true // ビルド時は常に有効として処理
+  enabled: true // 常に有効として処理
 };
 
 // バックリンクを検索
@@ -106,9 +107,10 @@ try {
   }
 </style>
 
-<script is:inline>
-  // Zettelkasten設定の変更を検知してページをリロード
+<script>
+  // WikiリンクのクライアントサイドでのフォールバックとUI改善
   document.addEventListener('DOMContentLoaded', () => {
+    // Zettelkasten設定の変更を検知してページをリロード
     window.addEventListener('zettelkasten-settings-changed', () => {
       // 設定変更後に少し待ってからリロード
       setTimeout(() => {
@@ -123,5 +125,28 @@ try {
     // 双方向リンクの確認
     const bidirectionalLinks = document.querySelectorAll('.wiki-link.bidirectional');
     console.log(`${bidirectionalLinks.length} Bidirectional links found`);
+    
+    // [[...]]形式のテキストを検索し、リンクに変換（サーバーサイドの処理で変換されなかった場合のフォールバック）
+    const contentDiv = document.querySelector('.content');
+    if (contentDiv) {
+      const html = contentDiv.innerHTML;
+      const wikiLinkPattern = /\[\[(.*?)\]\]/g;
+      if (wikiLinkPattern.test(html)) {
+        console.log('Found unconverted wiki links, applying client-side conversion');
+        
+        // 未変換のWikiリンクをHTMLリンクに変換
+        const convertedHtml = html.replace(wikiLinkPattern, (match, title) => {
+          const linkedTitle = title.trim();
+          console.log(`Client-side converting: [[${linkedTitle}]]`);
+          return `<a href="${BASE_PATH}/wiki?title=${encodeURIComponent(linkedTitle)}" class="wiki-link">${linkedTitle}</a>`;
+        });
+        
+        // 変換後のHTMLを適用
+        if (html !== convertedHtml) {
+          contentDiv.innerHTML = convertedHtml;
+          console.log('Client-side link conversion completed');
+        }
+      }
+    }
   });
 </script>
