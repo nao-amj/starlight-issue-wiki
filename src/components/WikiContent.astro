@@ -103,6 +103,30 @@ try {
     color: #666;
   }
   
+  /* ハッシュタグスタイル */
+  .content :global(.hash-tag) {
+    text-decoration: none;
+    color: #1a73e8;
+    background-color: rgba(26, 115, 232, 0.1);
+    padding: 0.1em 0.4em;
+    border-radius: 0.25em;
+    font-size: 0.9em;
+    transition: all 0.2s;
+  }
+  
+  .content :global(.hash-tag:hover) {
+    background-color: rgba(26, 115, 232, 0.2);
+  }
+  
+  .dark .content :global(.hash-tag) {
+    color: #64b5f6;
+    background-color: rgba(100, 181, 246, 0.1);
+  }
+  
+  .dark .content :global(.hash-tag:hover) {
+    background-color: rgba(100, 181, 246, 0.2);
+  }
+  
   .knowledge-graph-section {
     margin: 2rem 0;
     padding: 1rem 0;
@@ -154,8 +178,8 @@ try {
   }
 </style>
 
-<script>
-  // WikiリンクのクライアントサイドでのフォールバックとUI改善
+<script define:vars={{ BASE_PATH }}>
+  // WikiリンクとハッシュタグのクライアントサイドでのフォールバックとUI改善
   document.addEventListener('DOMContentLoaded', () => {
     // Zettelkasten設定の変更を検知してページをリロード
     window.addEventListener('zettelkasten-settings-changed', () => {
@@ -173,26 +197,38 @@ try {
     const bidirectionalLinks = document.querySelectorAll('.wiki-link.bidirectional');
     console.log(`${bidirectionalLinks.length} Bidirectional links found`);
     
-    // [[...]]形式のテキストを検索し、リンクに変換（サーバーサイドの処理で変換されなかった場合のフォールバック）
     const contentDiv = document.querySelector('.content');
     if (contentDiv) {
+      // 未処理のWikiリンクを検出（フォールバック）
       const html = contentDiv.innerHTML;
+      let modified = false;
+      let modifiedHtml = html;
+      
+      // [[...]]形式のテキストを検索し、リンクに変換
       const wikiLinkPattern = /\[\[(.*?)\]\]/g;
       if (wikiLinkPattern.test(html)) {
         console.log('Found unconverted wiki links, applying client-side conversion');
-        
-        // 未変換のWikiリンクをHTMLリンクに変換
-        const convertedHtml = html.replace(wikiLinkPattern, (match, title) => {
+        modifiedHtml = modifiedHtml.replace(wikiLinkPattern, (match, title) => {
           const linkedTitle = title.trim();
-          console.log(`Client-side converting: [[${linkedTitle}]]`);
           return `<a href="${BASE_PATH}/wiki?title=${encodeURIComponent(linkedTitle)}" class="wiki-link">${linkedTitle}</a>`;
         });
-        
-        // 変換後のHTMLを適用
-        if (html !== convertedHtml) {
-          contentDiv.innerHTML = convertedHtml;
-          console.log('Client-side link conversion completed');
-        }
+        modified = true;
+      }
+      
+      // ハッシュタグを検出してリンクに変換
+      const hashTagPattern = /#([a-zA-Z0-9_-]+)/g;
+      if (hashTagPattern.test(modifiedHtml)) {
+        console.log('Found hashtags, applying client-side conversion');
+        modifiedHtml = modifiedHtml.replace(hashTagPattern, (match, tag) => {
+          return `<a href="${BASE_PATH}/tag/${tag.toLowerCase()}" class="hash-tag">#${tag}</a>`;
+        });
+        modified = true;
+      }
+      
+      // 変更があった場合のみHTMLを更新
+      if (modified) {
+        contentDiv.innerHTML = modifiedHtml;
+        console.log('Client-side link conversion completed');
       }
     }
   });
