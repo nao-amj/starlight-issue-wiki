@@ -1,0 +1,386 @@
+---
+// コンテンツの複雑さを分析するカード
+export interface Props {
+  issues: any[];
+}
+
+const { issues } = Astro.props;
+
+// ドキュメントの複雑さを計算する関数
+function calculateContentComplexity(text) {
+  if (!text) return { score: 0, level: 'なし', details: {} };
+  
+  // 語数の計算
+  const wordCount = text.split(/\s+/).filter(word => word.length > 0).length;
+  
+  // 語の複雑さ（平均語長）
+  const words = text.split(/\s+/).filter(word => word.length > 0);
+  const avgWordLength = words.reduce((sum, word) => sum + word.length, 0) / (words.length || 1);
+  
+  // 文の複雑さ（平均文長）
+  const sentences = text.split(/[.!?。！？]+/).filter(sentence => sentence.trim().length > 0);
+  const avgSentenceLength = words.length / (sentences.length || 1);
+  
+  // 特殊記号や技術用語の数
+  const technicalTerms = (text.match(/\b[A-Z][A-Za-z0-9]*[A-Z][A-Za-z0-9]*\b|\b[A-Za-z]+\d+\b|\b\d+[A-Za-z]+\b/g) || []).length;
+  const codeBlocks = (text.match(/```[\s\S]*?```/g) || []).length;
+  const lists = (text.match(/^[\s]*[-*+][\s]/gm) || []).length;
+  const tables = (text.match(/\|.*\|.*\|/g) || []).length;
+  
+  // 画像やリンクの数
+  const images = (text.match(/!\[.*?\]\(.*?\)/g) || []).length;
+  const links = (text.match(/\[.*?\]\(.*?\)/g) || []).length;
+  
+  // 複雑さスコアの計算
+  const lengthScore = Math.min(wordCount / 500, 1) * 30; // 最大30点
+  const structureScore = Math.min((codeBlocks + tables) / 5, 1) * 30; // 最大30点
+  const technicalScore = Math.min((technicalTerms / wordCount) * 10, 1) * 20; // 最大20点
+  const richMediaScore = Math.min((images + links) / 10, 1) * 20; // 最大20点
+  
+  const totalScore = lengthScore + structureScore + technicalScore + richMediaScore;
+  
+  // スコアに基づく複雑さレベルの決定
+  let level = '低';
+  if (totalScore >= 70) level = '非常に高い';
+  else if (totalScore >= 50) level = '高い';
+  else if (totalScore >= 30) level = '中程度';
+  else if (totalScore >= 15) level = 'やや低い';
+  
+  return {
+    score: Math.round(totalScore),
+    level,
+    details: {
+      wordCount,
+      avgWordLength: avgWordLength.toFixed(1),
+      avgSentenceLength: avgSentenceLength.toFixed(1),
+      technicalTerms,
+      codeBlocks,
+      lists,
+      tables,
+      images,
+      links
+    }
+  };
+}
+
+// 各issueの複雑さを計算
+const complexityData = issues.map(issue => {
+  const complexity = calculateContentComplexity(issue.body);
+  return {
+    number: issue.number,
+    title: issue.title,
+    complexity
+  };
+});
+
+// 複雑さによるソート（高い順）
+const sortedByComplexity = [...complexityData].sort((a, b) => b.complexity.score - a.complexity.score);
+
+// 複雑さレベル別の集計
+const complexityLevels = {
+  'なし': 0,
+  '低': 0,
+  'やや低い': 0,
+  '中程度': 0,
+  '高い': 0,
+  '非常に高い': 0
+};
+
+complexityData.forEach(item => {
+  complexityLevels[item.complexity.level]++;
+});
+
+// 上位5件の複雑さを持つコンテンツ
+const topComplex = sortedByComplexity.slice(0, 5);
+---
+
+<div class="analysis-card" id="content-complexity-card">
+  <h2 class="card-title">コンテンツ複雑性分析</h2>
+  
+  <div class="complexity-overview">
+    <div class="complexity-distribution">
+      <h3>複雑さレベル分布</h3>
+      <div class="complexity-bars">
+        {Object.entries(complexityLevels).filter(([level]) => level !== 'なし').map(([level, count]) => (
+          <div class="complexity-bar-group">
+            <div class="complexity-label">{level}</div>
+            <div class="complexity-bar-container">
+              <div class="complexity-bar" 
+                   style={`width: ${(count / issues.length) * 100}%; 
+                          background-color: ${
+                            level === '非常に高い' ? '#ef4444' : 
+                            level === '高い' ? '#f97316' : 
+                            level === '中程度' ? '#eab308' : 
+                            level === 'やや低い' ? '#84cc16' : 
+                            '#22c55e'
+                          }`}>
+                <span class="complexity-count">{count}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+    
+    <div class="complexity-stats">
+      <div class="stat-group">
+        <div class="stat-value">{Math.round(complexityData.reduce((sum, item) => sum + item.complexity.score, 0) / complexityData.length)}</div>
+        <div class="stat-label">平均複雑さスコア</div>
+      </div>
+      <div class="stat-group">
+        <div class="stat-value">{sortedByComplexity[0]?.complexity.score || 0}</div>
+        <div class="stat-label">最大複雑さスコア</div>
+      </div>
+      <div class="stat-group">
+        <div class="stat-value">{Object.entries(complexityLevels).filter(([level, _]) => level === '高い' || level === '非常に高い').reduce((sum, [_, count]) => sum + count, 0)}</div>
+        <div class="stat-label">高複雑さページ数</div>
+      </div>
+    </div>
+  </div>
+  
+  <h3 class="section-title">最も複雑なコンテンツ</h3>
+  <div class="complex-content-list">
+    {topComplex.map(item => (
+      <div class="complex-content-item">
+        <div class="content-info">
+          <a href={`/starlight-issue-wiki/wiki/${item.number}`} class="content-link">{item.title}</a>
+          <div class="complexity-meter">
+            <div class="complexity-level" style={`background-color: ${
+              item.complexity.level === '非常に高い' ? '#ef4444' : 
+              item.complexity.level === '高い' ? '#f97316' : 
+              item.complexity.level === '中程度' ? '#eab308' : 
+              item.complexity.level === 'やや低い' ? '#84cc16' : 
+              '#22c55e'
+            }`}>
+              {item.complexity.level}
+            </div>
+            <div class="complexity-score">スコア: {item.complexity.score}</div>
+          </div>
+        </div>
+        <div class="content-details">
+          <div class="detail-item">
+            <span class="detail-label">語数:</span>
+            <span class="detail-value">{item.complexity.details.wordCount}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">コードブロック:</span>
+            <span class="detail-value">{item.complexity.details.codeBlocks}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">表:</span>
+            <span class="detail-value">{item.complexity.details.tables}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">リンク:</span>
+            <span class="detail-value">{item.complexity.details.links}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">画像:</span>
+            <span class="detail-value">{item.complexity.details.images}</span>
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+</div>
+
+<style>
+  .complexity-overview {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .complexity-distribution h3,
+  .section-title {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+    color: var(--sl-color-gray-2);
+  }
+  
+  .complexity-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .complexity-bar-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  
+  .complexity-label {
+    width: 80px;
+    font-size: 0.85rem;
+    text-align: right;
+    color: var(--sl-color-gray-2);
+  }
+  
+  .complexity-bar-container {
+    flex: 1;
+    height: 24px;
+    background-color: var(--sl-color-gray-5);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  
+  .complexity-bar {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 0.5rem;
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 500;
+    min-width: 30px;
+    transition: width 0.5s ease;
+  }
+  
+  .complexity-count {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  }
+  
+  .complexity-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-top: 0.5rem;
+  }
+  
+  .stat-group {
+    padding: 1rem;
+    background-color: var(--sl-color-gray-6);
+    border-radius: 8px;
+    text-align: center;
+  }
+  
+  .stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--sl-color-text-accent);
+    margin-bottom: 0.25rem;
+  }
+  
+  .stat-label {
+    font-size: 0.85rem;
+    color: var(--sl-color-gray-2);
+  }
+  
+  .complex-content-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .complex-content-item {
+    padding: 1rem;
+    background-color: var(--sl-color-gray-6);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+  }
+  
+  .complex-content-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .content-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+  }
+  
+  .content-link {
+    font-weight: 500;
+    color: var(--sl-color-text-accent);
+    text-decoration: none;
+    line-height: 1.3;
+    display: block;
+    max-width: 70%;
+  }
+  
+  .complexity-meter {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+  }
+  
+  .complexity-level {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: white;
+  }
+  
+  .complexity-score {
+    font-size: 0.75rem;
+    color: var(--sl-color-gray-2);
+  }
+  
+  .content-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--sl-color-gray-5);
+  }
+  
+  .detail-item {
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  
+  .detail-label {
+    color: var(--sl-color-gray-2);
+  }
+  
+  .detail-value {
+    font-weight: 500;
+  }
+  
+  @media (min-width: 768px) {
+    .complexity-overview {
+      flex-direction: row;
+    }
+    
+    .complexity-distribution {
+      flex: 2;
+    }
+    
+    .complexity-stats {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+  }
+  
+  @media (max-width: 640px) {
+    .complexity-stats {
+      grid-template-columns: 1fr;
+    }
+    
+    .content-info {
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    
+    .content-link {
+      max-width: 100%;
+    }
+    
+    .complexity-meter {
+      align-items: flex-start;
+      flex-direction: row;
+      gap: 1rem;
+    }
+  }
+</style>
