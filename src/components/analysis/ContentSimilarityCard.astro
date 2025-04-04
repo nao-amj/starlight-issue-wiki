@@ -1,0 +1,652 @@
+---
+// コンテンツの関連性分析カード
+export interface Props {
+  issues: any[];
+}
+
+const { issues } = Astro.props;
+
+// テキスト処理のためのユーティリティ関数
+function tokenize(text) {
+  if (!text) return [];
+  return text.toLowerCase()
+    .replace(/[\n\r]/g, ' ')
+    .replace(/[^\w\s]/g, ' ')
+    .split(/\s+/)
+    .filter(token => token.length > 1);
+}
+
+// TF-IDFを計算するための関数
+function calculateTfIdf(docs) {
+  // ドキュメント頻度の計算
+  const df = {};
+  docs.forEach(doc => {
+    const tokens = new Set(doc);
+    tokens.forEach(token => {
+      df[token] = (df[token] || 0) + 1;
+    });
+  });
+  
+  // IDFの計算
+  const idf = {};
+  const N = docs.length;
+  Object.keys(df).forEach(token => {
+    idf[token] = Math.log(N / df[token]);
+  });
+  
+  // TF-IDFベクトルの計算
+  return docs.map(doc => {
+    const tfIdf = {};
+    const tokenFreq = {};
+    
+    // TFの計算
+    doc.forEach(token => {
+      tokenFreq[token] = (tokenFreq[token] || 0) + 1;
+    });
+    
+    // TF-IDFの計算
+    Object.keys(tokenFreq).forEach(token => {
+      const tf = tokenFreq[token] / doc.length;
+      tfIdf[token] = tf * (idf[token] || 0);
+    });
+    
+    return tfIdf;
+  });
+}
+
+// コサイン類似度の計算
+function cosineSimilarity(vec1, vec2) {
+  const keys1 = Object.keys(vec1);
+  const keys2 = Object.keys(vec2);
+  const keys = new Set([...keys1, ...keys2]);
+  
+  let dotProduct = 0;
+  let norm1 = 0;
+  let norm2 = 0;
+  
+  keys.forEach(key => {
+    const v1 = vec1[key] || 0;
+    const v2 = vec2[key] || 0;
+    dotProduct += v1 * v2;
+    norm1 += v1 * v1;
+    norm2 += v2 * v2;
+  });
+  
+  norm1 = Math.sqrt(norm1);
+  norm2 = Math.sqrt(norm2);
+  
+  if (norm1 === 0 || norm2 === 0) return 0;
+  return dotProduct / (norm1 * norm2);
+}
+
+// キーワード抽出
+function extractKeywords(tfIdf, topN = 5) {
+  return Object.entries(tfIdf)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, topN)
+    .map(([keyword, _]) => keyword);
+}
+
+// コンテンツ類似性の計算
+const tokensArray = issues.map(issue => {
+  const titleTokens = tokenize(issue.title);
+  const bodyTokens = tokenize(issue.body);
+  return [...titleTokens, ...bodyTokens];
+});
+
+const tfIdfVectors = calculateTfIdf(tokensArray);
+
+// 各issueのTF-IDFベクトルとキーワードを格納
+const issueVectors = issues.map((issue, i) => ({
+  ...issue,
+  vector: tfIdfVectors[i],
+  keywords: extractKeywords(tfIdfVectors[i])
+}));
+
+// 類似度行列の計算
+const similarityMatrix = [];
+for (let i = 0; i < issueVectors.length; i++) {
+  similarityMatrix[i] = [];
+  for (let j = 0; j < issueVectors.length; j++) {
+    if (i === j) {
+      similarityMatrix[i][j] = 1; // 自分自身との類似度は1
+    } else {
+      similarityMatrix[i][j] = cosineSimilarity(issueVectors[i].vector, issueVectors[j].vector);
+    }
+  }
+}
+
+// 各issueの類似コンテンツを見つける
+const similarContent = issueVectors.map((issue, i) => {
+  const similarities = similarityMatrix[i]
+    .map((score, j) => ({ issue: issues[j], score }))
+    .filter((item, j) => i !== j && item.score > 0.1) // 自分自身を除外して類似度が0.1以上のもののみ
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3); // 上位3件
+  
+  return {
+    issue,
+    similarities
+  };
+});
+
+// 類似度の高いコンテンツペアを抽出
+const similarPairs = [];
+for (let i = 0; i < issueVectors.length; i++) {
+  for (let j = i + 1; j < issueVectors.length; j++) {
+    if (similarityMatrix[i][j] > 0.5) { // 類似度が0.5以上のペアを抽出
+      similarPairs.push({
+        issue1: issues[i],
+        issue2: issues[j],
+        similarity: similarityMatrix[i][j]
+      });
+    }
+  }
+}
+
+// 類似度が高いペアをソート
+similarPairs.sort((a, b) => b.similarity - a.similarity);
+
+// トピッククラスタの検出（簡易的な実装）
+const clusters = [];
+const clusterThreshold = 0.4;
+const unclusteredIssues = new Set(issues.map(issue => issue.number));
+
+for (let i = 0; unclusteredIssues.size > 0 && i < issues.length; i++) {
+  if (!unclusteredIssues.has(issues[i].number)) continue;
+  
+  const cluster = {
+    centroid: issues[i],
+    issues: [issues[i]],
+    keywords: issueVectors[i].keywords
+  };
+  
+  unclusteredIssues.delete(issues[i].number);
+  
+  for (let j = 0; j < issues.length; j++) {
+    if (i === j || !unclusteredIssues.has(issues[j].number)) continue;
+    
+    if (similarityMatrix[i][j] >= clusterThreshold) {
+      cluster.issues.push(issues[j]);
+      unclusteredIssues.delete(issues[j].number);
+    }
+  }
+  
+  if (cluster.issues.length > 1) {
+    clusters.push(cluster);
+  }
+}
+
+// 最も大きいクラスタをソート
+clusters.sort((a, b) => b.issues.length - a.issues.length);
+
+// 冗長性の検出（類似度80%以上で注目）
+const potentialDuplicates = similarPairs.filter(pair => pair.similarity >= 0.8);
+---
+
+<div class="analysis-card" id="content-similarity-card">
+  <h2 class="card-title">コンテンツ関連性分析</h2>
+  
+  <div class="similarity-overview">
+    <div class="overview-item similarity-stats">
+      <h3>類似性統計</h3>
+      <div class="stat-grid">
+        <div class="stat-group">
+          <div class="stat-value">{similarPairs.length}</div>
+          <div class="stat-label">類似コンテンツペア</div>
+        </div>
+        <div class="stat-group">
+          <div class="stat-value">{clusters.length}</div>
+          <div class="stat-label">コンテンツクラスタ</div>
+        </div>
+        <div class="stat-group">
+          <div class="stat-value">{potentialDuplicates.length}</div>
+          <div class="stat-label">潜在的重複コンテンツ</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="overview-item top-clusters">
+      <h3>主要コンテンツクラスタ</h3>
+      <div class="clusters-list">
+        {clusters.slice(0, 3).map(cluster => (
+          <div class="cluster-item">
+            <div class="cluster-info">
+              <div class="cluster-name">"{cluster.centroid.title}" クラスタ</div>
+              <div class="cluster-size">{cluster.issues.length} ページ</div>
+            </div>
+            <div class="cluster-keywords">
+              {cluster.keywords.map(keyword => (
+                <span class="keyword-tag">{keyword}</span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+  
+  {potentialDuplicates.length > 0 && (
+    <div class="section">
+      <h3 class="section-title">潜在的な重複コンテンツ</h3>
+      <div class="duplicates-list">
+        {potentialDuplicates.slice(0, 3).map(pair => (
+          <div class="duplicate-item">
+            <div class="similarity-score" style={`--similarity: ${Math.round(pair.similarity * 100)}%`}>
+              {Math.round(pair.similarity * 100)}%
+            </div>
+            <div class="duplicate-content">
+              <a href={`/starlight-issue-wiki/wiki/${pair.issue1.number}`} class="content-link">{pair.issue1.title}</a>
+              <div class="duplicate-divider">と</div>
+              <a href={`/starlight-issue-wiki/wiki/${pair.issue2.number}`} class="content-link">{pair.issue2.title}</a>
+            </div>
+            <div class="duplicate-action">
+              <button class="compare-button">比較</button>
+              <button class="merge-button">マージ</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )}
+  
+  <div class="section">
+    <h3 class="section-title">コンテンツの関連性ネットワーク</h3>
+    <div class="network-visualization" id="similarity-network">
+      <!-- ネットワーク可視化はJavaScriptで実装 -->
+    </div>
+    <div class="network-legend">
+      <div class="legend-item">
+        <span class="legend-color" style="background-color: #4f6df5;"></span>
+        <span class="legend-text">強い関連性 (>70%)</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-color" style="background-color: #84cc16;"></span>
+        <span class="legend-text">中程度の関連性 (40-70%)</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-color" style="background-color: #cbd5e1;"></span>
+        <span class="legend-text">弱い関連性 (10-40%)</span>
+      </div>
+    </div>
+  </div>
+  
+  <div class="section">
+    <h3 class="section-title">検討すべき関連付け</h3>
+    <div class="recommendations-list">
+      {similarContent.slice(0, 5).filter(item => item.similarities.length > 0).map(item => (
+        <div class="recommendation-item">
+          <div class="recommendation-source">
+            <a href={`/starlight-issue-wiki/wiki/${item.issue.number}`} class="content-link">{item.issue.title}</a>
+          </div>
+          <div class="recommendation-targets">
+            {item.similarities.map(similar => (
+              <div class="similar-item">
+                <div class="similarity-badge" style={`--similarity: ${Math.round(similar.score * 100)}%`}>
+                  {Math.round(similar.score * 100)}%
+                </div>
+                <a href={`/starlight-issue-wiki/wiki/${similar.issue.number}`} class="similar-link">
+                  {similar.issue.title}
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</div>
+
+<style>
+  .similarity-overview {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  .overview-item {
+    flex: 1;
+  }
+  
+  .overview-item h3,
+  .section-title {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+    color: var(--sl-color-gray-2);
+  }
+  
+  .section {
+    margin-top: 2rem;
+  }
+  
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+  
+  .stat-group {
+    padding: 1rem;
+    background-color: var(--sl-color-gray-6);
+    border-radius: 8px;
+    text-align: center;
+  }
+  
+  .stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--sl-color-text-accent);
+    margin-bottom: 0.25rem;
+  }
+  
+  .stat-label {
+    font-size: 0.85rem;
+    color: var(--sl-color-gray-2);
+  }
+  
+  .clusters-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .cluster-item {
+    padding: 1rem;
+    background-color: var(--sl-color-gray-6);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+  }
+  
+  .cluster-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .cluster-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+  
+  .cluster-name {
+    font-weight: 500;
+  }
+  
+  .cluster-size {
+    font-size: 0.85rem;
+    color: var(--sl-color-gray-2);
+    padding: 0.2rem 0.5rem;
+    background-color: var(--sl-color-gray-5);
+    border-radius: 4px;
+  }
+  
+  .cluster-keywords {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .keyword-tag {
+    padding: 0.2rem 0.5rem;
+    background-color: var(--sl-color-accent-low);
+    color: var(--sl-color-accent);
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+  
+  .duplicates-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .duplicate-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    background-color: var(--sl-color-gray-6);
+    border-radius: 8px;
+    gap: 1rem;
+    transition: all 0.2s ease;
+  }
+  
+  .duplicate-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .similarity-score {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.95rem;
+    background: linear-gradient(90deg, #f87171 0%, #fbbf24 var(--similarity), #f87171 var(--similarity));
+    color: white;
+    flex-shrink: 0;
+  }
+  
+  .duplicate-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .content-link {
+    color: var(--sl-color-text-accent);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  
+  .duplicate-divider {
+    font-size: 0.85rem;
+    color: var(--sl-color-gray-2);
+    margin: 0 0.25rem;
+  }
+  
+  .duplicate-action {
+    display: flex;
+    gap: 0.5rem;
+  }
+  
+  .compare-button,
+  .merge-button {
+    padding: 0.35rem 0.75rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .compare-button {
+    background-color: var(--sl-color-gray-5);
+    color: var(--sl-color-gray-1);
+  }
+  
+  .compare-button:hover {
+    background-color: var(--sl-color-gray-4);
+  }
+  
+  .merge-button {
+    background-color: var(--sl-color-accent-low);
+    color: var(--sl-color-accent);
+  }
+  
+  .merge-button:hover {
+    background-color: var(--sl-color-accent);
+    color: white;
+  }
+  
+  .network-visualization {
+    width: 100%;
+    height: 300px;
+    background-color: var(--sl-color-gray-6);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--sl-color-gray-2);
+    font-style: italic;
+  }
+  
+  .network-legend {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--sl-color-gray-2);
+  }
+  
+  .legend-color {
+    width: 16px;
+    height: 4px;
+    border-radius: 2px;
+  }
+  
+  .recommendations-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .recommendation-item {
+    padding: 1rem;
+    background-color: var(--sl-color-gray-6);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+  }
+  
+  .recommendation-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .recommendation-source {
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--sl-color-gray-5);
+  }
+  
+  .recommendation-targets {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .similar-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  
+  .similarity-badge {
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: linear-gradient(90deg, #e0f2fe 0%, #38bdf8 var(--similarity), #e0f2fe var(--similarity));
+    color: #0c4a6e;
+    width: 56px;
+    text-align: center;
+  }
+  
+  .similar-link {
+    color: var(--sl-color-text);
+    text-decoration: none;
+    font-size: 0.95rem;
+  }
+  
+  .similar-link:hover {
+    color: var(--sl-color-text-accent);
+  }
+  
+  @media (min-width: 768px) {
+    .similarity-overview {
+      flex-direction: row;
+    }
+    
+    .duplicate-content {
+      flex-direction: row;
+      align-items: center;
+    }
+  }
+  
+  @media (max-width: 640px) {
+    .stat-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .duplicate-item {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    .similarity-score {
+      align-self: center;
+      margin-bottom: 0.5rem;
+    }
+    
+    .duplicate-action {
+      align-self: flex-end;
+    }
+    
+    .network-legend {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // 簡易的なネットワーク表示プレースホルダー
+    const networkContainer = document.getElementById('similarity-network');
+    if (networkContainer) {
+      networkContainer.textContent = 'コンテンツ関連性ネットワーク可視化は開発中です';
+    }
+    
+    // 比較ボタンイベントリスナー
+    const compareButtons = document.querySelectorAll('.compare-button');
+    compareButtons.forEach(button => {
+      button.addEventListener('click', (e) => {
+        const item = e.target.closest('.duplicate-item');
+        const links = item.querySelectorAll('.content-link');
+        
+        if (links.length >= 2) {
+          alert(`${links[0].textContent} と ${links[1].textContent} の比較機能は開発中です。`);
+        }
+      });
+    });
+    
+    // マージボタンイベントリスナー
+    const mergeButtons = document.querySelectorAll('.merge-button');
+    mergeButtons.forEach(button => {
+      button.addEventListener('click', (e) => {
+        const item = e.target.closest('.duplicate-item');
+        const links = item.querySelectorAll('.content-link');
+        
+        if (links.length >= 2) {
+          alert(`${links[0].textContent} と ${links[1].textContent} のマージ機能は開発中です。`);
+        }
+      });
+    });
+  });
+</script>
