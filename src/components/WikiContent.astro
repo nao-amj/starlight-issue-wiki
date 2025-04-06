@@ -2,6 +2,7 @@
 import { findBacklinks, loadZettelkastenSettings, convertWikiLinksToHtml, findBidirectionalLinks } from '../lib/zettelkasten';
 import BacklinkList from './BacklinkList.astro';
 import KnowledgeGraph from './KnowledgeGraph.astro';
+import MarkdownRenderer from './MarkdownRenderer.astro';
 import type { GitHubIssue } from '../data/types';
 import { BASE_PATH } from '../config';
 
@@ -43,7 +44,7 @@ if (currentIssue.body) {
 ---
 
 <div class="wiki-content">
-  <div class="content" set:html={content} />
+  <MarkdownRenderer content={content} />
   
   {tags.size > 0 && (
     <div class="tags-container">
@@ -90,112 +91,6 @@ if (currentIssue.body) {
     hyphens: auto;
   }
   
-  .content {
-    line-height: 1.7;
-  }
-  
-  .content :global(img) {
-    max-width: 100%;
-    height: auto;
-  }
-  
-  .content :global(pre) {
-    padding: 1rem;
-    border-radius: 0.5rem;
-    background-color: var(--sl-color-gray-6);
-    overflow-x: auto;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-  }
-  
-  .content :global(code:not(pre code)) {
-    white-space: normal;
-    word-wrap: break-word;
-  }
-  
-  .content :global(table) {
-    display: block;
-    width: 100%;
-    overflow-x: auto;
-    margin: 1rem 0;
-  }
-  
-  .content :global(blockquote) {
-    margin-left: 0;
-    padding-left: 1rem;
-    border-left: 4px solid var(--color-primary-light);
-  }
-  
-  .content :global(p), 
-  .content :global(li), 
-  .content :global(h1), 
-  .content :global(h2), 
-  .content :global(h3), 
-  .content :global(h4), 
-  .content :global(h5), 
-  .content :global(h6) {
-    overflow-wrap: break-word;
-    word-wrap: break-word;
-    hyphens: auto;
-  }
-  
-  /* Zettelkastenモード用のスタイル */
-  .content :global(.wiki-link) {
-    text-decoration: none;
-    border-bottom: 1px dashed var(--color-primary, #4f6df5);
-    color: var(--color-primary, #4f6df5);
-    transition: all 0.2s;
-    padding: 0 0.1em;
-    word-break: break-all;
-  }
-  
-  .content :global(.wiki-link:hover) {
-    background-color: rgba(79, 109, 245, 0.1);
-    border-bottom-style: solid;
-  }
-  
-  .content :global(.wiki-link.bidirectional) {
-    border-bottom: 2px solid #0fa968;
-    color: #0fa968;
-    font-weight: 500;
-    background-color: rgba(15, 169, 104, 0.05);
-  }
-  
-  .content :global(.wiki-link.bidirectional:hover) {
-    background-color: rgba(15, 169, 104, 0.1);
-  }
-  
-  .content :global(.wiki-link-unlinked) {
-    text-decoration: none;
-    border-bottom: 1px dotted #999;
-    color: #666;
-  }
-  
-  /* ハッシュタグスタイル */
-  .content :global(.hash-tag) {
-    text-decoration: none;
-    color: #1a73e8;
-    background-color: rgba(26, 115, 232, 0.1);
-    padding: 0.1em 0.4em;
-    border-radius: 0.25em;
-    font-size: 0.9em;
-    transition: all 0.2s;
-    word-break: break-all;
-  }
-  
-  .content :global(.hash-tag:hover) {
-    background-color: rgba(26, 115, 232, 0.2);
-  }
-  
-  .dark .content :global(.hash-tag) {
-    color: #64b5f6;
-    background-color: rgba(100, 181, 246, 0.1);
-  }
-  
-  .dark .content :global(.hash-tag:hover) {
-    background-color: rgba(100, 181, 246, 0.2);
-  }
-  
   /* タグセクション */
   .tags-container {
     margin: 1.5rem 0;
@@ -204,22 +99,15 @@ if (currentIssue.body) {
     flex-wrap: wrap;
     gap: 0.5rem;
     padding: 0.75rem 1rem;
-    background-color: #f9f9f9;
-    border-radius: 0.5rem;
-  }
-  
-  .dark .tags-container {
-    background-color: #222;
+    background-color: var(--sl-color-gray-7);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--sl-color-border);
   }
   
   .tags-header {
     font-weight: 500;
-    color: #666;
+    color: var(--sl-color-text-accent);
     margin-right: 0.5rem;
-  }
-  
-  .dark .tags-header {
-    color: #ccc;
   }
   
   .tag-list {
@@ -231,8 +119,8 @@ if (currentIssue.body) {
   .content-tag {
     display: inline-block;
     text-decoration: none;
-    color: #1a73e8;
-    background-color: rgba(26, 115, 232, 0.1);
+    color: var(--sl-color-accent);
+    background-color: var(--color-primary-light);
     padding: 0.2em 0.5em;
     border-radius: 0.25em;
     font-size: 0.9em;
@@ -241,23 +129,15 @@ if (currentIssue.body) {
   }
   
   .content-tag:hover {
-    background-color: rgba(26, 115, 232, 0.2);
+    background-color: var(--color-primary-light);
+    opacity: 0.8;
     transform: translateY(-1px);
-  }
-  
-  .dark .content-tag {
-    color: #64b5f6;
-    background-color: rgba(100, 181, 246, 0.1);
-  }
-  
-  .dark .content-tag:hover {
-    background-color: rgba(100, 181, 246, 0.2);
   }
   
   .knowledge-graph-section {
     margin: 2rem 0;
     padding: 1rem 0;
-    border-top: 1px solid var(--sl-color-gray-5);
+    border-top: 1px solid var(--sl-color-border);
   }
   
   .knowledge-graph-section h3 {
@@ -274,7 +154,7 @@ if (currentIssue.body) {
   .graph-link {
     display: inline-block;
     padding: 0.5rem 1rem;
-    background-color: var(--color-primary, #4f6df5);
+    background-color: var(--color-primary);
     color: white;
     text-decoration: none;
     border-radius: 4px;
@@ -283,20 +163,24 @@ if (currentIssue.body) {
   }
   
   .graph-link:hover {
-    background-color: var(--color-primary-dark, #3a50c5);
+    background-color: var(--color-primary-dark);
     transform: translateY(-2px);
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  .dark .graph-link:hover {
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
   }
   
   .edit-links {
     margin-top: 2rem;
     padding-top: 1rem;
-    border-top: 1px solid var(--sl-color-gray-5);
+    border-top: 1px solid var(--sl-color-border);
     font-size: 0.9rem;
   }
   
   .edit-links a {
-    color: var(--sl-color-text-accent);
+    color: var(--sl-color-accent);
     text-decoration: none;
   }
   
@@ -326,8 +210,8 @@ if (currentIssue.body) {
   }
 </style>
 
-<script define:vars={{ BASE_PATH }}>
-  // WikiリンクとハッシュタグのクライアントサイドでのフォールバックとUI改善
+<script>
+  // ハッシュタグとバックリンクの表示/非表示のクライアントサイド機能
   document.addEventListener('DOMContentLoaded', () => {
     // 設定変更を検知して即時反映
     window.addEventListener('zettelkasten-settings-changed', (event) => {
@@ -344,66 +228,17 @@ if (currentIssue.body) {
       if (backlinksContainer) {
         backlinksContainer.style.display = config.showBacklinks ? 'block' : 'none';
       }
-      
-      // 双方向リンクのスタイル調整
-      const bidirectionalLinks = document.querySelectorAll('.wiki-link.bidirectional');
-      bidirectionalLinks.forEach(link => {
-        if (config.highlightBidirectional) {
-          link.style.borderBottom = '2px solid #0fa968';
-          link.style.color = '#0fa968';
-          link.style.fontWeight = '500';
-          link.style.backgroundColor = 'rgba(15, 169, 104, 0.05)';
-        } else {
-          link.style.borderBottom = '1px dashed var(--color-primary, #4f6df5)';
-          link.style.color = 'var(--color-primary, #4f6df5)';
-          link.style.fontWeight = 'normal';
-          link.style.backgroundColor = 'transparent';
-        }
-      });
     }
     
-    // ログ: Wikiリンクの確認
-    const wikiLinks = document.querySelectorAll('.wiki-link');
-    console.log(`${wikiLinks.length} WikiLinks found`);
-    
-    // 双方向リンクの確認
-    const bidirectionalLinks = document.querySelectorAll('.wiki-link.bidirectional');
-    console.log(`${bidirectionalLinks.length} Bidirectional links found`);
-    
-    const contentDiv = document.querySelector('.content');
-    if (contentDiv) {
-      // 未処理のWikiリンクを検出（フォールバック）
-      const html = contentDiv.innerHTML;
-      let modified = false;
-      let modifiedHtml = html;
-      
-      // [[...]]形式のテキストを検索し、リンクに変換
-      const wikiLinkPattern = /\[\[(.*?)\]\]/g;
-      if (wikiLinkPattern.test(html)) {
-        console.log('Found unconverted wiki links, applying client-side conversion');
-        modifiedHtml = modifiedHtml.replace(wikiLinkPattern, (match, title) => {
-          const linkedTitle = title.trim();
-          return `<a href="${BASE_PATH}/wiki?title=${encodeURIComponent(linkedTitle)}" class="wiki-link">${linkedTitle}</a>`;
+    // テーマ変更イベントのリスナー
+    window.addEventListener('theme-change', (event) => {
+      if (window.mermaid && typeof window.mermaid.initialize === 'function') {
+        window.mermaid.initialize({
+          startOnLoad: true,
+          theme: event.detail.theme === 'dark' ? 'dark' : 'default',
         });
-        modified = true;
       }
-      
-      // ハッシュタグを検出してリンクに変換
-      const hashTagPattern = /#([a-zA-Z0-9_-]+)/g;
-      if (hashTagPattern.test(modifiedHtml)) {
-        console.log('Found hashtags, applying client-side conversion');
-        modifiedHtml = modifiedHtml.replace(hashTagPattern, (match, tag) => {
-          return `<a href="${BASE_PATH}/tag/${tag.toLowerCase()}" class="hash-tag">#${tag}</a>`;
-        });
-        modified = true;
-      }
-      
-      // 変更があった場合のみHTMLを更新
-      if (modified) {
-        contentDiv.innerHTML = modifiedHtml;
-        console.log('Client-side link conversion completed');
-      }
-    }
+    });
     
     // 現在の設定を読み込んで適用
     try {
@@ -415,13 +250,5 @@ if (currentIssue.body) {
     } catch (error) {
       console.error('設定の読み込みに失敗しました:', error);
     }
-    
-    // コードブロックの対応改善
-    document.querySelectorAll('pre code').forEach(block => {
-      // タッチデバイスでのスクロールを改善
-      block.parentElement.addEventListener('touchstart', function(e) {
-        e.stopPropagation();
-      });
-    });
   });
 </script>
