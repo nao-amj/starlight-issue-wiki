@@ -5,6 +5,7 @@ import { BASE_PATH, REPO_URL } from '../../config';
 import { marked } from 'marked';
 import { gfmHeadingId } from 'marked-gfm-heading-id';
 import { extractKeywords, findBidirectionalLinks, applyZettelkastenLinks, convertWikiLinksToHtml, loadZettelkastenSettings } from '../../lib/zettelkasten';
+import { filterLabels } from '../../lib/filters';
 
 // Add GFM heading ID support to marked
 marked.use(gfmHeadingId());
@@ -39,6 +40,9 @@ export async function getStaticPaths() {
 
 const { issue, allIssues } = Astro.props;
 const { title, body, created_at, updated_at, html_url, labels, number } = issue;
+
+// ラベルをフィルタリング
+const filteredLabels = filterLabels(labels || []);
 
 // Zettelkastenの設定を強制的に有効化（ビルド時）
 const zettelkastenConfig = {
@@ -138,7 +142,7 @@ const pageTitle = `${title} (#${issue.number})`;
         <h1>{title}</h1>
         
         <div class="issue-labels">
-          {labels && labels.map(label => (
+          {filteredLabels.map(label => (
             <a href={`${BASE_PATH}/category/${encodeURIComponent(label.name.toLowerCase())}`} class="tag" 
                style={`background-color: #${label.color}20; color: #${label.color}; border: 1px solid #${label.color}40;`}>
               {label.name}
