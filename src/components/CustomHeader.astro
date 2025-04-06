@@ -1,0 +1,91 @@
+---
+import { SITE_TITLE } from '../config';
+import ThemeToggle from './ThemeToggle.astro';
+---
+
+<header class="custom-header">
+  <div class="header-content">
+    <div class="site-title">
+      <a href="/">{SITE_TITLE}</a>
+    </div>
+    <div class="header-controls">
+      <nav class="header-nav">
+        <a href="/wiki" class="nav-link">Wiki</a>
+        <a href="/knowledge-graph" class="nav-link">Knowledge Graph</a>
+      </nav>
+      <div class="theme-control">
+        <ThemeToggle />
+      </div>
+    </div>
+  </div>
+</header>
+
+<style>
+  .custom-header {
+    background-color: var(--sl-color-bg-nav);
+    border-bottom: 1px solid var(--sl-color-border);
+    padding: 0.75rem 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header-content {
+    max-width: var(--sl-content-width);
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .site-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+  }
+
+  .site-title a {
+    color: var(--sl-color-text);
+    text-decoration: none;
+  }
+
+  .header-controls {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .header-nav {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .nav-link {
+    color: var(--sl-color-text);
+    text-decoration: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    transition: background-color 0.2s;
+  }
+
+  .nav-link:hover {
+    background-color: var(--sl-color-gray-6);
+  }
+
+  .theme-control {
+    display: flex;
+    align-items: center;
+  }
+
+  /* Mobile styles */
+  @media (max-width: 640px) {
+    .header-content {
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .header-controls {
+      width: 100%;
+      justify-content: space-between;
+    }
+  }
+</style>
