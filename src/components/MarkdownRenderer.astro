@@ -1,0 +1,335 @@
+---
+import { getHighlighter } from 'shiki';
+import { marked } from 'marked';
+import { markedGfmHeadingId } from 'marked-gfm-heading-id';
+
+interface Props {
+  content: string;
+  theme?: 'light' | 'dark' | 'auto';
+}
+
+const { content, theme = 'auto' } = Astro.props;
+
+// Add GFM heading ID support to marked
+marked.use(markedGfmHeadingId());
+
+// Enhance marked renderer to better handle GitHub Markdown features
+const renderer = new marked.Renderer();
+
+// Improve table rendering
+renderer.table = (header, body) => {
+  return `<div class="table-container">
+    <table>
+      <thead>${header}</thead>
+      <tbody>${body}</tbody>
+    </table>
+  </div>`;
+};
+
+// Improve code block rendering with syntax highlighting
+renderer.code = async (code, language) => {
+  if (!language) {
+    return `<pre><code>${code}</code></pre>`;
+  }
+
+  // Handle mermaid diagrams
+  if (language === 'mermaid') {
+    return `<div class="mermaid-diagram">
+      <pre class="mermaid">${code}</pre>
+    </div>`;
+  }
+
+  try {
+    // Create highlighter with light and dark themes
+    const highlighter = await getHighlighter({
+      themes: ['github-light', 'github-dark'],
+      langs: ['javascript', 'typescript', 'html', 'css', 'json', 'markdown', 'python', 'java', 
+              'c', 'cpp', 'csharp', 'go', 'rust', 'bash', 'shell', 'yaml', 'toml', 'sql'],
+    });
+
+    // Determine which theme to use
+    const lightTheme = highlighter.getTheme('github-light');
+    const darkTheme = highlighter.getTheme('github-dark');
+
+    // Highlight the code for both themes
+    const lightHtml = highlighter.codeToHtml(code, { lang: language, theme: lightTheme });
+    const darkHtml = highlighter.codeToHtml(code, { lang: language, theme: darkTheme });
+
+    // Return code with theme toggle support
+    return `<div class="code-block-container">
+      <div class="code-header">
+        <span class="code-language">${language}</span>
+        <div class="code-actions">
+          <button class="copy-button" data-code="${encodeURIComponent(code)}">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          </button>
+        </div>
+      </div>
+      <div class="code-block light-theme">${lightHtml}</div>
+      <div class="code-block dark-theme">${darkHtml}</div>
+    </div>`;
+  } catch (error) {
+    console.error('Error highlighting code:', error);
+    return `<pre><code class="language-${language}">${code}</code></pre>`;
+  }
+};
+
+// Use the custom renderer
+marked.use({ renderer });
+
+// Process the markdown content
+const processedContent = await marked.parse(content, { async: true });
+---
+
+<div class="markdown-content">
+  <div set:html={processedContent} />
+</div>
+
+<style>
+  .markdown-content :global(h1),
+  .markdown-content :global(h2),
+  .markdown-content :global(h3),
+  .markdown-content :global(h4),
+  .markdown-content :global(h5),
+  .markdown-content :global(h6) {
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+    line-height: 1.3;
+  }
+
+  .markdown-content :global(h1) {
+    font-size: 2rem;
+  }
+
+  .markdown-content :global(h2) {
+    font-size: 1.5rem;
+    border-bottom: 1px solid var(--sl-color-border);
+    padding-bottom: 0.3em;
+  }
+
+  .markdown-content :global(h3) {
+    font-size: 1.3rem;
+  }
+
+  .markdown-content :global(p) {
+    margin: 1em 0;
+    line-height: 1.7;
+  }
+
+  .markdown-content :global(blockquote) {
+    border-left: 4px solid var(--sl-color-border);
+    margin: 1em 0;
+    padding: 0 1em;
+    color: var(--sl-color-text-accent);
+  }
+
+  .markdown-content :global(ul),
+  .markdown-content :global(ol) {
+    margin: 1em 0;
+    padding-left: 2em;
+  }
+
+  .markdown-content :global(li) {
+    margin: 0.5em 0;
+  }
+
+  .markdown-content :global(img) {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.25rem;
+  }
+
+  /* Table styles */
+  .markdown-content :global(.table-container) {
+    overflow-x: auto;
+    margin: 1.5em 0;
+  }
+
+  .markdown-content :global(table) {
+    width: 100%;
+    border-collapse: collapse;
+    border-spacing: 0;
+  }
+
+  .markdown-content :global(table th) {
+    background-color: var(--sl-color-gray-6);
+    text-align: left;
+    font-weight: 600;
+    padding: 0.75em;
+    border: 1px solid var(--sl-color-border);
+  }
+
+  .markdown-content :global(table td) {
+    padding: 0.75em;
+    border: 1px solid var(--sl-color-border);
+  }
+
+  .markdown-content :global(table tr:nth-child(2n)) {
+    background-color: var(--sl-color-gray-7);
+  }
+
+  /* Code block styles */
+  .markdown-content :global(.code-block-container) {
+    margin: 1.5em 0;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    border: 1px solid var(--sl-color-border);
+  }
+
+  .markdown-content :global(.code-header) {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5em 1em;
+    background-color: var(--sl-color-gray-6);
+    border-bottom: 1px solid var(--sl-color-border);
+  }
+
+  .markdown-content :global(.code-language) {
+    font-size: 0.8em;
+    font-weight: 600;
+    color: var(--sl-color-text-accent);
+    text-transform: uppercase;
+  }
+
+  .markdown-content :global(.code-actions) {
+    display: flex;
+    gap: 0.5em;
+  }
+
+  .markdown-content :global(.copy-button) {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0.2em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--sl-color-text-accent);
+    opacity: 0.7;
+    transition: opacity 0.2s;
+  }
+
+  .markdown-content :global(.copy-button:hover) {
+    opacity: 1;
+  }
+
+  .markdown-content :global(.code-block) {
+    margin: 0;
+    overflow-x: auto;
+  }
+
+  .markdown-content :global(.code-block pre) {
+    margin: 0;
+    padding: 1em;
+  }
+
+  /* Theme-specific code rendering */
+  .markdown-content :global(.light-theme) {
+    display: var(--light-theme-display, block);
+  }
+
+  .markdown-content :global(.dark-theme) {
+    display: var(--dark-theme-display, none);
+  }
+
+  :global(.dark) .markdown-content :global(.light-theme) {
+    display: var(--dark-light-theme-display, none);
+  }
+
+  :global(.dark) .markdown-content :global(.dark-theme) {
+    display: var(--dark-dark-theme-display, block);
+  }
+
+  /* Mermaid diagram styles */
+  .markdown-content :global(.mermaid-diagram) {
+    margin: 1.5em 0;
+    text-align: center;
+    background-color: white;
+    padding: 1em;
+    border-radius: 0.5rem;
+    border: 1px solid var(--sl-color-border);
+  }
+  
+  :global(.dark) .markdown-content :global(.mermaid-diagram) {
+    background-color: #1a1a1a;
+  }
+
+  /* Mobile optimizations */
+  @media (max-width: 640px) {
+    .markdown-content :global(pre) {
+      font-size: 0.85em;
+    }
+    
+    .markdown-content :global(table) {
+      font-size: 0.85em;
+    }
+    
+    .markdown-content :global(.code-header) {
+      padding: 0.3em 0.6em;
+    }
+  }
+</style>
+
+<script>
+  // Copy button functionality
+  document.addEventListener('DOMContentLoaded', () => {
+    const copyButtons = document.querySelectorAll('.copy-button');
+    
+    copyButtons.forEach(button => {
+      button.addEventListener('click', async () => {
+        const code = decodeURIComponent((button as HTMLElement).dataset.code || '');
+        
+        try {
+          await navigator.clipboard.writeText(code);
+          
+          // Show feedback
+          const originalHTML = button.innerHTML;
+          button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+          button.style.color = 'var(--sl-color-green-high)';
+          
+          // Reset after 2 seconds
+          setTimeout(() => {
+            button.innerHTML = originalHTML;
+            button.style.color = '';
+          }, 2000);
+        } catch (err) {
+          console.error('Failed to copy code:', err);
+        }
+      });
+    });
+  });
+
+  // Initialize Mermaid for graph rendering
+  document.addEventListener('DOMContentLoaded', () => {
+    // Load Mermaid dynamically
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js';
+    script.onload = () => {
+      window.mermaid.initialize({
+        startOnLoad: true,
+        theme: document.documentElement.classList.contains('dark') ? 'dark' : 'default',
+        securityLevel: 'loose'
+      });
+    };
+    document.head.appendChild(script);
+
+    // Update Mermaid theme when the page theme changes
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class' && 
+            window.mermaid && 
+            typeof window.mermaid.initialize === 'function') {
+          const isDark = document.documentElement.classList.contains('dark');
+          window.mermaid.initialize({
+            startOnLoad: true,
+            theme: isDark ? 'dark' : 'default',
+            securityLevel: 'loose'
+          });
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, { attributes: true });
+  });
+</script>
