@@ -36,7 +36,12 @@ import { SITE_TITLE } from '../config';
   // Set theme class on document root
   if (theme === 'dark') {
     document.documentElement.classList.add('dark');
+    document.documentElement.dataset.theme = 'dark';
   } else {
     document.documentElement.classList.remove('dark');
+    document.documentElement.dataset.theme = 'light';
   }
+  
+  // Make theme directly accessible to scripts
+  window.theme = theme;
 </script>
