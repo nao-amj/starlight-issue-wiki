@@ -1,7 +1,7 @@
 {
   "name": "gitwiki-hub",
   "type": "module",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
@@ -18,6 +18,7 @@
     "marked-gfm-heading-id": "^3.1.3",
     "typescript": "^5.4.2",
     "date-fns": "^3.0.0",
-    "shiki": "^1.0.0"
+    "shiki": "^1.0.0",
+    "mermaid": "^10.8.0"
   }
 }
