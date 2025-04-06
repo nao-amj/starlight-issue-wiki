@@ -1,7 +1,7 @@
 ---
 import { getHighlighter } from 'shiki';
 import { marked } from 'marked';
-import { markedGfmHeadingId } from 'marked-gfm-heading-id';
+import gfmHeadingId from 'marked-gfm-heading-id';
 
 interface Props {
   content: string;
@@ -11,7 +11,7 @@ interface Props {
 const { content, theme = 'auto' } = Astro.props;
 
 // Add GFM heading ID support to marked
-marked.use(markedGfmHeadingId());
+marked.use(gfmHeadingId());
 
 // Enhance marked renderer to better handle GitHub Markdown features
 const renderer = new marked.Renderer();
