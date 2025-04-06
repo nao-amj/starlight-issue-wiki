@@ -1,173 +1,93 @@
 ---
 import { BASE_PATH } from '../config';
 
-// IssueDataの簡易的な型定義
-interface IssueData {
-  number: number;
-  title: string;
-  body: string;
-  html_url: string;
-  created_at: string;
-  updated_at: string;
-  labels: {
-    name: string;
-    color: string;
-    description?: string;
-  }[];
+export interface Props {
+  categories: string[];
+  activeCategorySlug?: string;
 }
 
-interface Props {
-  issues: IssueData[];
-  title: string;
-  category?: string;
-  limit?: number;
-  showViewAll?: boolean;
-}
+const { categories: allCategories = [], activeCategorySlug } = Astro.props;
 
-const { issues, title, category, limit = 5, showViewAll = true } = Astro.props;
+// 除外するカテゴリー（タグ）のリスト
+const excludedCategories = [
+  'status',
+  'priority',
+  'invalid',
+  'duplicate',
+  'wontfix',
+  'question',
+  'enhancement',
+  'bug'
+];
 
-// カテゴリーでフィルタリング
-const filteredIssues = category 
-  ? issues.filter(issue => 
-      issue.labels.some(label => 
-        label.name.toLowerCase() === category.toLowerCase()
-      )
-    )
-  : issues;
-
-// 表示数を制限
-const displayIssues = filteredIssues.slice(0, limit);
-
-// カテゴリーページへのリンク
-const categoryLink = category 
-  ? `${BASE_PATH}/category/${encodeURIComponent(category.toLowerCase())}` 
-  : `${BASE_PATH}/pages`;
+// 実際に表示するカテゴリーをフィルタリング
+const categories = allCategories.filter(category => 
+  !excludedCategories.includes(category.toLowerCase())
+);
 ---
 
 <div class="category-list">
-  <div class="category-header">
-    <h2>{title}</h2>
-    {showViewAll && filteredIssues.length > limit && (
-      <a href={categoryLink} class="view-all">すべて表示 →</a>
-    )}
-  </div>
-  
-  {displayIssues.length > 0 ? (
-    <div class="issue-list">
-      {displayIssues.map(issue => (
-        <div class="issue-card">
-          <h3>
-            <a href={`${BASE_PATH}/wiki/${issue.number}`}>{issue.title}</a>
-          </h3>
-          <div class="issue-labels">
-            {issue.labels.map(label => (
-              <a 
-                href={`${BASE_PATH}/category/${encodeURIComponent(label.name.toLowerCase())}`}
-                class="tag" 
-                style={`background-color: #${label.color}20; color: #${label.color}; border: 1px solid #${label.color}40;`}
-              >
-                {label.name}
-              </a>
-            ))}
-          </div>
-          <div class="issue-card-meta">
-            作成日: {new Date(issue.created_at).toLocaleDateString('ja-JP')}
-            {issue.updated_at !== issue.created_at && (
-              ` (更新日: ${new Date(issue.updated_at).toLocaleDateString('ja-JP')})`
-            )}
-          </div>
-        </div>
-      ))}
-    </div>
-  ) : (
-    <p>このカテゴリーには現在コンテンツがありません。</p>
-  )}
+  <h2 class="category-title">カテゴリー</h2>
+  <ul class="category-items">
+    {categories.map(category => (
+      <li class={activeCategorySlug === category.toLowerCase() ? 'active' : ''}>
+        <a href={`${BASE_PATH}/category/${category.toLowerCase()}`}>
+          {category}
+        </a>
+      </li>
+    ))}
+  </ul>
 </div>
 
 <style>
   .category-list {
-    margin-bottom: 2rem;
+    margin: 2rem 0;
+    background-color: var(--sl-color-bg);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    border: 1px solid var(--sl-color-border);
   }
   
-  .category-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  .category-title {
+    margin-top: 0;
     margin-bottom: 1rem;
+    font-size: 1.2rem;
+    color: var(--sl-color-text);
   }
   
-  .view-all {
-    font-size: 0.9rem;
-    color: var(--color-primary);
-    text-decoration: none;
-  }
-  
-  .view-all:hover {
-    text-decoration: underline;
-  }
-  
-  .issue-list {
-    display: grid;
-    gap: 1rem;
-  }
-  
-  .issue-card {
-    background-color: #f9f9f9;
-    padding: 1rem;
-    border-radius: 0.5rem;
-    border: 1px solid #eee;
-    transition: box-shadow 0.2s;
-  }
-  
-  .issue-card:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  }
-  
-  .issue-card h3 {
+  .category-items {
+    list-style: none;
+    padding: 0;
     margin: 0;
-    font-size: 1.1rem;
-  }
-  
-  .issue-card h3 a {
-    color: #333;
-    text-decoration: none;
-  }
-  
-  .issue-card h3 a:hover {
-    color: var(--color-primary);
-  }
-  
-  .issue-labels {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
-    margin: 0.5rem 0;
+    gap: 0.75rem;
   }
   
-  .issue-card-meta {
-    font-size: 0.8rem;
-    color: #666;
-    margin-top: 0.5rem;
+  .category-items li {
+    margin: 0;
   }
   
-  .tag {
+  .category-items a {
     display: inline-block;
-    padding: 0.2em 0.5em;
-    border-radius: 0.25rem;
-    font-size: 0.8rem;
-    font-weight: 500;
+    padding: 0.4rem 0.8rem;
+    background-color: var(--sl-color-gray-6);
+    color: var(--sl-color-text);
     text-decoration: none;
-    transition: transform 0.2s, box-shadow 0.2s;
+    border-radius: 0.25rem;
+    font-size: 0.9rem;
+    transition: background-color 0.2s, transform 0.2s;
+    border: 1px solid var(--sl-color-border);
   }
   
-  .tag:hover {
+  .category-items a:hover {
+    background-color: var(--color-primary-light);
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
   
-  @media (min-width: 50rem) {
-    .issue-list {
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    }
+  .category-items li.active a {
+    background-color: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
   }
 </style>
