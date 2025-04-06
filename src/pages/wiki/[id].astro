@@ -3,11 +3,11 @@ import Layout from '../../layouts/Layout.astro';
 import WikiContent from '../../components/WikiContent.astro';
 import { BASE_PATH, REPO_URL } from '../../config';
 import { marked } from 'marked';
-import { markedGfmHeadingId } from 'marked-gfm-heading-id';
+import gfmHeadingId from 'marked-gfm-heading-id';
 import { extractKeywords, findBidirectionalLinks, applyZettelkastenLinks, convertWikiLinksToHtml, loadZettelkastenSettings } from '../../lib/zettelkasten';
 
 // Add GFM heading ID support to marked
-marked.use(markedGfmHeadingId());
+marked.use(gfmHeadingId());
 
 export async function getStaticPaths() {
   // GitHub API からIssueを取得する関数
