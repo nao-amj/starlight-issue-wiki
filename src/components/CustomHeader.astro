@@ -44,8 +44,13 @@ import ThemeToggle from './ThemeToggle.astro';
   }
 
   .site-title a {
-    color: var(--sl-color-text);
+    color: var(--sl-color-accent);
     text-decoration: none;
+    font-weight: 700;
+  }
+
+  .site-title a:hover {
+    text-decoration: underline;
   }
 
   .header-controls {
@@ -65,10 +70,12 @@ import ThemeToggle from './ThemeToggle.astro';
     padding: 0.25rem 0.5rem;
     border-radius: 0.25rem;
     transition: background-color 0.2s;
+    font-weight: 500;
   }
 
   .nav-link:hover {
     background-color: var(--sl-color-gray-6);
+    color: var(--sl-color-accent);
   }
 
   .theme-control {
