@@ -5,6 +5,7 @@ import KnowledgeGraph from './KnowledgeGraph.astro';
 import MarkdownRenderer from './MarkdownRenderer.astro';
 import type { GitHubIssue } from '../data/types';
 import { BASE_PATH } from '../config';
+import { filterTags } from '../lib/filters';
 
 export interface Props {
   content: string;
@@ -32,15 +33,20 @@ try {
 }
 
 // 現在のIssueの全タグを収集
-const tags = new Set();
+const allTags = new Set();
 if (currentIssue.body) {
   const tagMatches = currentIssue.body.match(/#([a-zA-Z0-9_-]+)/g);
   if (tagMatches) {
     tagMatches.forEach(tag => {
-      tags.add(tag.substring(1).toLowerCase());
+      allTags.add(tag.substring(1).toLowerCase());
     });
   }
 }
+
+// タグをフィルター
+const tags = new Set(
+  filterTags(Array.from(allTags))
+);
 ---
 
 <div class="wiki-content">
