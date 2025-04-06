@@ -2,7 +2,6 @@
 import { findBacklinks, loadZettelkastenSettings, convertWikiLinksToHtml, findBidirectionalLinks } from '../lib/zettelkasten';
 import BacklinkList from './BacklinkList.astro';
 import KnowledgeGraph from './KnowledgeGraph.astro';
-import CommentSection from './CommentSection.astro';
 import type { GitHubIssue } from '../data/types';
 import { BASE_PATH } from '../config';
 
@@ -75,9 +74,6 @@ if (currentIssue.body) {
     )}
   </div>
   
-  <!-- コメントセクション -->
-  <CommentSection currentIssue={currentIssue} />
-  
   <div class="edit-links">
     <a href={issueUrl} target="_blank" rel="noopener noreferrer">
       GitHubでこのページを編集する
@@ -88,6 +84,14 @@ if (currentIssue.body) {
 <style>
   .wiki-content {
     width: 100%;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
+  }
+  
+  .content {
+    line-height: 1.7;
   }
   
   .content :global(img) {
@@ -100,6 +104,39 @@ if (currentIssue.body) {
     border-radius: 0.5rem;
     background-color: var(--sl-color-gray-6);
     overflow-x: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  
+  .content :global(code:not(pre code)) {
+    white-space: normal;
+    word-wrap: break-word;
+  }
+  
+  .content :global(table) {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    margin: 1rem 0;
+  }
+  
+  .content :global(blockquote) {
+    margin-left: 0;
+    padding-left: 1rem;
+    border-left: 4px solid var(--color-primary-light);
+  }
+  
+  .content :global(p), 
+  .content :global(li), 
+  .content :global(h1), 
+  .content :global(h2), 
+  .content :global(h3), 
+  .content :global(h4), 
+  .content :global(h5), 
+  .content :global(h6) {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    hyphens: auto;
   }
   
   /* Zettelkastenモード用のスタイル */
@@ -109,6 +146,7 @@ if (currentIssue.body) {
     color: var(--color-primary, #4f6df5);
     transition: all 0.2s;
     padding: 0 0.1em;
+    word-break: break-all;
   }
   
   .content :global(.wiki-link:hover) {
@@ -142,6 +180,7 @@ if (currentIssue.body) {
     border-radius: 0.25em;
     font-size: 0.9em;
     transition: all 0.2s;
+    word-break: break-all;
   }
   
   .content :global(.hash-tag:hover) {
@@ -198,6 +237,7 @@ if (currentIssue.body) {
     border-radius: 0.25em;
     font-size: 0.9em;
     transition: all 0.2s;
+    word-break: break-all;
   }
   
   .content-tag:hover {
@@ -262,6 +302,27 @@ if (currentIssue.body) {
   
   .edit-links a:hover {
     text-decoration: underline;
+  }
+  
+  /* レスポンシブ対応 */
+  @media (max-width: 768px) {
+    .wiki-content {
+      padding: 0;
+    }
+    
+    .tags-container {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    .tag-list {
+      width: 100%;
+    }
+    
+    .knowledge-graph-section {
+      margin: 1.5rem 0;
+      padding-top: 1.5rem;
+    }
   }
 </style>
 
@@ -354,5 +415,13 @@ if (currentIssue.body) {
     } catch (error) {
       console.error('設定の読み込みに失敗しました:', error);
     }
+    
+    // コードブロックの対応改善
+    document.querySelectorAll('pre code').forEach(block => {
+      // タッチデバイスでのスクロールを改善
+      block.parentElement.addEventListener('touchstart', function(e) {
+        e.stopPropagation();
+      });
+    });
   });
 </script>
