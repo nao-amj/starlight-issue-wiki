@@ -14,7 +14,7 @@ const { title, description = 'GitHubのIssueを使って管理するドキュメ
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
@@ -29,12 +29,13 @@ const { title, description = 'GitHubのIssueを使って管理するドキュメ
     <script src="../utils/themeManager.js" type="module"></script>
   </head>
   <body>
-    <header>
+    <header class="site-header">
       <div class="container">
         <div class="header-content">
-          <h1><a href={BASE_PATH + "/"}>{SITE_TITLE}</a></h1>
+          <h1 class="site-title"><a href={BASE_PATH + "/"}>{SITE_TITLE}</a></h1>
           <div class="nav-container">
-            <nav>
+            <button id="menu-toggle" class="mobile-menu-toggle" aria-label="メニュー">☰</button>
+            <nav id="main-nav" class="main-nav">
               <a href={BASE_PATH + "/"}>ホーム</a>
               <a href={`${BASE_PATH}/wiki/1`}>はじめに</a>
               <a href={`${BASE_PATH}/wiki`}>ページ一覧</a>
@@ -72,16 +73,18 @@ const { title, description = 'GitHubのIssueを使って管理するドキュメ
     <SettingsPanel />
     
     <style>
-      header {
+      /* ヘッダーのスタイル */
+      .site-header {
         background-color: white;
         box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-        padding: 1rem 0;
+        padding: 0.75rem 0;
         position: sticky;
         top: 0;
         z-index: 100;
+        transition: all 0.3s ease;
       }
       
-      .dark header {
+      .dark .site-header {
         background-color: #111;
         box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
       }
@@ -92,18 +95,19 @@ const { title, description = 'GitHubのIssueを使って管理するドキュメ
         align-items: center;
       }
       
-      header h1 {
+      .site-title {
         margin: 0;
         font-size: 1.5rem;
+        white-space: nowrap;
       }
       
-      header h1 a {
+      .site-title a {
         text-decoration: none;
         color: var(--color-primary);
         transition: all 0.2s;
       }
       
-      header h1 a:hover {
+      .site-title a:hover {
         color: var(--color-primary-dark);
       }
       
@@ -113,12 +117,13 @@ const { title, description = 'GitHubのIssueを使って管理するドキュメ
         gap: 1rem;
       }
       
-      nav {
+      .main-nav {
         display: flex;
         gap: 1.5rem;
+        transition: all 0.3s ease;
       }
       
-      nav a {
+      .main-nav a {
         color: var(--color-text);
         text-decoration: none;
         padding: 0.5rem 0;
@@ -126,15 +131,15 @@ const { title, description = 'GitHubのIssueを使って管理するドキュメ
         transition: color 0.2s;
       }
       
-      nav a:hover {
+      .main-nav a:hover {
         color: var(--color-primary);
       }
       
-      nav a.active {
+      .main-nav a.active {
         color: var(--color-primary);
       }
       
-      nav a.active::after {
+      .main-nav a.active::after {
         content: '';
         position: absolute;
         bottom: 0;
@@ -161,6 +166,18 @@ const { title, description = 'GitHubのIssueを使って管理するドキュメ
         transform: translateY(-1px);
       }
       
+      /* モバイルメニュートグルボタン */
+      .mobile-menu-toggle {
+        display: none;
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--color-text);
+        padding: 0.25rem 0.5rem;
+      }
+      
+      /* フッター */
       footer {
         background-color: #f9f9fb;
         padding: 2rem 0;
@@ -210,36 +227,79 @@ const { title, description = 'GitHubのIssueを使って管理するドキュメ
         color: #777;
       }
       
+      /* レスポンシブデザイン */
       @media (max-width: 768px) {
+        /* モバイルでの表示を最適化 */
+        .site-header {
+          padding: 0.5rem 0;
+        }
+        
         .header-content {
-          flex-direction: column;
-          align-items: flex-start;
-          gap: 1rem;
+          position: relative;
+        }
+        
+        .mobile-menu-toggle {
+          display: block;
         }
         
         .nav-container {
-          width: 100%;
-          justify-content: space-between;
+          flex-grow: 1;
+          justify-content: flex-end;
         }
         
-        nav {
-          overflow-x: auto;
-          -webkit-overflow-scrolling: touch;
+        .main-nav {
+          position: absolute;
+          top: 100%;
+          left: 0;
+          right: 0;
+          background-color: white;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          padding: 1rem;
+          flex-direction: column;
+          gap: 0.75rem;
+          display: none;
+          z-index: 200;
+        }
+        
+        .dark .main-nav {
+          background-color: #111;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        .main-nav.active {
           display: flex;
-          flex-wrap: nowrap;
-          max-width: calc(100% - 80px);
-          scrollbar-width: none;
-          -ms-overflow-style: none;
-          padding-bottom: 0.5rem;
-          gap: 1rem;
         }
         
-        nav::-webkit-scrollbar {
+        .main-nav a {
+          display: block;
+          padding: 0.75rem;
+          border-radius: 4px;
+        }
+        
+        .main-nav a:hover {
+          background-color: rgba(0, 0, 0, 0.05);
+        }
+        
+        .dark .main-nav a:hover {
+          background-color: rgba(255, 255, 255, 0.05);
+        }
+        
+        /* アクティブ状態のアンダーラインではなく背景色を変更 */
+        .main-nav a.active::after {
           display: none;
         }
         
-        nav a {
-          white-space: nowrap;
+        .main-nav a.active {
+          background-color: rgba(37, 99, 235, 0.1);
+        }
+        
+        .dark .main-nav a.active {
+          background-color: rgba(37, 99, 235, 0.2);
+        }
+        
+        /* フッターをシンプルに */
+        .footer-links {
+          gap: 1rem;
         }
       }
     </style>
@@ -248,7 +308,7 @@ const { title, description = 'GitHubのIssueを使って管理するドキュメ
       // ヘッダーのナビゲーションにアクティブクラスを設定
       document.addEventListener('DOMContentLoaded', () => {
         const pathname = window.location.pathname;
-        const navLinks = document.querySelectorAll('nav a');
+        const navLinks = document.querySelectorAll('.main-nav a');
         
         navLinks.forEach(link => {
           const href = link.getAttribute('href');
@@ -258,6 +318,30 @@ const { title, description = 'GitHubのIssueを使って管理するドキュメ
             link.classList.add('active');
           }
         });
+        
+        // モバイルメニュートグル
+        const menuToggle = document.getElementById('menu-toggle');
+        const mainNav = document.getElementById('main-nav');
+        
+        if (menuToggle && mainNav) {
+          menuToggle.addEventListener('click', () => {
+            mainNav.classList.toggle('active');
+          });
+          
+          // メニュー項目をクリックしたときにメニューを閉じる
+          navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+              mainNav.classList.remove('active');
+            });
+          });
+          
+          // 画面外クリックでメニューを閉じる
+          document.addEventListener('click', (event) => {
+            if (!event.target.closest('.main-nav') && !event.target.closest('.mobile-menu-toggle') && mainNav.classList.contains('active')) {
+              mainNav.classList.remove('active');
+            }
+          });
+        }
         
         // 設定パネルの表示トグル
         const settingsBtn = document.getElementById('settings-toggle-btn');
@@ -276,6 +360,23 @@ const { title, description = 'GitHubのIssueを使って管理するドキュメ
       // テーマ変更イベントのリスナー
       window.addEventListener('theme-changed', (event) => {
         console.log('Theme changed:', event.detail);
+      });
+      
+      // スクロール時の動作最適化
+      let lastScrollY = 0;
+      window.addEventListener('scroll', () => {
+        const currentScrollY = window.scrollY;
+        const header = document.querySelector('.site-header');
+        
+        if (currentScrollY > lastScrollY && currentScrollY > 100) {
+          // 下スクロール時はヘッダーを隠す
+          header.style.transform = 'translateY(-100%)';
+        } else {
+          // 上スクロール時はヘッダーを表示
+          header.style.transform = 'translateY(0)';
+        }
+        
+        lastScrollY = currentScrollY;
       });
     </script>
   </body>
