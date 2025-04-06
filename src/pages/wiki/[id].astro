@@ -3,7 +3,11 @@ import Layout from '../../layouts/Layout.astro';
 import WikiContent from '../../components/WikiContent.astro';
 import { BASE_PATH, REPO_URL } from '../../config';
 import { marked } from 'marked';
+import { markedGfmHeadingId } from 'marked-gfm-heading-id';
 import { extractKeywords, findBidirectionalLinks, applyZettelkastenLinks, convertWikiLinksToHtml, loadZettelkastenSettings } from '../../lib/zettelkasten';
+
+// Add GFM heading ID support to marked
+marked.use(markedGfmHeadingId());
 
 export async function getStaticPaths() {
   // GitHub API からIssueを取得する関数
@@ -193,25 +197,17 @@ const pageTitle = `${title} (#${issue.number})`;
   }
 
   .content-panel {
-    background: white;
+    background: var(--sl-color-bg);
     padding: 2rem;
-    border-radius: 8px;
+    border-radius: var(--border-radius);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  }
-
-  .dark .content-panel {
-    background: #222;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--sl-color-border);
   }
 
   .wiki-header {
     margin-bottom: 2rem;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--sl-color-border);
     padding-bottom: 1rem;
-  }
-  
-  .dark .wiki-header {
-    border-bottom-color: #444;
   }
   
   .issue-labels {
@@ -238,20 +234,20 @@ const pageTitle = `${title} (#${issue.number})`;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
   
+  .dark .tag:hover {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+  
   .issue-meta {
     display: flex;
     flex-wrap: wrap;
     gap: 1rem;
     font-size: 0.9rem;
-    color: #666;
-  }
-  
-  .dark .issue-meta {
-    color: #aaa;
+    color: var(--sl-color-text-accent);
   }
   
   .issue-link {
-    color: var(--color-primary);
+    color: var(--sl-color-accent);
     text-decoration: none;
   }
   
@@ -266,14 +262,14 @@ const pageTitle = `${title} (#${issue.number})`;
   }
 
   .sidebar > div {
-    background: white;
+    background: var(--sl-color-bg);
     padding: 1.5rem;
-    border-radius: 8px;
+    border-radius: var(--border-radius);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--sl-color-border);
   }
 
   .dark .sidebar > div {
-    background: #222;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   }
 
@@ -282,11 +278,7 @@ const pageTitle = `${title} (#${issue.number})`;
     font-size: 1.2rem;
     margin-bottom: 1rem;
     padding-bottom: 0.5rem;
-    border-bottom: 1px solid #eee;
-  }
-
-  .dark .sidebar h2 {
-    border-bottom-color: #444;
+    border-bottom: 1px solid var(--sl-color-border);
   }
 
   .sidebar ul {
@@ -302,18 +294,14 @@ const pageTitle = `${title} (#${issue.number})`;
   .sidebar a {
     display: block;
     padding: 0.5rem;
-    color: var(--color-primary);
+    color: var(--sl-color-accent);
     text-decoration: none;
     border-radius: 4px;
     transition: background-color 0.2s;
   }
 
   .sidebar a:hover {
-    background-color: #f5f5f5;
-  }
-
-  .dark .sidebar a:hover {
-    background-color: #333;
+    background-color: var(--sl-color-gray-6);
   }
 
   /* レスポンシブデザイン */
@@ -324,6 +312,15 @@ const pageTitle = `${title} (#${issue.number})`;
     
     .sidebar {
       order: 2;
+    }
+    
+    .content-panel {
+      padding: 1.5rem;
+    }
+    
+    .issue-meta {
+      flex-direction: column;
+      gap: 0.5rem;
     }
   }
 </style>
@@ -360,14 +357,40 @@ const pageTitle = `${title} (#${issue.number})`;
         });
         
         tocContainer.appendChild(tocList);
+        
+        // 目次項目のスタイルを追加
+        const style = document.createElement('style');
+        style.textContent = `
+          .toc-list {
+            padding: 0;
+            margin: 0;
+            list-style: none;
+          }
+          .toc-item {
+            margin-bottom: 0.5rem;
+          }
+          .toc-item a {
+            display: block;
+            padding: 0.25rem 0.5rem;
+            text-decoration: none;
+            color: var(--sl-color-text);
+            border-radius: 4px;
+            transition: background-color 0.2s;
+          }
+          .toc-item a:hover {
+            background-color: var(--sl-color-gray-6);
+          }
+          .toc-h3 {
+            padding-left: 1rem;
+          }
+          .toc-h4 {
+            padding-left: 2rem;
+          }
+        `;
+        document.head.appendChild(style);
       } else {
         tocContainer.innerHTML = '<p class="toc-empty">目次がありません</p>';
       }
     }
-    
-    // デバッグ用
-    console.log('Checking wiki links...');
-    const wikiLinks = document.querySelectorAll('.wiki-link');
-    console.log(`Found ${wikiLinks.length} wiki links`);
   });
 </script>
