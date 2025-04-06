@@ -14,8 +14,27 @@ https://nao-amj.github.io/starlight-issue-wiki/
 - レスポンシブデザイン
 - 検索機能（キーボードナビゲーション対応）
 - タイムラインビュー
-- ダークモード対応
+- **ダークモード/ライトモード切り替え対応**
+- **高機能なシンタックスハイライト**
+- **Mermaidによるグラフプレビュー**
+- **Markdownテーブルの完全サポート**
+- **モバイル最適化**
 - Zettelkastenモード（設定切り替え可能）
+
+## 最近の更新
+
+### 1. Wiki詳細ページの機能強化
+- **Mermaidによるグラフ描画**: ```mermaid コードブロックによる図表の描画をサポート
+- **GitHubスタイルMarkdown**: GitHub Flavored Markdownの完全対応
+- **テーブル表示の改善**: レスポンシブ対応と見やすさの向上
+- **シンタックスハイライト強化**: 多言語対応と色彩豊かなハイライト
+
+### 2. テーマ切り替え機能の強化
+- ヘッダーにテーマ切り替えボタンを追加
+- ユーザー設定の記憶機能
+- システム設定に自動追従するオプション
+
+詳しい更新内容は [CHANGES.md](CHANGES.md) をご覧ください。
 
 ## 実装の詳細
 
@@ -39,6 +58,8 @@ https://nao-amj.github.io/starlight-issue-wiki/
 - **GitHub Actions**: 自動デプロイとデータ更新
 - **date-fns**: 日付フォーマット用ライブラリ
 - **shiki**: コードハイライト
+- **mermaid**: 図表描画ライブラリ
+- **marked-gfm-heading-id**: GitHubスタイルの見出しID生成
 
 ## 開発方法
 
@@ -59,6 +80,40 @@ npm run build
 2. issueのタイトルは、ページのタイトルになります
 3. issueの本文は、ページの内容になります（Markdownをサポート）
 4. 「documentation」や「wiki」などのラベルを付けると、カテゴリー分けされます
+
+### Markdown 高度な機能
+
+#### コードブロック
+
+```
+​```javascript
+// シンタックスハイライト付きのコード
+const example = "Hello World";
+console.log(example);
+​```
+```
+
+#### テーブル
+
+```
+| 項目 | 説明 |
+|------|------|
+| 例1  | 説明1 |
+| 例2  | 説明2 |
+```
+
+#### Mermaidグラフ
+
+```
+​```mermaid
+graph TD
+    A[開始] --> B{条件}
+    B -->|Yes| C[処理1]
+    B -->|No| D[処理2]
+    C --> E[終了]
+    D --> E
+​```
+```
 
 ## Zettelkastenモード
 
