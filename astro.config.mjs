@@ -16,5 +16,14 @@ export default defineConfig({
   build: {
     format: 'directory',
     assets: '_assets'
+  },
+  
+  // Vite設定
+  vite: {
+    resolve: {
+      alias: {
+        '/wiki/utils/themeManager.js': '/src/utils/themeManager.js'
+      }
+    }
   }
 });
