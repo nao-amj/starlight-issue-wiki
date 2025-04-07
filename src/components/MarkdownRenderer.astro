@@ -41,8 +41,15 @@ renderer.code = (code, language) => {
 
   // Handle mermaid diagrams
   if (language === 'mermaid') {
+    // 前処理: 'graph XX' 形式を 'flowchart XX' 形式に変換する
+    let processedCode = code;
+    if (code.trim().startsWith('graph ')) {
+      // 'graph TB', 'graph LR', 'graph TD', 'graph RL' などを変換
+      processedCode = code.replace(/^(\s*)graph\s+(TB|TD|BT|LR|RL)/, '$1flowchart $2');
+    }
+    
     return `<div class="mermaid-diagram">
-      <pre class="mermaid">${code}</pre>
+      <pre class="mermaid">${processedCode}</pre>
     </div>`;
   }
 
@@ -249,6 +256,15 @@ const processedContent = await marked.parse(content, { async: true });
     padding: 1em;
     border-radius: 0.5rem;
     border: 1px solid var(--sl-color-border);
+    overflow: auto;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  /* Force mermaid SVG to fit container */
+  .markdown-content :global(.mermaid-diagram svg) {
+    max-width: 100% !important;
+    height: auto !important;
   }
   
   :global(.dark) .markdown-content :global(.mermaid-diagram) {
@@ -272,6 +288,12 @@ const processedContent = await marked.parse(content, { async: true });
 </style>
 
 <script>
+  declare global {
+    interface Window {
+      mermaid: any;
+    }
+  }
+
   // Copy button functionality
   document.addEventListener('DOMContentLoaded', () => {
     const copyButtons = document.querySelectorAll('.copy-button');
@@ -315,15 +337,25 @@ const processedContent = await marked.parse(content, { async: true });
       
       // mermaidグローバルオブジェクトが存在することを確認
       if (window.mermaid) {
+        console.log('Mermaid loading succeeded.');
+        
+        // 詳細なログを有効化
+        window.mermaid.mermaidAPI.initialize({ 
+          startOnLoad: false,
+          logLevel: 'debug'
+        });
+        
         // 初期化
         window.mermaid.initialize({
           startOnLoad: false, // 自動処理を無効化
           theme: document.documentElement.classList.contains('dark') ? 'dark' : 'default',
           securityLevel: 'loose',
+          logLevel: 'warn',
           flowchart: {
             useMaxWidth: true,
             htmlLabels: true,
-            curve: 'basis'
+            curve: 'basis',
+            diagramPadding: 8
           },
           gantt: { 
             titleTopMargin: 25,
@@ -333,14 +365,67 @@ const processedContent = await marked.parse(content, { async: true });
             sidePadding: 50
           },
           pie: {
-            useWidth: true
+            useWidth: true,
+            textPosition: 0.5
           }
         });
         
-        // 明示的にすべてのダイアグラムをレンダリング
-        await window.mermaid.run({
-          querySelector: '.mermaid'
-        });
+        try {
+          // プリレンダリングステップとして全てのダイアグラムを解析するが、まだレンダリングはしない
+          const diagrams = document.querySelectorAll('.mermaid');
+          diagrams.forEach((diagram, index) => {
+            try {
+              const graphCode = diagram.textContent || '';
+              if (graphCode) {
+                console.log(`Parsing diagram ${index + 1}:`, graphCode.substring(0, 30) + '...');
+                window.mermaid.parse(graphCode);
+              }
+            } catch (parseError) {
+              console.error(`Parse error in diagram ${index + 1}:`, parseError);
+            }
+          });
+          
+          // 明示的にすべてのダイアグラムをレンダリング
+          await window.mermaid.run({
+            querySelector: '.mermaid',
+            suppressErrors: false
+          });
+          
+          console.log('Mermaid diagrams rendered successfully.');
+        } catch (renderError) {
+          console.error('Error during Mermaid rendering:', renderError);
+          
+          // エラーリカバリー: ダイアグラムを1つずつレンダリングを試みる
+          console.log('Attempting to render diagrams individually...');
+          const diagrams = document.querySelectorAll('.mermaid');
+          diagrams.forEach(async (diagram, index) => {
+            try {
+              // graph形式を検出して変換
+              const originalContent = diagram.textContent || '';
+              if (originalContent.trim().startsWith('graph ')) {
+                // IDを付与して個別に処理
+                const id = `mermaid-diagram-${index}`;
+                diagram.id = id;
+                
+                // graph構文をflowchart構文に変換して再レンダリング
+                const convertedContent = originalContent.replace(/^(\s*)graph\s+(TB|TD|BT|LR|RL)/, '$1flowchart $2');
+                diagram.textContent = convertedContent;
+                
+                console.log(`Converting diagram ${index + 1} from graph to flowchart:`, {
+                  original: originalContent.substring(0, 30) + '...',
+                  converted: convertedContent.substring(0, 30) + '...'
+                });
+                
+                // 個別にレンダリング
+                await window.mermaid.mermaidAPI.render(id, convertedContent, (svgCode) => {
+                  diagram.innerHTML = svgCode;
+                });
+              }
+            } catch (individualError) {
+              console.error(`Error rendering diagram ${index + 1}:`, individualError);
+            }
+          });
+        }
       } else {
         console.error('Mermaid was not loaded properly');
       }
@@ -364,7 +449,8 @@ const processedContent = await marked.parse(content, { async: true });
             flowchart: {
               useMaxWidth: true,
               htmlLabels: true,
-              curve: 'basis'
+              curve: 'basis',
+              diagramPadding: 8
             },
             gantt: { 
               titleTopMargin: 25,
@@ -374,17 +460,19 @@ const processedContent = await marked.parse(content, { async: true });
               sidePadding: 50
             },
             pie: {
-              useWidth: true
+              useWidth: true,
+              textPosition: 0.5
             }
           });
           
           // すべてのダイアグラムを再レンダリング
           try {
+            console.log('Theme changed, re-rendering Mermaid diagrams...');
             await window.mermaid.run({
               querySelector: '.mermaid'
             });
           } catch (error) {
-            console.error('Error re-rendering Mermaid diagrams:', error);
+            console.error('Error re-rendering Mermaid diagrams after theme change:', error);
           }
         }
       }
