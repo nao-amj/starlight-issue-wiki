@@ -1,0 +1,57 @@
+/* 
+ * テキスト折り返し用の追加スタイル
+ * --------------------------------------------------------
+ * Wiki ページのコンテンツ全体に適用される折り返しスタイル
+ */
+
+/* ベースコンテナのテキスト折り返し設定 */
+.wiki-content,
+.markdown-content,
+.content-panel {
+  width: 100%;
+  overflow-wrap: break-word !important;
+  word-wrap: break-word !important;
+  word-break: break-word !important;
+  hyphens: auto !important;
+  white-space: normal !important;
+}
+
+/* コードブロックの折り返し設定 */
+.markdown-content pre,
+.markdown-content code {
+  white-space: pre-wrap !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  max-width: 100% !important;
+}
+
+/* テーブルの折り返し設定 */
+.markdown-content table {
+  table-layout: fixed !important;
+  width: 100% !important;
+}
+
+.markdown-content table td,
+.markdown-content table th {
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  max-width: 100% !important;
+  white-space: normal !important;
+}
+
+/* mermaidコンテナの折り返し設定 */
+.mermaid-container {
+  max-width: 100% !important;
+  overflow-x: auto !important;
+}
+
+/* 長いURL等の折り返し */
+a {
+  word-break: break-all !important;
+  overflow-wrap: break-word !important;
+}
+
+/* コンテンツ内のすべての要素に適用 */
+.markdown-content * {
+  max-width: 100% !important;
+}
