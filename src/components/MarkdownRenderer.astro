@@ -42,7 +42,7 @@ renderer.code = (code, language) => {
   // Handle mermaid diagrams
   if (language === 'mermaid') {
     // 各Mermaidダイアグラムに一意のIDを付与
-    const diagramId = `mermaid-diagram-${Math.random().toString(36).substring(2, 11)}`;
+    const diagramId = `mermaid-${Math.random().toString(36).substring(2, 11)}`;
     
     return `<div class="mermaid-container">
       <div id="${diagramId}" class="mermaid">
@@ -255,6 +255,8 @@ const processedContent = await marked.parse(content, { async: true });
     border-radius: 0.5rem;
     border: 1px solid var(--sl-color-border);
     overflow-x: auto;
+    min-height: 50px;
+    position: relative;
   }
   
   /* ダークモード時の背景を設定 */
@@ -315,37 +317,100 @@ const processedContent = await marked.parse(content, { async: true });
     
     // mermaid.jsを直接ロードする
     const mermaidScript = document.createElement('script');
-    mermaidScript.src = "https://cdn.jsdelivr.net/npm/mermaid@8.14.0/dist/mermaid.min.js";
+    mermaidScript.src = "https://cdn.jsdelivr.net/npm/mermaid@10.8.0/dist/mermaid.min.js";
     document.head.appendChild(mermaidScript);
     
     // Mermaidスクリプトのロード完了を待って初期化
     mermaidScript.onload = function() {
-      console.log("Mermaid script loaded")
+      console.log("Mermaid script loaded v10.8.0");
       
-      if (typeof mermaid !== 'undefined') {
-        console.log("Initializing Mermaid...")
-        
-        // シンプルな設定で初期化
-        mermaid.initialize({
-          startOnLoad: true,
-          theme: document.documentElement.classList.contains('dark') ? 'dark' : 'default',
-          securityLevel: 'loose',
-          themeCSS: '.label { font-family: var(--sl-font); }'
-        });
-        
-        // 明示的に再レンダリングを実行
-        setTimeout(function() {
-          console.log("Explicit rendering...");
-          try {
-            mermaid.init(undefined, document.querySelectorAll('.mermaid'));
-            console.log("Mermaid rendering completed");
-          } catch (error) {
-            console.error("Error during mermaid rendering:", error);
+      function initializeMermaid() {
+        try {
+          // mermaidが定義されているか確認
+          if (typeof mermaid !== 'undefined') {
+            console.log("Mermaid initialized with v10.8.0");
+            
+            // 設定
+            mermaid.initialize({
+              startOnLoad: false,
+              theme: document.documentElement.classList.contains('dark') ? 'dark' : 'default',
+              securityLevel: 'loose',
+              flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis'
+              },
+              gantt: { 
+                titleTopMargin: 25,
+                barHeight: 20,
+                barGap: 4,
+                topPadding: 50,
+                sidePadding: 50
+              },
+              pie: {
+                useWidth: true
+              }
+            });
+            
+            try {
+              console.log("Running mermaid rendering...");
+              
+              // 全てのダイアグラムの内容をログに出力
+              document.querySelectorAll('.mermaid').forEach((el, index) => {
+                console.log(`Diagram ${index + 1} content:`, el.textContent.trim().substring(0, 50) + '...');
+              });
+              
+              // v10の run メソッドでレンダリング
+              mermaid.run({
+                querySelector: '.mermaid',
+                suppressErrors: false
+              }).then(() => {
+                console.log("Mermaid rendering successful");
+              }).catch(err => {
+                console.error("Mermaid rendering failed:", err);
+                
+                // fallback: インラインスタイルを適用して視認性を確保
+                document.querySelectorAll('.mermaid').forEach(el => {
+                  el.style.whiteSpace = 'pre';
+                  el.style.color = 'red';
+                  el.style.fontFamily = 'monospace';
+                  el.style.background = '#f0f0f0';
+                  el.style.padding = '10px';
+                  el.style.borderRadius = '5px';
+                  el.style.border = '1px solid #ddd';
+                  el.textContent = "Mermaid rendering error: " + el.textContent;
+                });
+              });
+            } catch (renderError) {
+              console.error("Error during mermaid rendering:", renderError);
+            }
+          } else {
+            console.error("Mermaid not defined after loading script");
+            
+            // 遅延してもう一度試す
+            setTimeout(initializeMermaid, 500);
           }
-        }, 500);
-      } else {
-        console.error("Mermaid failed to load properly");
+        } catch (error) {
+          console.error("Error initializing mermaid:", error);
+        }
       }
+      
+      // 初期化を呼び出す
+      initializeMermaid();
+    };
+    
+    mermaidScript.onerror = function() {
+      console.error("Failed to load mermaid script");
+      
+      // CDNに失敗した場合別のCDNを試す
+      const fallbackScript = document.createElement('script');
+      fallbackScript.src = "https://unpkg.com/mermaid@10.8.0/dist/mermaid.min.js";
+      document.head.appendChild(fallbackScript);
+      
+      fallbackScript.onload = function() {
+        console.log("Mermaid loaded from fallback CDN");
+        initializeMermaid();
+      };
     };
     
     // テーマ変更時にMermaidグラフを再描画
@@ -353,23 +418,72 @@ const processedContent = await marked.parse(content, { async: true });
       mutations.forEach(function(mutation) {
         if (mutation.attributeName === 'class' && typeof mermaid !== 'undefined') {
           const isDark = document.documentElement.classList.contains('dark');
-          mermaid.initialize({
-            startOnLoad: false,
-            theme: isDark ? 'dark' : 'default'
-          });
           
-          setTimeout(function() {
-            try {
-              mermaid.init(undefined, document.querySelectorAll('.mermaid'));
+          try {
+            // テーマ変更時も run メソッドで再レンダリング
+            mermaid.initialize({
+              startOnLoad: false,
+              theme: isDark ? 'dark' : 'default'
+            });
+            
+            mermaid.run({
+              querySelector: '.mermaid'
+            }).then(() => {
               console.log("Mermaid re-rendered after theme change");
-            } catch (error) {
-              console.error("Error during mermaid re-rendering:", error);
-            }
-          }, 300);
+            }).catch(err => {
+              console.error("Theme change re-rendering failed:", err);
+            });
+          } catch (error) {
+            console.error("Error during theme change handling:", error);
+          }
         }
       });
     });
     
     observer.observe(document.documentElement, { attributes: true });
+    
+    // 遅延して再レンダリングを試みる（非同期ロードの問題に対処）
+    setTimeout(function() {
+      if (typeof mermaid !== 'undefined') {
+        try {
+          console.log("Delayed rendering attempt...");
+          mermaid.run({
+            querySelector: '.mermaid'
+          }).then(() => {
+            console.log("Delayed rendering successful");
+          }).catch(err => {
+            console.error("Delayed rendering failed:", err);
+          });
+        } catch (error) {
+          console.error("Error in delayed rendering:", error);
+        }
+      }
+    }, 2000);
   });
+
+  // グローバル変数としてmermaidが利用可能かどうかの定期チェック
+  const mermaidCheckInterval = setInterval(function() {
+    if (typeof mermaid !== 'undefined') {
+      console.log("Mermaid detected in global scope");
+      clearInterval(mermaidCheckInterval);
+      
+      // すでにスクリプトはロードされているがレンダリングが失敗している可能性があるため再試行
+      try {
+        mermaid.run({
+          querySelector: '.mermaid'
+        }).then(() => {
+          console.log("Interval check rendering successful");
+        }).catch(err => {
+          console.error("Interval check rendering failed:", err);
+        });
+      } catch (error) {
+        console.error("Error in interval check rendering:", error);
+      }
+    }
+  }, 1000);
+  
+  // 60秒後に定期チェックを停止
+  setTimeout(function() {
+    clearInterval(mermaidCheckInterval);
+  }, 60000);
 </script>
