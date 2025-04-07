@@ -1191,7 +1191,8 @@ import { DEFAULT_ZETTELKASTEN_CONFIG } from '../config';
       if (window.themeManager) return;
       
       try {
-        const themeModule = await import('../utils/themeManager.js');
+        // 修正: 正しいパスを使用してthemeManager.jsをimport
+        const themeModule = await import('/starlight-issue-wiki/utils/themeManager.js');
         window.themeManager = themeModule;
         
         // 現在のテーマを取得してセレクトボックスに設定
