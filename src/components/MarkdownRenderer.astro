@@ -307,7 +307,7 @@ const processedContent = await marked.parse(content, { async: true });
       // スクリプトを読み込み
       await new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js';
+        script.src = 'https://cdn.jsdelivr.net/npm/mermaid@10.8.0/dist/mermaid.min.js';
         script.onload = resolve;
         script.onerror = reject;
         document.head.appendChild(script);
@@ -319,11 +319,28 @@ const processedContent = await marked.parse(content, { async: true });
         window.mermaid.initialize({
           startOnLoad: false, // 自動処理を無効化
           theme: document.documentElement.classList.contains('dark') ? 'dark' : 'default',
-          securityLevel: 'loose'
+          securityLevel: 'loose',
+          flowchart: {
+            useMaxWidth: true,
+            htmlLabels: true,
+            curve: 'basis'
+          },
+          gantt: { 
+            titleTopMargin: 25,
+            barHeight: 20,
+            barGap: 4,
+            topPadding: 50,
+            sidePadding: 50
+          },
+          pie: {
+            useWidth: true
+          }
         });
         
         // 明示的にすべてのダイアグラムをレンダリング
-        await window.mermaid.run();
+        await window.mermaid.run({
+          querySelector: '.mermaid'
+        });
       } else {
         console.error('Mermaid was not loaded properly');
       }
@@ -343,12 +360,29 @@ const processedContent = await marked.parse(content, { async: true });
           window.mermaid.initialize({
             startOnLoad: false,
             theme: isDark ? 'dark' : 'default',
-            securityLevel: 'loose'
+            securityLevel: 'loose',
+            flowchart: {
+              useMaxWidth: true,
+              htmlLabels: true,
+              curve: 'basis'
+            },
+            gantt: { 
+              titleTopMargin: 25,
+              barHeight: 20,
+              barGap: 4,
+              topPadding: 50,
+              sidePadding: 50
+            },
+            pie: {
+              useWidth: true
+            }
           });
           
           // すべてのダイアグラムを再レンダリング
           try {
-            await window.mermaid.run();
+            await window.mermaid.run({
+              querySelector: '.mermaid'
+            });
           } catch (error) {
             console.error('Error re-rendering Mermaid diagrams:', error);
           }
