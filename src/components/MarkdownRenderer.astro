@@ -13,6 +13,13 @@ const { content, theme = 'auto' } = Astro.props;
 // Add GFM heading ID support to marked
 marked.use(gfmHeadingId());
 
+// Set up a highlighter instance that can be shared
+const highlighter = await getHighlighter({
+  themes: ['github-light', 'github-dark'],
+  langs: ['javascript', 'typescript', 'html', 'css', 'json', 'markdown', 'python', 'java', 
+          'c', 'cpp', 'csharp', 'go', 'rust', 'bash', 'shell', 'yaml', 'toml', 'sql'],
+});
+
 // Enhance marked renderer to better handle GitHub Markdown features
 const renderer = new marked.Renderer();
 
@@ -27,7 +34,7 @@ renderer.table = (header, body) => {
 };
 
 // Improve code block rendering with syntax highlighting
-renderer.code = async (code, language) => {
+renderer.code = (code, language) => {
   if (!language) {
     return `<pre><code>${code}</code></pre>`;
   }
@@ -40,18 +47,11 @@ renderer.code = async (code, language) => {
   }
 
   try {
-    // Create highlighter with light and dark themes
-    const highlighter = await getHighlighter({
-      themes: ['github-light', 'github-dark'],
-      langs: ['javascript', 'typescript', 'html', 'css', 'json', 'markdown', 'python', 'java', 
-              'c', 'cpp', 'csharp', 'go', 'rust', 'bash', 'shell', 'yaml', 'toml', 'sql'],
-    });
-
     // Determine which theme to use
     const lightTheme = highlighter.getTheme('github-light');
     const darkTheme = highlighter.getTheme('github-dark');
 
-    // Highlight the code for both themes
+    // Highlight the code for both themes - using synchronous API
     const lightHtml = highlighter.codeToHtml(code, { lang: language, theme: lightTheme });
     const darkHtml = highlighter.codeToHtml(code, { lang: language, theme: darkTheme });
 
