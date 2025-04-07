@@ -41,8 +41,13 @@ renderer.code = (code, language) => {
 
   // Handle mermaid diagrams
   if (language === 'mermaid') {
-    return `<div class="mermaid-diagram">
-      <pre class="mermaid">${code}</pre>
+    // 各Mermaidダイアグラムに一意のIDを付与
+    const diagramId = `mermaid-diagram-${Math.random().toString(36).substring(2, 11)}`;
+    
+    return `<div class="mermaid-container">
+      <div id="${diagramId}" class="mermaid">
+${code}
+      </div>
     </div>`;
   }
 
@@ -242,23 +247,25 @@ const processedContent = await marked.parse(content, { async: true });
   }
 
   /* Mermaid diagram styles */
-  .markdown-content :global(.mermaid-diagram) {
+  .markdown-content :global(.mermaid-container) {
     margin: 1.5em 0;
     text-align: center;
     background-color: white;
     padding: 1em;
     border-radius: 0.5rem;
     border: 1px solid var(--sl-color-border);
-    overflow: auto;
+    overflow-x: auto;
   }
   
-  .markdown-content :global(.mermaid-diagram svg) {
+  /* ダークモード時の背景を設定 */
+  :global(.dark) .markdown-content :global(.mermaid-container) {
+    background-color: #1a1a1a;
+  }
+  
+  /* SVGに最大幅を設定 */
+  .markdown-content :global(.mermaid svg) {
     max-width: 100%;
     height: auto !important;
-  }
-  
-  :global(.dark) .markdown-content :global(.mermaid-diagram) {
-    background-color: #1a1a1a;
   }
 
   /* Mobile optimizations */
@@ -277,24 +284,25 @@ const processedContent = await marked.parse(content, { async: true });
   }
 </style>
 
-<script>
-  // Copy button functionality
-  document.addEventListener('DOMContentLoaded', () => {
+<script is:inline>
+  // mermaidのCDNを直接埋め込み
+  document.addEventListener('DOMContentLoaded', function() {
+    // コピーボタンの機能設定
     const copyButtons = document.querySelectorAll('.copy-button');
     
     copyButtons.forEach(button => {
       button.addEventListener('click', async () => {
-        const code = decodeURIComponent((button as HTMLElement).dataset.code || '');
+        const code = decodeURIComponent(button.dataset.code || '');
         
         try {
           await navigator.clipboard.writeText(code);
           
-          // Show feedback
+          // フィードバックを表示
           const originalHTML = button.innerHTML;
           button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
           button.style.color = 'var(--sl-color-green-high)';
           
-          // Reset after 2 seconds
+          // 2秒後にリセット
           setTimeout(() => {
             button.innerHTML = originalHTML;
             button.style.color = '';
@@ -304,71 +312,64 @@ const processedContent = await marked.parse(content, { async: true });
         }
       });
     });
-  });
-
-  // Initialize Mermaid for graph rendering
-  document.addEventListener('DOMContentLoaded', async () => {
-    try {
-      // 最新のCDNスクリプトを読み込み
-      const script = document.createElement('script');
-      script.src = 'https://unpkg.com/mermaid@9.3.0/dist/mermaid.min.js';
-      document.head.appendChild(script);
+    
+    // mermaid.jsを直接ロードする
+    const mermaidScript = document.createElement('script');
+    mermaidScript.src = "https://cdn.jsdelivr.net/npm/mermaid@8.14.0/dist/mermaid.min.js";
+    document.head.appendChild(mermaidScript);
+    
+    // Mermaidスクリプトのロード完了を待って初期化
+    mermaidScript.onload = function() {
+      console.log("Mermaid script loaded")
       
-      // スクリプト読み込み完了を待つ
-      await new Promise((resolve) => {
-        script.onload = resolve;
-      });
-      
-      // Mermaidの初期化
-      if (window.mermaid) {
-        window.mermaid.initialize({
+      if (typeof mermaid !== 'undefined') {
+        console.log("Initializing Mermaid...")
+        
+        // シンプルな設定で初期化
+        mermaid.initialize({
           startOnLoad: true,
           theme: document.documentElement.classList.contains('dark') ? 'dark' : 'default',
           securityLevel: 'loose',
-          flowchart: {
-            useMaxWidth: true,
-            htmlLabels: true
-          },
-          er: {
-            useMaxWidth: true
-          },
-          sequence: {
-            useMaxWidth: true,
-            noteFontWeight: "14px",
-            actorFontSize: "14px",
-            messageFontSize: "16px"
-          }
+          themeCSS: '.label { font-family: var(--sl-font); }'
         });
-      }
-    } catch (error) {
-      console.error('Failed to initialize Mermaid:', error);
-    }
-    
-    // ダークモード切り替え監視
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.attributeName === 'class' && window.mermaid) {
-          const isDark = document.documentElement.classList.contains('dark');
+        
+        // 明示的に再レンダリングを実行
+        setTimeout(function() {
+          console.log("Explicit rendering...");
           try {
-            // すべてのダイアグラムを再描画
-            window.mermaid.init(undefined, document.querySelectorAll('.mermaid'));
+            mermaid.init(undefined, document.querySelectorAll('.mermaid'));
+            console.log("Mermaid rendering completed");
           } catch (error) {
-            console.error('Error re-rendering Mermaid diagrams:', error);
+            console.error("Error during mermaid rendering:", error);
           }
+        }, 500);
+      } else {
+        console.error("Mermaid failed to load properly");
+      }
+    };
+    
+    // テーマ変更時にMermaidグラフを再描画
+    const observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.attributeName === 'class' && typeof mermaid !== 'undefined') {
+          const isDark = document.documentElement.classList.contains('dark');
+          mermaid.initialize({
+            startOnLoad: false,
+            theme: isDark ? 'dark' : 'default'
+          });
+          
+          setTimeout(function() {
+            try {
+              mermaid.init(undefined, document.querySelectorAll('.mermaid'));
+              console.log("Mermaid re-rendered after theme change");
+            } catch (error) {
+              console.error("Error during mermaid re-rendering:", error);
+            }
+          }, 300);
         }
       });
     });
     
     observer.observe(document.documentElement, { attributes: true });
   });
-
-  // mermaidグローバルオブジェクト定義
-  declare global {
-    interface Window {
-      mermaid: {
-        initialize: (config: any) => void;
-        init: (config: any, nodes: NodeListOf<Element>) => void;
-      };
-    }
-  }
 </script>
