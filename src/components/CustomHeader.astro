@@ -1,17 +1,17 @@
 ---
-import { SITE_TITLE } from '../config';
+import { SITE_TITLE, BASE_PATH } from '../config';
 import ThemeToggle from './ThemeToggle.astro';
 ---
 
 <header class="custom-header">
   <div class="header-content">
     <div class="site-title">
-      <a href="/">{SITE_TITLE}</a>
+      <a href={`${BASE_PATH}/`}>{SITE_TITLE}</a>
     </div>
     <div class="header-controls">
       <nav class="header-nav">
-        <a href="/wiki" class="nav-link">Wiki</a>
-        <a href="/knowledge-graph" class="nav-link">Knowledge Graph</a>
+        <a href={`${BASE_PATH}/wiki`} class="nav-link">Wiki</a>
+        <a href={`${BASE_PATH}/knowledge-graph`} class="nav-link">Knowledge Graph</a>
       </nav>
       <div class="theme-control">
         <ThemeToggle />
@@ -28,7 +28,8 @@ import ThemeToggle from './ThemeToggle.astro';
     position: sticky;
     top: 0;
     z-index: 100;
-    /* 背景を不透明に設定 */
+    /* 背景を確実に不透明に設定 */
+    background: var(--sl-color-bg-nav);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
