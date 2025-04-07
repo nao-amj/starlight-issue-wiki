@@ -298,8 +298,7 @@ const processedContent = await marked.parse(content, { async: true });
     // Create script tag for Mermaid
     const script = document.createElement('script');
     script.src = 'https://cdn.jsdelivr.net/npm/mermaid@10.8.0/dist/mermaid.min.js';
-    script.integrity = 'sha384-8NPzYwJEF6dXu3/5MgTT0ytQGvHV1GEzGrAUGDJdNh6rzZGuDVEGhACptpuLArEf';
-    script.crossOrigin = 'anonymous';
+    // 重要: integrityとcrossOrigin属性を削除
     script.onload = initMermaid;
     script.onerror = handleMermaidError;
     document.head.appendChild(script);
