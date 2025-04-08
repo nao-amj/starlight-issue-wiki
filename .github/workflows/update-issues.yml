@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 履歴を全て取得して競合を避ける
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -84,7 +86,22 @@ jobs:
 
       - name: Commit and push if changed
         run: |
+          # リポジトリの最新状態を取得
+          git pull origin main --rebase
+
+          # Git設定
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
+          
+          # 変更があれば保存
           git add src/data/issues.json
-          git diff --staged --quiet || (git commit -m "Update issues.json [skip ci]" && git push)
+          
+          # 変更があればコミット＆プッシュ、エラーが発生しても継続
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update issues.json [skip ci]" || echo "Commit failed but continuing..."
+            git push origin main || echo "Push failed but continuing..."
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
