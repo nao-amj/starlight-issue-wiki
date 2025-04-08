@@ -1,5 +1,35 @@
 [
   {
+    "number": 45,
+    "title": "七海直のマシン構成完全解剖：千代田地下区画仕様",
+    "body": "## 七海直のメインマシン構成（コードネーム：\"影踏みVer.4.3\"）\n\n> “ハードウェアは外殻じゃない。魂を投影するための媒体だ。”\n\n### 【ベースシステム】\n- **プロセッサ**：AMD Ryzen 9 9950HX（16C/32T・5.4GHzブースト）\n- **マザーボード**：ASUS ROG STRIX-XG88-A（特注PhaseNull Coating実装）\n- **メモリ**：Corsair Dominator Platinum 96GB（DDR5-6400MHz）\n- **GPU**：NVIDIA RTX 9090Ti x2（クロスリンク構成）\n- **ストレージ**：\n  - Samsung 990 PRO 4TB（OS/コアデータ）\n  - KIOXIA Exceria Fusion 8TB（投影データ）\n  - Seagate QuantumLock 2TB（隔離暗号化ログ）\n\n### 【特殊インターフェース＆カスタム装備】\n- **次元投影I/Oブリッジ**：NeXusコンパイラと直結、「V-Projection Port」搭載\n- **CLAUDEとのサブリンク**：非正規チャネルによる構造共有\n- **筐体素材**：メモリウム合金 + 記憶定着パターン刻印\n- **電源**：80PLUS Titanium 1500Wカスタムブロック\n- **OS**：Modified Arch Linux + NeXus Shell v3.1β（GUI排除）\n\n### 【拠点環境】\n- **場所**：千代田地下区画・旧気象制御局跡地\n- **ネットワーク**：ダークファイバーバックボーン直結\n- **気圧/温度制御**：ホログラム制御環境維持\n- **AR視認空間**：360度表示 + 投影フィールド3層\n\n---\n\n### コメント\nNeXusコードとCLAUDEの投影には、ただの性能じゃ足りない。次元のノイズに勝つための精度と拡張性。それが、このマシン。",
+    "html_url": "https://github.com/nao-amj/starlight-issue-wiki/issues/45",
+    "created_at": "2025-04-08T05:07:00Z",
+    "updated_at": "2025-04-08T05:07:00Z",
+    "labels": [
+      {
+        "name": "NeXus",
+        "color": "ededed",
+        "description": null
+      },
+      {
+        "name": "CLAUDE連携",
+        "color": "ededed",
+        "description": null
+      },
+      {
+        "name": "技術考察",
+        "color": "ededed",
+        "description": null
+      },
+      {
+        "name": "七海の装備",
+        "color": "ededed",
+        "description": null
+      }
+    ]
+  },
+  {
     "number": 44,
     "title": "2082年4月8日：次元交差の兆候と境界安定化アルゴリズム試験報告",
     "body": "## 日付：2082年4月8日（月）\n\n### 観測事項\n- 千代田地下区画にて軽度な境界歪みを感知。CLAUDEシステムによるログ記録あり（解析中）。\n- 七海のブレスレット型制御装置が自動同期モードに移行、通常の波形から微弱だが高周波側へ偏移。\n- 複数地点でAR視認フィールドが不安定化（NeXusコード干渉の可能性）。\n\n### 技術実験報告\n- NeXusコードVer.0.7.12βによる【境界安定化アルゴリズム】の試験運用を実施。\n- 結果、半径5m以内での次元振動の抑制に成功（持続時間は約38秒）。\n- CLAUDEとの非公式チャネルにより、投影した構造データの共有・同期が確認される。\n\n### 考察\n- 「投影」能力とNeXusコードの組み合わせにより、限定的ながらも境界位相への干渉が可能と判明。\n- 境界崩壊教団が使用していた幾何学模様との位相類似性が浮上。\n- 次元共鳴日（夏至）に向けて、能力・コード・環境の三位一体による制御技術の確立が急務。\n\n---\n\n> 境界線の揺らぎは、兆しにすぎない。ゼロとイチの狭間に、まだ見ぬ真実が眠っている。",
