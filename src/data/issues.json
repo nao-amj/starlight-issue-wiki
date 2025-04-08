@@ -1,5 +1,14 @@
 [
   {
+    "number": 54,
+    "title": "[Tag].astro ページのシンタックスエラー修正",
+    "body": "## 修正内容\n\n`/src/pages/tags/[tag].astro` ファイルにあったシンタックスエラーを修正しました。\n\n### 問題点\n\nビルド時に以下のエラーが発生していました：\n```\nExpected \"}\" but found \":\"\nLocation:\n/home/runner/work/starlight-issue-wiki/starlight-issue-wiki/src/pages/tags/[tag].astro:33:27\n```\n\n### 修正箇所\n\n1. `Layout` コンポーネントの `pageTitle` プロパティの構文エラー：\n   - 修正前: `<Layout pageTitle={`Category: ${params.tag} }>`\n   - 修正後: `<Layout pageTitle={`Category: ${params.tag}`}>`\n   \n   問題はテンプレートリテラルの終了部分が正しく閉じられていなかったことでした。\n\n2. 追加で発見した問題の修正：\n   - 修正前: `{tagged.map(iss => (<IssueCard key={iss.slug} issue={iss} />)}`\n   - 修正後: `{tagged.map(iss => (<IssueCard key={iss.slug} issue={iss} />))}`\n   \n   `map` メソッドの閉じる括弧が足りませんでした。\n\n### コミット情報\nコミットハッシュ: 52267be2c8bf83333a7c636e61e6076a45dafe5e\n",
+    "html_url": "https://github.com/nao-amj/starlight-issue-wiki/issues/54",
+    "created_at": "2025-04-08T09:07:45Z",
+    "updated_at": "2025-04-08T09:07:45Z",
+    "labels": []
+  },
+  {
     "number": 53,
     "title": "HTMLの`<frameset>`要素に関する記述の投影",
     "body": "以下の外部サイト（https://html-coding.co.jp/annex/dictionary/html/frameset/）の内容に基づき、HTMLの`<frameset>`要素に関する要点をまとめ、世界観や能力設定に絡めた視点で投影する。\n\n---\n\n### ✅ 概要\n`<frameset>`はHTML4以前に使用されていたフレーム分割レイアウト用の要素であり、現在では非推奨。HTML5では使用不可。\n\n### 🧩 用途\n- ウィンドウを縦や横に分割して複数のHTMLを同時表示するために使用。\n- `<frame>`タグと組み合わせて使用される。\n\n```html\n<frameset cols=\"50%,50%\">\n  <frame src=\"left.html\">\n  <frame src=\"right.html\">\n</frameset>\n```\n\n### ❌ 非推奨の理由\n- モバイル対応が困難\n- アクセシビリティが低い\n- ナビゲーションが複雑になりがち\n- DOM構造が分断され、JavaScriptによる操作も煩雑\n\n### 🌐 代替手法\n- `<iframe>`：現在でも一部用途で使用可能\n- CSS GridやFlexboxを用いたレイアウト手法の推奨\n- モダンなSPA（Single Page Application）設計への移行\n\n### 🔮 境界技術としての比喩\nフレームセットは一見「次元の分割」を想起させる構造。境界の内部にさらに境界を設け、並列に存在させる技術だ。\nしかし、それは時代遅れの“閉じたレイアウト”であり、現代の「越境的UI」には適さない。\nまるで古い制御装置のように、静的で、不変で、拡張に難がある。\n\n今の僕たちが使うべきなのは、柔軟に反応し、動的に変化しうる“流動的レイアウト”だ。次元の境界もまた、固定ではなく共鳴によって適応する。\n\n---\n\n> 情報は力だが、使い方を誤れば毒にもなる。\n> 古い技術を知ることは、未来の技術への橋渡しでもある。\n\n― 七海 直",
