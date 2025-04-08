@@ -1,7 +1,7 @@
 ---
-import { getHighlighter } from 'shiki';
 import { marked } from 'marked';
 import { gfmHeadingId } from 'marked-gfm-heading-id';
+import { getShikiHighlighter, highlightCode } from '../utils/shikiHighlighter.js';
 
 interface Props {
   content: string;
@@ -12,13 +12,6 @@ const { content, theme = 'auto' } = Astro.props;
 
 // Add GFM heading ID support to marked
 marked.use(gfmHeadingId());
-
-// Set up a highlighter instance that can be shared
-const highlighter = await getHighlighter({
-  themes: ['github-light', 'github-dark'],
-  langs: ['javascript', 'typescript', 'html', 'css', 'json', 'markdown', 'python', 'java', 
-          'c', 'cpp', 'csharp', 'go', 'rust', 'bash', 'shell', 'yaml', 'toml', 'sql'],
-});
 
 // Enhance marked renderer to better handle GitHub Markdown features
 const renderer = new marked.Renderer();
@@ -34,7 +27,7 @@ renderer.table = (header, body) => {
 };
 
 // Improve code block rendering with syntax highlighting
-renderer.code = (code, language) => {
+renderer.code = async (code, language) => {
   if (!language) {
     return `<pre><code>${code}</code></pre>`;
   }
@@ -52,13 +45,8 @@ ${code}
   }
 
   try {
-    // Determine which theme to use
-    const lightTheme = highlighter.getTheme('github-light');
-    const darkTheme = highlighter.getTheme('github-dark');
-
-    // Highlight the code for both themes - using synchronous API
-    const lightHtml = highlighter.codeToHtml(code, { lang: language, theme: lightTheme });
-    const darkHtml = highlighter.codeToHtml(code, { lang: language, theme: darkTheme });
+    // シングルトンユーティリティを使用してコードをハイライト
+    const { lightHtml, darkHtml } = await highlightCode(code, language);
 
     // Return code with theme toggle support
     return `<div class="code-block-container">
