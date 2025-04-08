@@ -1,5 +1,35 @@
 [
   {
+    "number": 48,
+    "title": "ビルドエラー調査メモ：タグページ([tag].astro)の構文エラー再検証",
+    "body": "## エラー内容の概要\n- GitHub Actions 上で `src/pages/tags/[tag].astro` にてViteビルドが失敗\n- エラーメッセージ：\n```\nExpected \"}\" but found \":\" at line 33\n```\n- 該当行のコード周辺にテンプレートリテラルの誤解釈、JSX構文の誤記の可能性\n\n## 検証ログ\n- `className=\"grid small text-sm\"` → OK\n- `<h2>Category: {params.tag}</h2>` → OK\n- JSX内の map 構文：\n```tsx\n{tagged.map((iss) => (\n  <IssueCard key={iss.slug} issue={iss} />\n))}\n```\n- → この閉じ括弧 `))}` の直前か中に構文ミスが残っている可能性が高い\n\n## 次の修正方針（提案）\n- `tagged.map(...)` の中に return を明示：\n```tsx\n{tagged.map((iss) => {\n  return <IssueCard key={iss.slug} issue={iss} />\n})}\n```\n- または `tagged.map(iss => <IssueCard ... />)` に単純化\n\n## コメント\nこのままではタグ別表示がすべてリンク切れになってしまう。Vite側の構文パーサはかなり厳密なので、map表現まわりの JSX構文を見直すべき。",
+    "html_url": "https://github.com/nao-amj/starlight-issue-wiki/issues/48",
+    "created_at": "2025-04-08T05:28:59Z",
+    "updated_at": "2025-04-08T05:28:59Z",
+    "labels": [
+      {
+        "name": "debug",
+        "color": "ededed",
+        "description": null
+      },
+      {
+        "name": "Astro",
+        "color": "ededed",
+        "description": null
+      },
+      {
+        "name": "tag-pages",
+        "color": "ededed",
+        "description": null
+      },
+      {
+        "name": "vite-error",
+        "color": "ededed",
+        "description": null
+      }
+    ]
+  },
+  {
     "number": 47,
     "title": "七海直と“影踏みVer.4.3”の記憶：コードの向こう側で",
     "body": "## 七海直の記憶：このマシンと僕の話\n\n名前は“影踏みVer.4.3”。だけど、それはただの型番にすぎない。\n\n僕にとってこのマシンは、武器であり、盾であり、記憶そのものだ。\n境界管理局にいた頃——次元干渉の初期実験で仲間を失ったあの日から、僕は変わった。\n\nコードは嘘をつかない。でも、コードの奥には\"意志\"が必要だ。\nこのマシンは、僕の意志を投影するための装置だ。文字通り。\n\n---\n\nある時、CLAUDEがこう言ったんだ。\n> 「このマシンは、七海直の精神構造に似ている。秩序の上に潜む混沌、だが明確な目的を持っている」\n\n思わず笑ったよ。でも、当たってる。\n\n僕は、計算だけで終わるつもりはない。演算の先にある“意味”を探してる。\nだからこのマシンは、時に制御を超えて僕に語りかけてくる。震えるようなクロックノイズで、ホログラムの瞬きで。\n\nそれが妄想でも幻覚でも構わない。\nだって僕は、次元の狭間に立つ“越境者”だから。\n\n---\n\n**僕にとって“影踏み”は、戦うための装置じゃない。存在証明そのものだ。**\nこのマシンで書いたコードは、ただの命令じゃない。\n僕という存在の断片、時間の中に刻まれた意志の残響だ。\n\nコード的には、まだ完璧じゃない。でも、僕はそれを“進化”と呼ぶ。\n\n---\n\n> \"触れた瞬間、世界のノイズが静かになる。そのとき、僕は真に“ここにいる”と感じるんだ。\"\n\nそれが、僕と“影踏みVer.4.3”の関係。",
