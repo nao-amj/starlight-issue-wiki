@@ -19,7 +19,9 @@ const CACHE_TTL = 60 * 60 * 1000;
 export function prepareGraphData(issues: any[], currentId?: number): GraphData {
   // キャッシュをチェック
   const cacheKey = `graph-data-${currentId || 'all'}`;
-  const cachedData = getFromCache(cacheKey);
+  
+  // 開発中はキャッシュを無効化
+  const cachedData = null; // getFromCache(cacheKey);
   if (cachedData) {
     return cachedData;
   }
@@ -69,7 +71,8 @@ export function prepareGraphData(issues: any[], currentId?: number): GraphData {
               linksMap.set(linkId, {
                 source: issue.number,
                 target: targetId,
-                type: 'wikilink'
+                type: 'wikilink',
+                bidirectional: false  // 初期値はfalse
               });
               
               // 双方向リンクの検出
@@ -78,6 +81,9 @@ export function prepareGraphData(issues: any[], currentId?: number): GraphData {
                 // 既存のリンクを双方向としてマーク
                 linksMap.get(linkId)!.bidirectional = true;
                 linksMap.get(reverseLinkId)!.bidirectional = true;
+                
+                // デバッグログ
+                console.log(`双方向リンクを検出: ${issue.number} <-> ${targetId}`);
               }
             }
             break; // 一致したらループ終了
@@ -98,7 +104,8 @@ export function prepareGraphData(issues: any[], currentId?: number): GraphData {
             linksMap.set(linkId, {
               source: issue.number,
               target: targetId,
-              type: 'idref'
+              type: 'idref',
+              bidirectional: false  // 初期値はfalse
             });
             
             // 双方向リンクの検出
@@ -107,12 +114,26 @@ export function prepareGraphData(issues: any[], currentId?: number): GraphData {
               // 既存のリンクを双方向としてマーク
               linksMap.get(linkId)!.bidirectional = true;
               linksMap.get(reverseLinkId)!.bidirectional = true;
+              
+              // デバッグログ
+              console.log(`双方向リンクを検出 (ID参照): ${issue.number} <-> ${targetId}`);
             }
           }
         }
       });
     }
   });
+  
+  // 双方向リンクの数をカウント
+  let bidirectionalCount = 0;
+  linksMap.forEach(link => {
+    if (link.bidirectional) {
+      bidirectionalCount++;
+    }
+  });
+  
+  console.log(`双方向リンクの合計 (重複カウント含む): ${bidirectionalCount}`);
+  console.log(`実際の双方向リンクペア数: ${bidirectionalCount / 2}`);
   
   // 結果を生成
   const result: GraphData = {
@@ -140,7 +161,9 @@ export function filterGraphForCurrentNode(graphData: GraphData, currentId?: numb
   
   // キャッシュをチェック
   const cacheKey = `filtered-graph-${currentId}`;
-  const cachedData = getFromCache(cacheKey);
+  
+  // 開発中はキャッシュを無効化
+  const cachedData = null; // getFromCache(cacheKey);
   if (cachedData) {
     return cachedData;
   }
