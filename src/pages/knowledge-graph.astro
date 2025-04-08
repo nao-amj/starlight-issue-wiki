@@ -2,25 +2,10 @@
 import Layout from '../layouts/Layout.astro';
 import KnowledgeGraph from '../components/KnowledgeGraph.astro';
 import { SITE_TITLE, BASE_PATH } from '../config';
+import { fetchAllIssues } from '../lib/github-api';
 
-// GitHub API からIssueを取得する関数
-async function fetchIssues() {
-  try {
-    // GitHub APIを使用してissueを取得（プルリクエストを除外）
-    const response = await fetch('https://api.github.com/repos/nao-amj/starlight-issue-wiki/issues?state=all&per_page=100');
-    if (!response.ok) {
-      throw new Error(`GitHub API error: ${response.status}`);
-    }
-    const allItems = await response.json();
-    // プルリクエストを除外する
-    return allItems.filter(item => !item.pull_request);
-  } catch (error) {
-    console.error('Error fetching issues:', error);
-    return [];
-  }
-}
-
-const issues = await fetchIssues();
+// GitHub APIでキャッシュ機能を使用してIssueを取得
+const issues = await fetchAllIssues();
 const pageTitle = `Knowledge Graph - ${SITE_TITLE}`;
 const issueCount = issues.length;
 
@@ -28,35 +13,23 @@ const issueCount = issues.length;
 let totalLinks = 0;
 let bidirectionalLinks = 0;
 
-issues.forEach(issue => {
-  if (!issue.body) return;
-  
-  // [[...]]形式のリンクを検出
-  const wikiLinks = issue.body.match(/\[\[(.*?)\]\]/g);
-  if (wikiLinks) {
-    totalLinks += wikiLinks.length;
-  }
-  
-  // #番号形式のリンクを検出
-  const issueRefs = issue.body.match(/#(\d+)/g);
-  if (issueRefs) {
-    totalLinks += issueRefs.length;
-  }
-});
-
-// 双方向リンクの検出（簡易版）
+// Map を使用して高速に処理
 const mentionMap = new Map();
+
 issues.forEach(issue => {
   mentionMap.set(issue.number, new Set());
 });
 
+// パフォーマンス最適化: リンク検出を一度だけ行う
 issues.forEach(issue => {
   if (!issue.body) return;
   
-  // [[...]]形式のリンクを検出
-  const wikiLinks = issue.body.match(/\[\[(.*?)\]\]/g);
-  if (wikiLinks) {
-    wikiLinks.forEach(link => {
+  // [[...]]形式のリンクを検出 - 正規表現の実行回数を最小化
+  const wikiLinksMatches = issue.body.match(/\[\[(.*?)\]\]/g);
+  if (wikiLinksMatches) {
+    totalLinks += wikiLinksMatches.length;
+    
+    wikiLinksMatches.forEach(link => {
       const linkedTitle = link.substring(2, link.length - 2).trim();
       const linkedIssue = issues.find(i => 
         i.title.toLowerCase() === linkedTitle.toLowerCase() ||
@@ -69,21 +42,21 @@ issues.forEach(issue => {
     });
   }
   
-  // #番号形式のリンクを検出
+  // #番号形式のリンクを検出 - 正規表現の実行回数を最小化
   const issueRefs = issue.body.match(/#(\d+)/g);
   if (issueRefs) {
+    totalLinks += issueRefs.length;
+    
     issueRefs.forEach(ref => {
       const refNumber = parseInt(ref.substring(1), 10);
-      const refIssue = issues.find(i => i.number === refNumber);
-      
-      if (refIssue && refIssue.number !== issue.number) {
-        mentionMap.get(issue.number).add(refIssue.number);
+      if (refNumber !== issue.number && mentionMap.has(refNumber)) {
+        mentionMap.get(issue.number).add(refNumber);
       }
     });
   }
 });
 
-// 双方向リンクのカウント
+// 双方向リンクのカウント - 効率的な実装
 mentionMap.forEach((mentions, issueNumber) => {
   mentions.forEach(mentionedIssue => {
     const mentionedIssueMentions = mentionMap.get(mentionedIssue);
