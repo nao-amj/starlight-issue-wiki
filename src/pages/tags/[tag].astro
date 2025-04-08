@@ -1,28 +1,68 @@
+---
 import { getCollection } from 'astro:content';
-import type { AstroComponent } from 'astro';
 import Layout from '../../layouts/Layout.astro';
-import IssueCard from '../../components/IssueCard.tsx';
 
-interface PageData {
-  params: {
-    tag: string;
-  };
+export async function getStaticPaths() {
+  const issues = await getCollection('issues');
+  const uniqueTags = [...new Set(issues.flatMap(issue => issue.data.labels))];
+  
+  return uniqueTags.map(tag => ({
+    params: { tag },
+    props: { 
+      issues: issues.filter(issue => issue.data.labels.includes(tag))
+    }
+  }));
 }
 
-const TagPage: AstroComponent<PageData> = async ({ params}) => {
-  const issues = await getCollection('issues');
-  const tagged = issues.filter(iss => iss.data.labels.includes(params.tag));
+const { tag } = Astro.params;
+const { issues } = Astro.props;
+---
 
-  return (
-    <Layout pageTitle={`Category: ${params.tag}`}>
-      <h2>Category: {params.tag}</h2>
-      <div className="grid small text-sm">
-        {tagged.map(iss => (<IssueCard key={iss.slug} issue={iss} />))}
-      </div>
-    </Layout>
-  );
-};
+<Layout pageTitle={`カテゴリー: ${tag}`}>
+  <h2>カテゴリー: {tag}</h2>
+  <div class="issue-grid">
+    {issues.map(issue => (
+      <a href={`/issues/${issue.slug}`} class="issue-card">
+        <h3>{issue.data.title}</h3>
+        <div class="issue-meta">
+          <span class="issue-date">{new Date(issue.data.created_at).toLocaleDateString()}</span>
+        </div>
+      </a>
+    ))}
+  </div>
+</Layout>
 
-export const prerender = true;
-
-export default TagPage;
+<style>
+  .issue-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+  
+  .issue-card {
+    background: var(--sl-color-bg-offset);
+    border: 1px solid var(--sl-color-border);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  
+  .issue-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  .issue-card h3 {
+    margin-top: 0;
+    font-size: 1.2rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .issue-meta {
+    font-size: 0.85rem;
+    opacity: 0.8;
+  }
+</style>
