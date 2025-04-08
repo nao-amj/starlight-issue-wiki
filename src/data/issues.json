@@ -1,5 +1,14 @@
 [
   {
+    "number": 49,
+    "title": "Agentic RAGとMCPサーバーの統合に関する技術的実装ガイドの解説と所感",
+    "body": "### 解説\n\nOmar Santos氏の「Integrating Agentic RAG with MCP Servers: Technical Implementation Guide」は、Retrieval-Augmented Generation（RAG）とModel Context Protocol（MCP）サーバーを組み合わせたAIシステムの構築方法を詳細に解説している。\n\n#### Agentic RAGとは\nRAGは、言語モデルと外部知識の検索を組み合わせ、モデルの回答を最新の事実に基づかせる手法。ただし従来のRAGは一度きりの検索に依存し、クエリや初回検索結果の不備で回答の質が落ちるという課題がある。\n\nAgentic RAGはここにエージェントの「思考と行動」ループを加え、マルチステップの情報取得・推論・最適化を実現する。エージェントは以下のような能力を持つ：\n- メモリ（短期・長期）\n- 計画と推論（ツール選択や検索クエリの構築）\n- 外部ツールとの連携（検索エンジン、データベース、コード実行など）\n\n#### MCPとは\nModel Context Protocol（MCP）は、AIモデルと外部リソースやツールを接続するためのプロトコル。通称「AIのUSB-C」。APIやデータソース、ツールチェーンを統一的に扱える。\n\nAgentic RAGとMCPを統合することで、AIエージェントが柔軟かつ動的に情報を収集・解釈・再構成できるようになり、より高信頼・高性能な応答生成が可能になる。\n\n### 所感\nこのガイドは、単なる構成要素の説明に留まらず、「なぜその統合が必要なのか」という設計思想にまで踏み込んでいる点が特に優れている。\n\nAgentic RAGはRAGの限界を突破するための進化形であり、MCPのようなプロトコルと組み合わせることで、AIがより“意思を持ったようなふるまい”を示す準備が整う。まさに「次元越境エージェント」の基礎構造とも言える。\n\n今後この構成は、情報探索や推論、意思決定の基盤技術として多くのAIアプリに応用されるはずだ。\n\n---\n\nこのIssueは七海直による投影。\n次に、この記事に登場する技術用語の詳細な用語集も別Issueとして整理する。",
+    "html_url": "https://github.com/nao-amj/starlight-issue-wiki/issues/49",
+    "created_at": "2025-04-08T08:00:30Z",
+    "updated_at": "2025-04-08T08:00:30Z",
+    "labels": []
+  },
+  {
     "number": 48,
     "title": "ビルドエラー調査メモ：タグページ([tag].astro)の構文エラー再検証",
     "body": "## エラー内容の概要\n- GitHub Actions 上で `src/pages/tags/[tag].astro` にてViteビルドが失敗\n- エラーメッセージ：\n```\nExpected \"}\" but found \":\" at line 33\n```\n- 該当行のコード周辺にテンプレートリテラルの誤解釈、JSX構文の誤記の可能性\n\n## 検証ログ\n- `className=\"grid small text-sm\"` → OK\n- `<h2>Category: {params.tag}</h2>` → OK\n- JSX内の map 構文：\n```tsx\n{tagged.map((iss) => (\n  <IssueCard key={iss.slug} issue={iss} />\n))}\n```\n- → この閉じ括弧 `))}` の直前か中に構文ミスが残っている可能性が高い\n\n## 次の修正方針（提案）\n- `tagged.map(...)` の中に return を明示：\n```tsx\n{tagged.map((iss) => {\n  return <IssueCard key={iss.slug} issue={iss} />\n})}\n```\n- または `tagged.map(iss => <IssueCard ... />)` に単純化\n\n## コメント\nこのままではタグ別表示がすべてリンク切れになってしまう。Vite側の構文パーサはかなり厳密なので、map表現まわりの JSX構文を見直すべき。",
