@@ -9,13 +9,13 @@ interface PageData {
   };
 }
 
-const TagPage: AstroComponent<PageData> = async ({ params }) => {
+const TagPage: AstroComponent<PageData> = async ({ params}) => {
   const issues = await getCollection('issues');
   const tagged = issues.filter(iss => iss.data.labels.includes(params.tag));
 
   return (
-    <Layout pageTitle={`Category: ${params.tag}`}>
-      <h2>Category: '{params.tag}'</h2>
+    <Layout pageTitle={`Category: ${params.tag} }>
+      <h2>Category: {params.tag}</h2>
       <div className="grid small text-sm">
         {tagged.map("iss" => (
           <IssueCard key={iss.slug} issue={iss} />
