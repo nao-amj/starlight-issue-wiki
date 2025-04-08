@@ -8,6 +8,8 @@ body.zettelkasten-mode .wiki-content {
   --zettelkasten-bidirectional-color: var(--color-success, #0fa968);
   --zettelkasten-highlight-bg: rgba(79, 109, 245, 0.1);
   --zettelkasten-bidirectional-highlight-bg: rgba(15, 169, 104, 0.1);
+  --tech-link-color: #d96c35;
+  --tech-link-highlight-bg: rgba(217, 108, 53, 0.1);
 }
 
 /* WikiリンクのスタイリングはWikiContent.astroにも定義されていますが、
@@ -40,6 +42,48 @@ body.zettelkasten-mode .wiki-link-unlinked {
   border-bottom: 1px dotted #999;
   color: #666;
   padding: 0 0.1em;
+}
+
+/* 技術リンク用のスタイル */
+body.zettelkasten-mode .tech-link {
+  text-decoration: none;
+  border-bottom: 1px dotted var(--tech-link-color, #d96c35);
+  color: var(--tech-link-color, #d96c35);
+  transition: all 0.2s;
+  padding: 0 0.1em;
+}
+
+body.zettelkasten-mode .tech-link:hover {
+  background-color: var(--tech-link-highlight-bg, rgba(217, 108, 53, 0.1));
+  border-bottom-style: solid;
+}
+
+body.zettelkasten-mode .tech-link.external:after {
+  content: "↗";
+  font-size: 0.8em;
+  margin-left: 2px;
+  vertical-align: super;
+}
+
+/* 通常モードでも技術リンクのスタイルは適用 */
+.tech-link {
+  text-decoration: none;
+  border-bottom: 1px dotted var(--tech-link-color, #d96c35);
+  color: var(--tech-link-color, #d96c35);
+  transition: all 0.2s;
+  padding: 0 0.1em;
+}
+
+.tech-link:hover {
+  background-color: var(--tech-link-highlight-bg, rgba(217, 108, 53, 0.1));
+  border-bottom-style: solid;
+}
+
+.tech-link.external:after {
+  content: "↗";
+  font-size: 0.8em;
+  margin-left: 2px;
+  vertical-align: super;
 }
 
 /* バックリンク関連のスタイル */
