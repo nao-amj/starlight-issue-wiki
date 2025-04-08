@@ -1,0 +1,283 @@
+/* ナレッジグラフのスタイル定義 */
+
+.knowledge-graph-container {
+  width: 100%;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  margin: 1rem 0;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.dark .knowledge-graph-container {
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+#knowledge-graph {
+  width: 100%;
+  background-color: #f9fafc;
+  background-image: radial-gradient(#e3e8f5 1px, transparent 1px);
+  background-size: 20px 20px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.dark #knowledge-graph {
+  background-color: #12151a;
+  background-image: radial-gradient(rgba(80, 100, 150, 0.2) 1px, transparent 1px);
+}
+
+.mini-graph {
+  height: 280px;
+}
+
+.full-graph {
+  height: 650px;
+}
+
+.graph-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.dark .graph-loading {
+  color: #ccc;
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(79, 109, 245, 0.2);
+  border-radius: 50%;
+  border-top-color: var(--color-primary);
+  animation: spin 0.8s ease-in-out infinite;
+  margin-bottom: 0.5rem;
+}
+
+.dark .loading-spinner {
+  border-color: rgba(79, 109, 245, 0.15);
+  border-top-color: var(--color-primary);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ノードジャンプリンク */
+.node-jump-link {
+  position: absolute;
+  background-color: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 13px;
+  text-decoration: none;
+  color: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 5;
+  transition: all 0.3s cubic-bezier(0.17, 0.67, 0.83, 0.67);
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.node-jump-link.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.node-jump-link:hover {
+  background-color: var(--color-primary);
+  color: white;
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(79, 109, 245, 0.3);
+}
+
+.dark .node-jump-link {
+  background-color: rgba(33, 39, 53, 0.95);
+  border-color: rgba(255, 255, 255, 0.05);
+  color: #7b96ff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.dark .node-jump-link:hover {
+  background-color: var(--color-primary);
+  color: white;
+  box-shadow: 0 5px 15px rgba(79, 109, 245, 0.3);
+}
+
+/* ツールチップ */
+.node-tooltip {
+  position: absolute;
+  background-color: rgba(255, 255, 255, 0.95);
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  max-width: 280px;
+  transition: all 0.2s cubic-bezier(0.17, 0.67, 0.83, 0.67);
+  opacity: 0;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.dark .node-tooltip {
+  background-color: rgba(33, 39, 53, 0.95);
+  color: #e8eef7;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.node-tooltip-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--color-primary);
+  font-size: 14px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  padding-bottom: 6px;
+}
+
+.dark .node-tooltip-title {
+  color: #7b96ff;
+  border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+
+.node-tooltip-info {
+  font-size: 12px;
+  color: #555;
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.node-tooltip-info:last-child {
+  margin-bottom: 0;
+  margin-top: 8px;
+  font-style: italic;
+  color: #777;
+}
+
+.dark .node-tooltip-info {
+  color: #bbc6d8;
+}
+
+.dark .node-tooltip-info:last-child {
+  color: #96a3b9;
+}
+
+.node-tooltip-info svg {
+  margin-right: 6px;
+  color: var(--color-primary);
+}
+
+/* D3.js グラフのスタイル */
+.graph-node {
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.17, 0.67, 0.83, 0.67);
+  fill-opacity: 0.9;
+}
+
+.graph-node:hover {
+  stroke: #f04050;
+  stroke-width: 2.5px;
+  fill-opacity: 1;
+}
+
+.graph-node.current {
+  stroke-width: 3px;
+  stroke: #f04050;
+  fill-opacity: 1;
+}
+
+.graph-node.selected {
+  stroke-width: 3.5px;
+  stroke: #f04050;
+  fill-opacity: 1;
+  filter: url(#glow);
+}
+
+.graph-link {
+  stroke-opacity: 0.5;
+  transition: all 0.3s cubic-bezier(0.17, 0.67, 0.83, 0.67);
+}
+
+.graph-link:hover {
+  stroke-opacity: 1;
+  stroke-width: 2.5px;
+}
+
+.graph-link.bidirectional {
+  stroke-width: 2.5px;
+  stroke-dasharray: none;
+}
+
+.graph-link.reference {
+  stroke-dasharray: 4, 2;
+}
+
+.graph-link.highlighted {
+  stroke-opacity: 1;
+  stroke-width: 3px;
+  stroke: #f04050;
+  filter: url(#glow);
+}
+
+.node-label {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  pointer-events: none;
+  text-anchor: middle;
+  transition: all 0.3s;
+  user-select: none;
+  fill: #333;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+.dark .node-label {
+  fill: #e8eef7;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.node-label.highlighted {
+  font-weight: 600;
+  font-size: 13px;
+  fill: #f04050;
+  filter: url(#glow);
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .full-graph {
+    height: 450px;
+  }
+  
+  .mini-graph {
+    height: 250px;
+  }
+}
+
+@media (max-width: 480px) {
+  .full-graph {
+    height: 400px;
+  }
+}

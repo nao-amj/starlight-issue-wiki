@@ -1,0 +1,351 @@
+---
+import type { GraphData } from '../../lib/graph/types';
+
+interface Props {
+  graphData: GraphData;
+}
+
+const { graphData } = Astro.props;
+---
+
+<div class="graph-panel">
+  <div id="graph-info" class="graph-info-panel">
+    <div class="panel-header">
+      <h3>グラフ情報</h3>
+      <div class="panel-controls">
+        <button id="toggle-panel" class="panel-toggle" title="パネルの表示/非表示">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div class="panel-content">
+      <div class="graph-stats">
+        <div class="graph-stat">
+          <span class="stat-label">ノード数:</span>
+          <span class="stat-value">{graphData.nodes.length}</span>
+        </div>
+        <div class="graph-stat">
+          <span class="stat-label">リンク数:</span>
+          <span class="stat-value">{graphData.links.length}</span>
+        </div>
+        <div class="graph-stat">
+          <span class="stat-label">双方向リンク:</span>
+          <span class="stat-value">{graphData.links.filter(link => link.bidirectional).length}</span>
+        </div>
+      </div>
+      <div id="node-details" class="node-details">
+        <div class="no-selection">ノードを選択すると詳細が表示されます</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .graph-panel {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    max-width: 320px;
+    max-height: 610px;
+    overflow: hidden;
+    z-index: 10;
+    transition: all 0.3s ease;
+  }
+
+  .graph-info-panel {
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(4px);
+    margin-bottom: 10px;
+    transition: all 0.3s ease;
+    overflow: hidden;
+  }
+
+  .dark .graph-info-panel {
+    background-color: rgba(33, 39, 53, 0.95);
+    color: #eee;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  }
+
+  .panel-header {
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    position: relative;
+  }
+
+  .dark .panel-header {
+    border-bottom-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .panel-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-primary);
+  }
+
+  .dark .panel-header h3 {
+    color: #7b96ff;
+  }
+
+  .panel-controls {
+    display: flex;
+    gap: 8px;
+  }
+
+  .panel-toggle {
+    background: transparent;
+    border: none;
+    color: #8996a9;
+    cursor: pointer;
+    padding: 3px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: transform 0.3s;
+  }
+
+  .panel-toggle.collapsed svg {
+    transform: rotate(180deg);
+  }
+
+  .panel-content {
+    padding: 15px 20px;
+    overflow-y: auto;
+    max-height: 500px;
+    transition: all 0.3s ease;
+  }
+
+  .panel-content.collapsed {
+    max-height: 0;
+    padding: 0 20px;
+    overflow: hidden;
+  }
+
+  .graph-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .graph-stat {
+    background: rgba(79, 109, 245, 0.05);
+    padding: 10px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.2s;
+  }
+  
+  .dark .graph-stat {
+    background: rgba(79, 109, 245, 0.1);
+  }
+
+  .graph-stat:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 3px 8px rgba(79, 109, 245, 0.1);
+  }
+
+  .stat-label {
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 5px;
+    color: #666;
+  }
+
+  .dark .stat-label {
+    color: #bbc6d8;
+  }
+
+  .stat-value {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--color-primary, #4f6df5);
+  }
+
+  .dark .stat-value {
+    color: #7b96ff;
+  }
+
+  .node-details {
+    font-size: 14px;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    padding-top: 15px;
+  }
+
+  .dark .node-details {
+    border-top-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .node-details h4 {
+    margin: 0 0 15px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-primary, #4f6df5);
+  }
+
+  .dark .node-details h4 {
+    color: #7b96ff;
+  }
+
+  .node-details .node-meta {
+    margin-bottom: 15px;
+    background: rgba(0, 0, 0, 0.02);
+    padding: 12px;
+    border-radius: 8px;
+  }
+
+  .dark .node-details .node-meta {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .node-details .node-meta div {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .node-details .node-meta div:last-child {
+    margin-bottom: 0;
+  }
+
+  .node-details .node-links {
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    padding-top: 15px;
+  }
+
+  .dark .node-details .node-links {
+    border-top-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .node-details .node-links h5 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #555;
+    display: flex;
+    align-items: center;
+  }
+  
+  .dark .node-details .node-links h5 {
+    color: #bbc6d8;
+  }
+  
+  .node-details .node-links h5 span {
+    background: rgba(79, 109, 245, 0.1);
+    color: var(--color-primary);
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-left: 8px;
+  }
+
+  .node-details .no-selection {
+    color: #999;
+    font-style: italic;
+    text-align: center;
+    padding: 40px 0;
+  }
+
+  .node-details .link-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 20px 0;
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+  }
+  
+  .dark .node-details .link-list {
+    border-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .node-details .link-list li {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  }
+  
+  .dark .node-details .link-list li {
+    border-bottom-color: rgba(255, 255, 255, 0.05);
+  }
+  
+  .node-details .link-list li:last-child {
+    border-bottom: none;
+  }
+
+  .node-details .link-list a {
+    color: var(--color-primary, #4f6df5);
+    text-decoration: none;
+    display: block;
+    padding: 10px 12px;
+    transition: all 0.2s;
+  }
+
+  .dark .node-details .link-list a {
+    color: #7b96ff;
+  }
+
+  .node-details .link-list a:hover {
+    background-color: rgba(79, 109, 245, 0.05);
+  }
+  
+  .dark .node-details .link-list a:hover {
+    background-color: rgba(79, 109, 245, 0.1);
+  }
+
+  /* レスポンシブ対応 */
+  @media (max-width: 768px) {
+    .graph-panel {
+      position: static;
+      max-width: 100%;
+      margin: 15px;
+    }
+    
+    .graph-stats {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .graph-info-panel {
+      margin-bottom: 0;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .graph-panel {
+      margin: 10px;
+    }
+    
+    .graph-stats {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<script>
+  // パネルの折りたたみ機能
+  document.addEventListener('DOMContentLoaded', () => {
+    const togglePanelBtn = document.getElementById('toggle-panel');
+    if (togglePanelBtn) {
+      togglePanelBtn.addEventListener('click', () => {
+        const panelContent = document.querySelector('.panel-content');
+        const isCollapsed = panelContent.classList.contains('collapsed');
+        
+        if (isCollapsed) {
+          panelContent.classList.remove('collapsed');
+          togglePanelBtn.classList.remove('collapsed');
+        } else {
+          panelContent.classList.add('collapsed');
+          togglePanelBtn.classList.add('collapsed');
+        }
+      });
+    }
+  });
+</script>
