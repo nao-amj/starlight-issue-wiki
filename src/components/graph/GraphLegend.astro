@@ -1,0 +1,193 @@
+---
+// グラフの凡例コンポーネント
+---
+
+<div class="graph-legend" style="display: block;">
+  <div class="legend-title">
+    <div class="legend-title-text">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="16" x2="12" y2="12"></line>
+        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+      </svg>
+      グラフ凡例
+    </div>
+    <div class="legend-close">×</div>
+  </div>
+  
+  <div class="legend-group">
+    <div class="legend-group-title">ノードタイプ</div>
+    <div class="legend-item">
+      <span class="legend-color" style="background-color: #4f6df5;"></span>通常ページ
+    </div>
+    <div class="legend-item">
+      <span class="legend-color" style="background-color: #f04050;"></span>現在のページ
+    </div>
+    <div class="legend-item">
+      <span class="legend-color" style="background-color: #0075ca;"></span>ドキュメント
+    </div>
+    <div class="legend-item">
+      <span class="legend-color" style="background-color: #7057ff;"></span>Wiki
+    </div>
+    <div class="legend-item">
+      <span class="legend-color" style="background-color: #a2eeef;"></span>機能
+    </div>
+  </div>
+  
+  <div class="legend-group">
+    <div class="legend-group-title">リンクタイプ</div>
+    <div class="legend-item">
+      <span class="legend-line" style="background-color: #999;"></span>片方向リンク
+    </div>
+    <div class="legend-item">
+      <span class="legend-line" style="background-color: #0fa968;"></span>双方向リンク
+    </div>
+  </div>
+</div>
+
+<style>
+  .graph-legend {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(4px);
+    font-size: 13px;
+    max-width: 230px;
+    z-index: 10;
+    transition: all 0.3s ease;
+    transform-origin: top right;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+  }
+  
+  .dark .graph-legend {
+    background-color: rgba(33, 39, 53, 0.95);
+    color: #e8eef7;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.05);
+  }
+  
+  .legend-title {
+    font-weight: 600;
+    margin-bottom: 12px;
+    font-size: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--color-primary);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    padding-bottom: 8px;
+  }
+  
+  .dark .legend-title {
+    color: #7b96ff;
+    border-bottom-color: rgba(255, 255, 255, 0.05);
+  }
+  
+  .legend-title-text {
+    display: flex;
+    align-items: center;
+  }
+  
+  .legend-title-text svg {
+    margin-right: 6px;
+  }
+  
+  .legend-close {
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.05);
+    transition: all 0.2s;
+  }
+  
+  .legend-close:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+    transform: rotate(90deg);
+  }
+  
+  .dark .legend-close {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .dark .legend-close:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+  }
+  
+  .legend-group {
+    margin-bottom: 15px;
+  }
+  
+  .legend-group-title {
+    font-weight: 600;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: #333;
+  }
+  
+  .dark .legend-group-title {
+    color: #e8eef7;
+  }
+  
+  .legend-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+    transition: all 0.2s;
+    padding: 4px 6px;
+    border-radius: 4px;
+  }
+  
+  .legend-item:hover {
+    background-color: rgba(0, 0, 0, 0.03);
+    transform: translateX(2px);
+  }
+  
+  .dark .legend-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+  
+  .legend-color {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    margin-right: 10px;
+    display: inline-block;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  }
+  
+  .dark .legend-color {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  }
+  
+  .legend-line {
+    width: 25px;
+    height: 3px;
+    margin-right: 10px;
+    border-radius: 3px;
+  }
+
+  /* レスポンシブ対応 */
+  @media (max-width: 768px) {
+    .graph-legend {
+      top: 15px;
+      right: 15px;
+      padding: 12px;
+      max-width: 200px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .graph-legend {
+      max-width: 180px;
+      padding: 10px;
+    }
+  }
+</style>
