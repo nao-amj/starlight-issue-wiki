@@ -22,24 +22,86 @@ async function fetchIssuesByTag(tag) {
   }
 }
 
-// 動的ルーティングの設定
-export function getStaticPaths() {
-  // タグページは動的に生成されるため、空の配列を返します
-  // 必要に応じて事前に知られているタグのリストを使用することもできます
-  return [
-    { params: { tag: 'knowledge-management' } },
-    { params: { tag: 'note-taking' } },
-    { params: { tag: 'productivity' } },
-    { params: { tag: 'wiki' } },
-    { params: { tag: 'documentation' } },
-    { params: { tag: 'feature' } },
-    { params: { tag: '15' } }, // Zettelkastenモードテスト用
-  ];
+// すべてのIssueを取得する関数
+async function fetchAllIssues() {
+  try {
+    const response = await fetch('https://api.github.com/repos/nao-amj/starlight-issue-wiki/issues?state=all&per_page=100');
+    if (!response.ok) {
+      throw new Error(`GitHub API error: ${response.status}`);
+    }
+    const allItems = await response.json();
+    return allItems.filter(item => !item.pull_request);
+  } catch (error) {
+    console.error('Error fetching issues:', error);
+    return [];
+  }
+}
+
+// Issueからすべてのタグを抽出する関数
+function extractAllTags(issues) {
+  const allTags = new Set();
+  
+  issues.forEach(issue => {
+    if (!issue.body) return;
+    
+    // ハッシュタグを検出
+    const tagMatches = issue.body.match(/#([a-zA-Z0-9_-]+)/g);
+    if (tagMatches) {
+      tagMatches.forEach(tag => {
+        const cleanTag = tag.substring(1).toLowerCase();
+        allTags.add(cleanTag);
+      });
+    }
+    
+    // ラベルもタグとして扱う
+    if (issue.labels && Array.isArray(issue.labels)) {
+      issue.labels.forEach(label => {
+        if (typeof label === 'object' && label.name) {
+          const labelName = label.name.toLowerCase();
+          allTags.add(labelName);
+        }
+      });
+    }
+  });
+  
+  return Array.from(allTags);
+}
+
+// 動的ルーティングの設定 - すべてのタグを動的に生成
+export async function getStaticPaths() {
+  const issues = await fetchAllIssues();
+  const allTags = extractAllTags(issues);
+  
+  return allTags.map(tag => ({
+    params: { tag }
+  }));
 }
 
 const { tag } = Astro.params;
 const issues = await fetchIssuesByTag(tag);
 const pageTitle = `#${tag} - タグページ - ${SITE_TITLE}`;
+
+// 関連タグの候補リスト（ランダムに5つ表示）
+const relatedTagCandidates = [
+  'knowledge-management',
+  'note-taking',
+  'productivity',
+  'wiki',
+  'documentation',
+  'feature',
+  'zettelkasten',
+  'pkm',
+  'learning',
+  'organization',
+  'research',
+  'workflow'
+];
+
+// 現在のタグを除外して、ランダムに5つの関連タグを選択
+const filteredCandidates = relatedTagCandidates.filter(t => t !== tag);
+const randomRelatedTags = filteredCandidates
+  .sort(() => 0.5 - Math.random())
+  .slice(0, 5);
 ---
 
 <Layout title={pageTitle}>
@@ -77,23 +139,13 @@ const pageTitle = `#${tag} - タグページ - ${SITE_TITLE}`;
     <div class="similar-tags">
       <h2>関連タグ</h2>
       <div class="tag-cloud">
-        <a href={`${BASE_PATH}/tag/knowledge-management`} class="tag-link">
-          #knowledge-management
-        </a>
-        <a href={`${BASE_PATH}/tag/note-taking`} class="tag-link">
-          #note-taking
-        </a>
-        <a href={`${BASE_PATH}/tag/productivity`} class="tag-link">
-          #productivity
-        </a>
-        <a href={`${BASE_PATH}/tag/wiki`} class="tag-link">
-          #wiki
-        </a>
-        <a href={`${BASE_PATH}/tag/documentation`} class="tag-link">
-          #documentation
-        </a>
-        <a href={`${BASE_PATH}/tag/15`} class="tag-link">
-          #15
+        {randomRelatedTags.map(relatedTag => (
+          <a href={`${BASE_PATH}/tag/${relatedTag}`} class="tag-link">
+            #{relatedTag}
+          </a>
+        ))}
+        <a href={`${BASE_PATH}/tag`} class="tag-link all-tags-link">
+          すべてのタグを表示
         </a>
       </div>
     </div>
@@ -275,5 +327,15 @@ const pageTitle = `#${tag} - タグページ - ${SITE_TITLE}`;
   
   .dark .tag-link:hover {
     background-color: rgba(100, 181, 246, 0.2);
+  }
+  
+  .all-tags-link {
+    background-color: rgba(26, 115, 232, 0.05);
+    border: 1px dashed rgba(26, 115, 232, 0.3);
+  }
+  
+  .dark .all-tags-link {
+    background-color: rgba(100, 181, 246, 0.05);
+    border: 1px dashed rgba(100, 181, 246, 0.3);
   }
 </style>
