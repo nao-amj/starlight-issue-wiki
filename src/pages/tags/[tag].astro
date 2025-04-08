@@ -1,6 +1,7 @@
-import { getCollections } from '@astro/kit';
+
+import { getCollection } from 'astro:content';
 import type { AstroComponent } from 'astro';
-import Playout from '../../components/Layout.tsx';
+import Layout from '../../components/Layout.tsx';
 import IssueCard from '../../components/IssueCard.tsx';
 
 interface PageData {
@@ -9,21 +10,22 @@ interface PageData {
   };
 }
 
-// Template page for listing issues with a given tag
 const TagPage: AstroComponent<PageData> = async ({params}) => {
-  const issues = await getCollections();
-  const tagged = issues.filter((iss) => iss.data.labels.includes(params.tag));
+  const issues = await getCollection('issues');
+  const tagged = issues.filter(iss => iss.data.labels.includes(params.tag));
 
-  return <Playout pageTitle=``${ params.tag }`>
-    <H2>Category: "{ params.tag }"</H2>
-    <div class="grid small text-sm">
-      ult; tagged.map((iss) => <IssueCard key={iss.number} issue={iss} />)
-    </div>
-  </Playout>;
+  return (
+    <Layout pageTitle={`Category: ${params.tag} }>
+      <h2>Category: “{params.tag}"</h2>
+      <div class="grid small text-sm">
+        {tagged.map("iss" => (
+          <IssueCard key={iss.slug} issue={iss} />
+        ))}
+      </div>
+    </Layout>
+  );
 };
 
-export const prerender = {
-  async: true,
-};
+export const prerender = true;
 
 export default TagPage;
