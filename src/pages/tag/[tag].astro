@@ -22,53 +22,52 @@ async function fetchIssuesByTag(tag) {
   }
 }
 
-// すべてのIssueを取得する関数
-async function fetchAllIssues() {
-  try {
-    const response = await fetch('https://api.github.com/repos/nao-amj/starlight-issue-wiki/issues?state=all&per_page=100');
-    if (!response.ok) {
-      throw new Error(`GitHub API error: ${response.status}`);
-    }
-    const allItems = await response.json();
-    return allItems.filter(item => !item.pull_request);
-  } catch (error) {
-    console.error('Error fetching issues:', error);
-    return [];
-  }
-}
-
-// Issueからすべてのタグを抽出する関数
-function extractAllTags(issues) {
-  const allTags = new Set();
-  
-  issues.forEach(issue => {
-    if (!issue.body) return;
-    
-    // ハッシュタグを検出
-    const tagMatches = issue.body.match(/#([a-zA-Z0-9_-]+)/g);
-    if (tagMatches) {
-      tagMatches.forEach(tag => {
-        const cleanTag = tag.substring(1).toLowerCase();
-        allTags.add(cleanTag);
-      });
-    }
-    
-    // ラベルもタグとして扱う
-    if (issue.labels && Array.isArray(issue.labels)) {
-      issue.labels.forEach(label => {
-        if (typeof label === 'object' && label.name) {
-          const labelName = label.name.toLowerCase();
-          allTags.add(labelName);
-        }
-      });
-    }
-  });
-  
-  return Array.from(allTags);
-}
-
 // 動的ルーティングの設定 - すべてのタグを動的に生成
 export async function getStaticPaths() {
+  // getStaticPaths内で独自に関数を定義（スコープの問題を解決）
+  async function fetchAllIssues() {
+    try {
+      const response = await fetch('https://api.github.com/repos/nao-amj/starlight-issue-wiki/issues?state=all&per_page=100');
+      if (!response.ok) {
+        throw new Error(`GitHub API error: ${response.status}`);
+      }
+      const allItems = await response.json();
+      return allItems.filter(item => !item.pull_request);
+    } catch (error) {
+      console.error('Error fetching issues:', error);
+      return [];
+    }
+  }
+
+  function extractAllTags(issues) {
+    const allTags = new Set();
+    
+    issues.forEach(issue => {
+      if (!issue.body) return;
+      
+      // ハッシュタグを検出
+      const tagMatches = issue.body.match(/#([a-zA-Z0-9_-]+)/g);
+      if (tagMatches) {
+        tagMatches.forEach(tag => {
+          const cleanTag = tag.substring(1).toLowerCase();
+          allTags.add(cleanTag);
+        });
+      }
+      
+      // ラベルもタグとして扱う
+      if (issue.labels && Array.isArray(issue.labels)) {
+        issue.labels.forEach(label => {
+          if (typeof label === 'object' && label.name) {
+            const labelName = label.name.toLowerCase();
+            allTags.add(labelName);
+          }
+        });
+      }
+    });
+    
+    return Array.from(allTags);
+  }
+
   const issues = await fetchAllIssues();
   const allTags = extractAllTags(issues);
   
