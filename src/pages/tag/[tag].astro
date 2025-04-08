@@ -1,73 +1,11 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { BASE_PATH, SITE_TITLE } from '../../config';
-
-// タグに関連するIssueを検索する関数
-async function fetchIssuesByTag(tag) {
-  try {
-    // GitHubのSearchAPIを使用してIssueを検索
-    // Note: APIの仕様上、検索クエリは `#tagname` というパターンだと検索できないため
-    // 代わりに本文内のパターンで検索します
-    const response = await fetch(`https://api.github.com/search/issues?q=repo:nao-amj/starlight-issue-wiki%20%23${tag}%20in:body&per_page=50`);
-    if (!response.ok) {
-      throw new Error(`GitHub API error: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    // プルリクエストを除外
-    return data.items.filter(item => !item.pull_request);
-  } catch (error) {
-    console.error(`Error fetching issues for tag ${tag}:`, error);
-    return [];
-  }
-}
+import { fetchAllIssues, fetchIssuesByTag, extractAllTags } from '../../lib/github-api';
 
 // 動的ルーティングの設定 - すべてのタグを動的に生成
 export async function getStaticPaths() {
-  // getStaticPaths内で独自に関数を定義（スコープの問題を解決）
-  async function fetchAllIssues() {
-    try {
-      const response = await fetch('https://api.github.com/repos/nao-amj/starlight-issue-wiki/issues?state=all&per_page=100');
-      if (!response.ok) {
-        throw new Error(`GitHub API error: ${response.status}`);
-      }
-      const allItems = await response.json();
-      return allItems.filter(item => !item.pull_request);
-    } catch (error) {
-      console.error('Error fetching issues:', error);
-      return [];
-    }
-  }
-
-  function extractAllTags(issues) {
-    const allTags = new Set();
-    
-    issues.forEach(issue => {
-      if (!issue.body) return;
-      
-      // ハッシュタグを検出
-      const tagMatches = issue.body.match(/#([a-zA-Z0-9_-]+)/g);
-      if (tagMatches) {
-        tagMatches.forEach(tag => {
-          const cleanTag = tag.substring(1).toLowerCase();
-          allTags.add(cleanTag);
-        });
-      }
-      
-      // ラベルもタグとして扱う
-      if (issue.labels && Array.isArray(issue.labels)) {
-        issue.labels.forEach(label => {
-          if (typeof label === 'object' && label.name) {
-            const labelName = label.name.toLowerCase();
-            allTags.add(labelName);
-          }
-        });
-      }
-    });
-    
-    return Array.from(allTags);
-  }
-
+  // 最適化APIを使用しキャッシュを活用
   const issues = await fetchAllIssues();
   const allTags = extractAllTags(issues);
   
@@ -77,6 +15,7 @@ export async function getStaticPaths() {
 }
 
 const { tag } = Astro.params;
+// 最適化APIを使用してタグに関連するIssueを取得
 const issues = await fetchIssuesByTag(tag);
 const pageTitle = `#${tag} - タグページ - ${SITE_TITLE}`;
 
