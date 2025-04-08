@@ -1,165 +1,356 @@
 /**
- * グラフデータの処理と準備のためのユーティリティ
+ * グラフデータを準備するためのユーティリティ関数
  */
 
-import type { GitHubIssue } from '../../data/types';
-import { findBidirectionalLinks } from '../zettelkasten';
-import { BASE_PATH } from '../../config';
 import type { GraphData, GraphNode, GraphLink } from './types';
+import fs from 'fs';
+import path from 'path';
+
+// キャッシュディレクトリ
+const CACHE_DIR = './.cache';
+// キャッシュの有効期限（ミリ秒）- 1時間
+const CACHE_TTL = 60 * 60 * 1000;
 
 /**
- * Issue一覧からグラフノードを作成
+ * Issueデータからグラフデータを生成
+ * @param issues GitHub APIから取得したIssue配列
+ * @param currentId 現在表示中のIssue ID（オプション）
  */
-export function createGraphNodes(issues: GitHubIssue[], currentIssueNumber?: number): GraphNode[] {
-  return issues.map(issue => ({
-    id: issue.number,
-    title: issue.title,
-    url: `${BASE_PATH}/wiki/${issue.number}`,
-    isCurrent: issue.number === currentIssueNumber,
-    labels: issue.labels ? issue.labels.map(label => 
-      typeof label === 'object' ? label.name : label
-    ) : [],
-    state: issue.state || 'open',
-    comments: issue.comments || 0,
-    updated_at: issue.updated_at,
-    created_at: issue.created_at
-  }));
-}
+export function prepareGraphData(issues: any[], currentId?: number): GraphData {
+  // キャッシュをチェック
+  const cacheKey = `graph-data-${currentId || 'all'}`;
+  const cachedData = getFromCache(cacheKey);
+  if (cachedData) {
+    return cachedData;
+  }
 
-/**
- * Issue間のリンク関係を抽出
- */
-export function createGraphLinks(issues: GitHubIssue[], bidirectionalLinks: Map<number, number[]>): GraphLink[] {
-  const links: GraphLink[] = [];
-  const processedLinks = new Set<string>();
+  console.log('Building graph data...');
+  console.time('Graph data generation');
 
+  // パフォーマンス改善のため、常にMap操作を使用
+  const nodesMap = new Map<number, GraphNode>();
+  const linksMap = new Map<string, GraphLink>();
+  
+  // ノードの作成
+  issues.forEach(issue => {
+    nodesMap.set(issue.number, {
+      id: issue.number,
+      title: issue.title,
+      url: `/starlight-issue-wiki/wiki/${issue.number}`,
+      labels: issue.labels?.map((label: any) => label.name) || [],
+      comments: issue.comments,
+      created_at: issue.created_at,
+      updated_at: issue.updated_at,
+      state: issue.state,
+      isCurrent: issue.number === currentId
+    });
+  });
+  
+  // リンクの抽出 - パフォーマンス最適化バージョン
   issues.forEach(issue => {
     if (!issue.body) return;
     
-    // [[...]]形式のリンクを検出
-    const wikiLinks = issue.body.match(/\\[\\[(.*?)\\]\\]/g);
-    if (wikiLinks) {
-      wikiLinks.forEach(link => {
-        const linkedTitle = link.substring(2, link.length - 2).trim();
-        const linkedIssue = issues.find(i => 
-          i.title.toLowerCase() === linkedTitle.toLowerCase() ||
-          i.title.toLowerCase().includes(linkedTitle.toLowerCase())
-        );
+    // マッチングを一度だけ行い、結果を保持
+    const wikiLinksMatches = issue.body.match(/\[\[(.*?)\]\]/g);
+    const idRefsMatches = issue.body.match(/#(\d+)/g);
+    
+    // [[...]] 形式のリンクを処理
+    if (wikiLinksMatches) {
+      wikiLinksMatches.forEach((match: string) => {
+        const linkedTitle = match.substring(2, match.length - 2).trim();
         
-        if (linkedIssue && linkedIssue.number !== issue.number) {
-          const linkId = `${issue.number}-${linkedIssue.number}`;
-          if (!processedLinks.has(linkId)) {
-            processedLinks.add(linkId);
-            links.push({
-              source: issue.number,
-              target: linkedIssue.number,
-              bidirectional: bidirectionalLinks.has(issue.number) && 
-                bidirectionalLinks.get(issue.number)?.includes(linkedIssue.number),
-              type: 'wiki'
-            });
+        // O(n)の線形探索を避け、フィルタリングを最適化
+        for (const [targetId, node] of nodesMap.entries()) {
+          if (node.title.toLowerCase() === linkedTitle.toLowerCase() ||
+              node.title.toLowerCase().includes(linkedTitle.toLowerCase())) {
+            // 重複チェックを高速化
+            const linkId = `${issue.number}-${targetId}`;
+            if (targetId !== issue.number && !linksMap.has(linkId)) {
+              linksMap.set(linkId, {
+                source: issue.number,
+                target: targetId,
+                type: 'wikilink'
+              });
+              
+              // 双方向リンクの検出
+              const reverseLinkId = `${targetId}-${issue.number}`;
+              if (linksMap.has(reverseLinkId)) {
+                // 既存のリンクを双方向としてマーク
+                linksMap.get(linkId)!.bidirectional = true;
+                linksMap.get(reverseLinkId)!.bidirectional = true;
+              }
+            }
+            break; // 一致したらループ終了
           }
         }
       });
     }
     
-    // #番号形式のリンクを検出
-    const issueRefs = issue.body.match(/#(\\d+)/g);
-    if (issueRefs) {
-      issueRefs.forEach(ref => {
-        const refNumber = parseInt(ref.substring(1), 10);
-        const refIssue = issues.find(i => i.number === refNumber);
+    // #数字 形式のリンクを処理
+    if (idRefsMatches) {
+      idRefsMatches.forEach((match: string) => {
+        const targetId = parseInt(match.substring(1), 10);
         
-        if (refIssue && refIssue.number !== issue.number) {
-          const linkId = `${issue.number}-${refIssue.number}`;
-          const reverseLinkId = `${refIssue.number}-${issue.number}`;
-          
-          if (!processedLinks.has(linkId) && !processedLinks.has(reverseLinkId)) {
-            processedLinks.add(linkId);
-            links.push({
+        // ノードマップで直接チェック - O(1)の操作
+        if (nodesMap.has(targetId) && targetId !== issue.number) {
+          const linkId = `${issue.number}-${targetId}`;
+          if (!linksMap.has(linkId)) {
+            linksMap.set(linkId, {
               source: issue.number,
-              target: refIssue.number,
-              bidirectional: bidirectionalLinks.has(issue.number) && 
-                bidirectionalLinks.get(issue.number)?.includes(refIssue.number),
-              type: 'reference'
+              target: targetId,
+              type: 'idref'
             });
+            
+            // 双方向リンクの検出
+            const reverseLinkId = `${targetId}-${issue.number}`;
+            if (linksMap.has(reverseLinkId)) {
+              // 既存のリンクを双方向としてマーク
+              linksMap.get(linkId)!.bidirectional = true;
+              linksMap.get(reverseLinkId)!.bidirectional = true;
+            }
           }
         }
       });
     }
   });
-
-  return links;
+  
+  // 結果を生成
+  const result: GraphData = {
+    nodes: Array.from(nodesMap.values()),
+    links: Array.from(linksMap.values())
+  };
+  
+  console.timeEnd('Graph data generation');
+  
+  // パフォーマンス統計
+  console.log(`Generated graph with ${result.nodes.length} nodes and ${result.links.length} links`);
+  
+  // 結果をキャッシュに保存
+  saveToCache(cacheKey, result);
+  
+  return result;
 }
 
 /**
- * グラフデータを準備
+ * 現在のノードの周囲に表示するグラフをフィルタリング
+ * パフォーマンス最適化バージョン
  */
-export function prepareGraphData(issues: GitHubIssue[], currentIssueNumber?: number): GraphData {
-  // 双方向リンクを検出
-  const bidirectionalLinks = findBidirectionalLinks(issues);
+export function filterGraphForCurrentNode(graphData: GraphData, currentId?: number): GraphData {
+  if (!currentId) return graphData;
   
-  // ノードとリンクの作成
-  const nodes = createGraphNodes(issues, currentIssueNumber);
-  const links = createGraphLinks(issues, bidirectionalLinks);
+  // キャッシュをチェック
+  const cacheKey = `filtered-graph-${currentId}`;
+  const cachedData = getFromCache(cacheKey);
+  if (cachedData) {
+    return cachedData;
+  }
   
-  return { nodes, links };
-}
-
-/**
- * 現在のノードに関連するノードとリンクのみにフィルタリングしたグラフデータを作成
- */
-export function filterGraphForCurrentNode(graphData: GraphData, currentIssueNumber?: number): GraphData {
-  if (!currentIssueNumber) return graphData;
+  console.time('Graph filtering');
   
-  // 現在のノードと直接リンクしているノードのみを表示
-  const connectedNodeIds = new Set<number>();
-  connectedNodeIds.add(currentIssueNumber);
+  // サイズ制限 - グラフが大きすぎる場合に適用
+  const MAX_NODES = 50;
   
+  // 現在のノードを含むか確認
+  const currentNode = graphData.nodes.find(n => n.id === currentId);
+  if (!currentNode) return graphData;
+  
+  // 関連ノードIDのセットを構築 (O(1)のルックアップのため)
+  const relatedNodeIds = new Set<number>();
+  relatedNodeIds.add(currentId);
+  
+  // 直接リンクしたノードを見つける - O(m) where m is number of links
   graphData.links.forEach(link => {
-    if (link.source === currentIssueNumber) {
-      connectedNodeIds.add(link.target);
-    }
-    if (link.target === currentIssueNumber) {
-      connectedNodeIds.add(link.source);
+    const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+    const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+    
+    if (sourceId === currentId) {
+      relatedNodeIds.add(targetId);
+    } else if (targetId === currentId) {
+      relatedNodeIds.add(sourceId);
     }
   });
   
-  return {
-    nodes: graphData.nodes.filter(node => connectedNodeIds.has(node.id)),
-    links: graphData.links.filter(link => 
-      connectedNodeIds.has(link.source) && connectedNodeIds.has(link.target)
-    )
+  // サイズ制限を適用
+  let includedNodeIds = Array.from(relatedNodeIds);
+  
+  // グラフが大きすぎる場合、最も重要なノードだけを保持
+  if (includedNodeIds.length > MAX_NODES) {
+    const linkedNodesWithWeight = Array.from(relatedNodeIds)
+      .filter(id => id !== currentId)
+      .map(id => {
+        // ノードの重要度の計算
+        const node = graphData.nodes.find(n => n.id === id);
+        const linkCount = graphData.links.filter(l => {
+          const s = typeof l.source === 'object' ? l.source.id : l.source;
+          const t = typeof l.target === 'object' ? l.target.id : l.target;
+          return s === id || t === id;
+        }).length;
+        
+        return {
+          id,
+          weight: (node?.comments || 0) + linkCount * 2
+        };
+      })
+      .sort((a, b) => b.weight - a.weight)
+      .slice(0, MAX_NODES - 1) // 現在のノード用に1つ残す
+      .map(item => item.id);
+    
+    // 現在のノードと重要なノードのみを含める
+    includedNodeIds = [currentId, ...linkedNodesWithWeight];
+  }
+  
+  // サブグラフの作成
+  const filteredNodes = graphData.nodes.filter(node => includedNodeIds.includes(node.id));
+  const filteredLinks = graphData.links.filter(link => {
+    const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+    const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+    return includedNodeIds.includes(sourceId) && includedNodeIds.includes(targetId);
+  });
+  
+  const result = {
+    nodes: filteredNodes,
+    links: filteredLinks
   };
+  
+  console.timeEnd('Graph filtering');
+  
+  // 結果をキャッシュに保存
+  saveToCache(cacheKey, result);
+  
+  return result;
 }
 
 /**
- * ノードの色を決定する関数
+ * ノードの色を決定する
+ * @param node グラフノード
  */
 export function getNodeColor(node: GraphNode): string {
-  if (node.isCurrent) return '#f04050';
-  if (node.labels && node.labels.length > 0) {
-    if (node.labels.includes('documentation')) return '#0075ca';
-    if (node.labels.includes('feature')) return '#a2eeef';
-    if (node.labels.includes('wiki')) return '#7057ff';
+  if (node.isCurrent) {
+    return '#ff5252';
   }
-  return '#4f6df5';
+  
+  if (node.state === 'closed') {
+    return '#9e9e9e';
+  }
+  
+  // ラベルに基づく色分け
+  if (node.labels && node.labels.length > 0) {
+    if (node.labels.some(l => l.includes('documentation') || l.includes('wiki'))) {
+      return '#4fc3f7';
+    }
+    if (node.labels.some(l => l.includes('bug') || l.includes('error'))) {
+      return '#ef5350';
+    }
+    if (node.labels.some(l => l.includes('feature'))) {
+      return '#66bb6a';
+    }
+    if (node.labels.some(l => l.includes('enhancement'))) {
+      return '#8c9eff';
+    }
+  }
+  
+  // コメント数に基づく色合い
+  if (node.comments > 5) {
+    return '#5c6bc0';
+  }
+  if (node.comments > 0) {
+    return '#7986cb';
+  }
+  
+  return '#9fa8da';
 }
 
 /**
- * ノードのサイズを決定する関数
+ * ノードのサイズを決定する
+ * @param node グラフノード
  */
 export function getNodeSize(node: GraphNode): number {
-  // コメント数に応じてサイズを変更
-  const baseSize = 6;
-  if (node.comments > 10) return baseSize + 4;
-  if (node.comments > 5) return baseSize + 2;
-  if (node.comments > 0) return baseSize + 1;
-  return baseSize;
+  let size = 6;
+  
+  // コメント数による調整
+  if (node.comments > 10) {
+    size += 3;
+  } else if (node.comments > 5) {
+    size += 2;
+  } else if (node.comments > 0) {
+    size += 1;
+  }
+  
+  // ラベル数による調整
+  if (node.labels && node.labels.length > 0) {
+    size += Math.min(node.labels.length, 2);
+  }
+  
+  return size;
 }
 
 /**
- * ラベルを短縮する関数
+ * ラベルを表示用に短くする
+ * @param label ラベル文字列
  */
-export function truncateLabel(text: string): string {
-  return text.length > 15 ? text.substring(0, 15) + '...' : text;
+export function truncateLabel(label: string): string {
+  const maxLength = 25;
+  if (label.length <= maxLength) {
+    return label;
+  }
+  return label.substring(0, maxLength - 3) + '...';
+}
+
+// キャッシュユーティリティ関数
+// キャッシュディレクトリが存在しない場合は作成
+function ensureCacheDir() {
+  if (!fs.existsSync(CACHE_DIR)) {
+    fs.mkdirSync(CACHE_DIR, { recursive: true });
+  }
+}
+
+/**
+ * キャッシュからデータを取得
+ * @param cacheKey キャッシュのキー
+ * @returns キャッシュデータまたはnull
+ */
+function getFromCache(cacheKey: string): any | null {
+  ensureCacheDir();
+  const cachePath = path.join(CACHE_DIR, `${cacheKey}.json`);
+  
+  if (fs.existsSync(cachePath)) {
+    try {
+      const cacheData = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
+      
+      // キャッシュが有効期限内かチェック
+      if (cacheData.timestamp && Date.now() - cacheData.timestamp < CACHE_TTL) {
+        console.log(`Using cached graph data for ${cacheKey}`);
+        return cacheData.data;
+      }
+    } catch (error) {
+      console.error(`Error reading cache for ${cacheKey}:`, error);
+      return null;
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * データをキャッシュに保存
+ * @param cacheKey キャッシュのキー
+ * @param data 保存するデータ
+ */
+function saveToCache(cacheKey: string, data: any): void {
+  ensureCacheDir();
+  const cachePath = path.join(CACHE_DIR, `${cacheKey}.json`);
+  
+  try {
+    fs.writeFileSync(
+      cachePath,
+      JSON.stringify({
+        timestamp: Date.now(),
+        data
+      }, null, 0), // インデントを省いて容量削減
+      'utf8'
+    );
+    console.log(`Cached graph data for ${cacheKey}`);
+  } catch (error) {
+    console.error(`Error caching data for ${cacheKey}:`, error);
+  }
 }
