@@ -3,72 +3,21 @@ import Layout from '../layouts/Layout.astro';
 import KnowledgeGraph from '../components/KnowledgeGraph.astro';
 import { SITE_TITLE, BASE_PATH } from '../config';
 import { fetchAllIssues } from '../lib/github-api';
+import { prepareGraphData } from '../lib/graph/data';
 
 // GitHub APIでキャッシュ機能を使用してIssueを取得
 const issues = await fetchAllIssues();
 const pageTitle = `Knowledge Graph - ${SITE_TITLE}`;
 const issueCount = issues.length;
 
-// リンクの統計を計算
-let totalLinks = 0;
-let bidirectionalLinks = 0;
+// グラフデータを準備
+const graphData = prepareGraphData(issues);
 
-// Map を使用して高速に処理
-const mentionMap = new Map();
+// リンクと双方向リンクのカウントをグラフデータから取得
+let totalLinks = graphData.links.length;
 
-issues.forEach(issue => {
-  mentionMap.set(issue.number, new Set());
-});
-
-// パフォーマンス最適化: リンク検出を一度だけ行う
-issues.forEach(issue => {
-  if (!issue.body) return;
-  
-  // [[...]]形式のリンクを検出 - 正規表現の実行回数を最小化
-  const wikiLinksMatches = issue.body.match(/\[\[(.*?)\]\]/g);
-  if (wikiLinksMatches) {
-    totalLinks += wikiLinksMatches.length;
-    
-    wikiLinksMatches.forEach(link => {
-      const linkedTitle = link.substring(2, link.length - 2).trim();
-      const linkedIssue = issues.find(i => 
-        i.title.toLowerCase() === linkedTitle.toLowerCase() ||
-        i.title.toLowerCase().includes(linkedTitle.toLowerCase())
-      );
-      
-      if (linkedIssue && linkedIssue.number !== issue.number) {
-        mentionMap.get(issue.number).add(linkedIssue.number);
-      }
-    });
-  }
-  
-  // #番号形式のリンクを検出 - 正規表現の実行回数を最小化
-  const issueRefs = issue.body.match(/#(\d+)/g);
-  if (issueRefs) {
-    totalLinks += issueRefs.length;
-    
-    issueRefs.forEach(ref => {
-      const refNumber = parseInt(ref.substring(1), 10);
-      if (refNumber !== issue.number && mentionMap.has(refNumber)) {
-        mentionMap.get(issue.number).add(refNumber);
-      }
-    });
-  }
-});
-
-// 双方向リンクのカウント - 効率的な実装
-mentionMap.forEach((mentions, issueNumber) => {
-  mentions.forEach(mentionedIssue => {
-    const mentionedIssueMentions = mentionMap.get(mentionedIssue);
-    
-    if (mentionedIssueMentions && mentionedIssueMentions.has(issueNumber)) {
-      bidirectionalLinks += 1;
-    }
-  });
-});
-
-// 重複カウントを避けるため2で割る
-bidirectionalLinks = bidirectionalLinks / 2;
+// 双方向リンクのカウント
+let bidirectionalLinks = graphData.links.filter(link => link.bidirectional).length / 2;
 ---
 
 <Layout title={pageTitle}>
