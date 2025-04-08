@@ -87,6 +87,28 @@ try {
   // まず、Wikiリンクを処理
   htmlContent = htmlContent.replace(/<wiki-link>(.*?)<\/wiki-link>/g, (match, content) => {
     const linkedTitle = content.trim();
+    
+    // 技術名やプロジェクト名の場合の特別処理（大文字小文字を区別しない）
+    const techTerms = {
+      'astro': { url: 'https://astro.build', label: 'Astro' },
+      'react': { url: 'https://reactjs.org', label: 'React' },
+      'vue': { url: 'https://vuejs.org', label: 'Vue' },
+      'svelte': { url: 'https://svelte.dev', label: 'Svelte' },
+      'typescript': { url: 'https://www.typescriptlang.org', label: 'TypeScript' },
+      'javascript': { url: 'https://developer.mozilla.org/docs/Web/JavaScript', label: 'JavaScript' }
+    };
+    
+    // 技術名かチェック（大文字小文字を区別しない）
+    const techTermKey = Object.keys(techTerms).find(
+      term => term.toLowerCase() === linkedTitle.toLowerCase()
+    );
+    
+    if (techTermKey) {
+      const techInfo = techTerms[techTermKey];
+      return `<a href="${techInfo.url}" class="tech-link external" target="_blank" rel="noopener">${techInfo.label}</a>`;
+    }
+    
+    // 通常のWikiリンク処理（以前の処理）
     const linkedIssue = allIssues.find(i => 
       i.title.toLowerCase() === linkedTitle.toLowerCase() ||
       i.title.toLowerCase().includes(linkedTitle.toLowerCase())
@@ -306,6 +328,26 @@ const pageTitle = `${title} (#${issue.number})`;
 
   .sidebar a:hover {
     background-color: var(--sl-color-gray-6);
+  }
+
+  /* 外部技術リンク用のスタイル */
+  :global(.tech-link) {
+    color: var(--sl-color-accent);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--sl-color-accent);
+    padding-bottom: 1px;
+  }
+  
+  :global(.tech-link.external:after) {
+    content: "↗";
+    font-size: 0.8em;
+    margin-left: 2px;
+    vertical-align: super;
+  }
+  
+  :global(.tech-link:hover) {
+    border-bottom: 1px solid var(--sl-color-accent);
+    background-color: var(--sl-color-accent-low);
   }
 
   /* レスポンシブデザイン */
