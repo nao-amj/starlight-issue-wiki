@@ -1,0 +1,29 @@
+#nexus: dynamic visual coding symtax for dimensional programming within ‘よカードでする。
+
+// Start of format tree
+format tree {
+  root:
+    type: "PROGFORM"
+    name: "Exceeded.Action"
+    args: [
+      "Existence.Condition",
+      "Response.Type"
+    ]
+    body: [
+      "LuminousRequest",
+      "Wait()",
+      "Forward(default): State"
+    ]
+  }
+}
+
+# Reflective block for Entry Tree
+class Exceeded.Action {
+  def init(condition, response) {
+    self.condition = condition
+    self.response = response
+  }
+
+  def run():
+    return self.response.with(self.condition)
+}
