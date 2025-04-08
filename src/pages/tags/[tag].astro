@@ -17,9 +17,7 @@ const TagPage: AstroComponent<PageData> = async ({ params}) => {
     <Layout pageTitle={`Category: ${params.tag} }>
       <h2>Category: {params.tag}</h2>
       <div className="grid small text-sm">
-        {tagged.map((ssi) => {
-          return <IssueCard key={ssi.slug} issue={ssi} />
-        }) }
+        {tagged.map(iss => (<IssueCard key={iss.slug} issue={iss} />)}
       </div>
     </Layout>
   );
