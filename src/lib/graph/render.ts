@@ -230,12 +230,38 @@ function setupSimulation(
   node: any,
   label: any
 ): Simulation {
+  // 改善: 中心からのバイアスを持つ力を追加
+  const centerForce = d3.forceCenter(width / 2, height / 2);
+  
+  // 改善: 反発力を適切に設定
+  const chargeForce = d3.forceManyBody()
+    .strength(isFullGraph ? -400 : -250) // 反発力を強化
+    .distanceMax(width / 2); // 最大距離を設定して広がりすぎを防止
+  
+  // 改善: リンク距離を調整
+  const linkForce = d3.forceLink(graphData.links)
+    .id((d: GraphNode) => d.id)
+    .distance(isFullGraph ? 120 : 90); // リンク距離を広げる
+  
+  // 改善: X, Y方向の中心に引き寄せる力を追加
+  const forceX = d3.forceX(width / 2).strength(0.05);
+  const forceY = d3.forceY(height / 2).strength(0.05);
+  
+  // 改善: 衝突回避を調整
+  const collideForce = d3.forceCollide().radius(25);
+  
+  // シミュレーションの設定
   const simulation = d3.forceSimulation(graphData.nodes)
-    .force('link', d3.forceLink(graphData.links).id((d: GraphNode) => d.id).distance(isFullGraph ? 100 : 80))
-    .force('charge', d3.forceManyBody().strength(isFullGraph ? -300 : -200))
-    .force('center', d3.forceCenter(width / 2, height / 2))
-    .force('collision', d3.forceCollide().radius(20)) // ノード間の衝突回避
+    .force('link', linkForce)
+    .force('charge', chargeForce)
+    .force('center', centerForce)
+    .force('x', forceX)
+    .force('y', forceY)
+    .force('collision', collideForce)
     .on('tick', () => {
+      // 改善: ノードの位置制約を緩和して内側に集める
+      const padding = 50; // 画面端からの余白
+      
       // シミュレーション更新時の描画更新
       link
         .attr('x1', (d: any) => d.source.x)
@@ -244,8 +270,12 @@ function setupSimulation(
         .attr('y2', (d: any) => d.target.y);
       
       node
-        .attr('cx', (d: any) => d.x = Math.max(20, Math.min(width - 20, d.x)))
-        .attr('cy', (d: any) => d.y = Math.max(20, Math.min(height - 20, d.y)));
+        .attr('cx', (d: any) => {
+          return d.x = Math.max(padding, Math.min(width - padding, d.x));
+        })
+        .attr('cy', (d: any) => {
+          return d.y = Math.max(padding, Math.min(height - padding, d.y));
+        });
       
       label
         .attr('x', (d: any) => d.x)
@@ -678,33 +708,36 @@ function setupZoomControls(d3: D3Instance, svg: any, zoom: any) {
     if ((window as any).simulation) {
       const simulation = (window as any).simulation;
       
+      // 改善: レイアウト最適化ボタンの効果を強化
       // 一時的にシミュレーションを再開し、強度を変更
       simulation
-        .force('charge', d3.forceManyBody().strength(-600))  // より強い反発力
-        .force('link', d3.forceLink().id((d: any) => d.id).distance(120))  // リンク距離を広げる
-        .force('x', d3.forceX(window.innerWidth / 2).strength(0.1))  // X方向の力を追加
-        .force('y', d3.forceY(window.innerHeight / 2).strength(0.1))  // Y方向の力を追加
-        .force('collision', d3.forceCollide().radius(35))  // 衝突回避を強化
-        .alpha(0.8)  // アルファ値を高く設定して激しく動かす
+        .force('charge', d3.forceManyBody().strength(-800))  // 非常に強い反発力
+        .force('link', d3.forceLink().id((d: any) => d.id).distance(150))  // リンク距離を広げる
+        .force('x', d3.forceX(window.innerWidth / 2).strength(0.15))  // X方向の力を強化
+        .force('y', d3.forceY(window.innerHeight / 2).strength(0.15))  // Y方向の力を強化
+        .force('collision', d3.forceCollide().radius(40))  // 衝突回避を強化
+        .alpha(1.0)  // アルファ値を最大に
         .restart();
       
       // 最適化アニメーション
       setTimeout(() => {
         // 中間段階
         simulation
-          .force('charge', d3.forceManyBody().strength(-450))
-          .force('link', d3.forceLink().id((d: any) => d.id).distance(100))
-          .alpha(0.5)
+          .force('charge', d3.forceManyBody().strength(-600))
+          .force('link', d3.forceLink().id((d: any) => d.id).distance(120))
+          .force('x', d3.forceX(window.innerWidth / 2).strength(0.1))
+          .force('y', d3.forceY(window.innerHeight / 2).strength(0.1))
+          .alpha(0.6)
           .restart();
           
         setTimeout(() => {
           // 元の設定に戻す
           simulation
-            .force('charge', d3.forceManyBody().strength(-300))
-            .force('link', d3.forceLink().id((d: any) => d.id).distance(100))
-            .force('x', null)  // 追加の力を削除
-            .force('y', null)
-            .force('collision', d3.forceCollide().radius(20));
+            .force('charge', d3.forceManyBody().strength(-400))
+            .force('link', d3.forceLink().id((d: any) => d.id).distance(120))
+            .force('x', d3.forceX(window.innerWidth / 2).strength(0.05))
+            .force('y', d3.forceY(window.innerHeight / 2).strength(0.05))
+            .force('collision', d3.forceCollide().radius(25));
           
           if (!wasRunning) {
             simulation.stop();
@@ -822,6 +855,11 @@ function setupResizeHandler(
     
     // 中心位置を更新
     simulation.force('center', d3.forceCenter(newWidth / 2, newHeight / 2));
+    
+    // X, Y方向の力も更新
+    simulation.force('x', d3.forceX(newWidth / 2).strength(0.05));
+    simulation.force('y', d3.forceY(newHeight / 2).strength(0.05));
+    
     simulation.alpha(0.3).restart();
     
     // ジャンプリンクの位置を更新
