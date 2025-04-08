@@ -1,0 +1,73 @@
+---
+import type { KnowledgeGraphProps } from '../../lib/graph/types';
+import { prepareGraphData, filterGraphForCurrentNode } from '../../lib/graph/data';
+import GraphControls from './GraphControls.astro';
+import GraphPanel from './GraphPanel.astro';
+import GraphLegend from './GraphLegend.astro';
+import '../../styles/graph.css';
+
+export interface Props extends KnowledgeGraphProps {}
+
+const { issues, currentIssueNumber, showFullGraph = false } = Astro.props;
+
+// グラフデータの準備
+const graphData = prepareGraphData(issues, currentIssueNumber);
+
+// 小さいグラフの場合はフィルタリング
+const filteredGraphData = showFullGraph 
+  ? graphData 
+  : filterGraphForCurrentNode(graphData, currentIssueNumber);
+
+// D3.jsに渡すデータをJSON文字列として埋め込む
+const dataJson = JSON.stringify(filteredGraphData);
+---
+
+<div class="knowledge-graph-container">
+  <div id="knowledge-graph" class={showFullGraph ? 'full-graph' : 'mini-graph'} data-current-id={currentIssueNumber || 0}>
+    <!-- グラフはJavaScriptで描画 -->
+    <div class="graph-loading">
+      <span class="loading-spinner"></span>
+      <span>グラフを読み込み中...</span>
+    </div>
+  </div>
+  
+  {showFullGraph && <GraphControls />}
+  {showFullGraph && <GraphPanel graphData={graphData} />}
+  {showFullGraph && <GraphLegend />}
+</div>
+
+<script is:inline define:vars={{dataJson}}>
+  document.addEventListener('DOMContentLoaded', () => {
+    const graph = document.getElementById('knowledge-graph');
+    if (graph) {
+      graph.setAttribute('data-graph', dataJson);
+    }
+  });
+</script>
+
+<script>
+  // D3.jsを使用したグラフの描画
+  import { initGraph } from '../../lib/graph/render';
+  
+  document.addEventListener('DOMContentLoaded', () => {
+    // 必要なライブラリを動的にロード
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/d3@7';
+    script.onload = () => {
+      const graphElement = document.getElementById('knowledge-graph');
+      if (!graphElement) return;
+      
+      // グラフデータを取得
+      const graphData = JSON.parse(graphElement.getAttribute('data-graph') || '{"nodes":[],"links":[]}');
+      const isFullGraph = graphElement.classList.contains('full-graph');
+      const currentId = parseInt(graphElement.getAttribute('data-current-id') || '0', 10);
+      
+      // グラフを初期化して描画
+      const { simulation } = initGraph(window.d3, graphElement, graphData, isFullGraph, currentId);
+      
+      // グローバルアクセスのためにシミュレーションをウィンドウにアタッチ
+      window.simulation = simulation;
+    };
+    document.head.appendChild(script);
+  });
+</script>
