@@ -14,10 +14,10 @@ const TagPage: AstroComponent<PageData> = async ({ params}) => {
   const tagged = issues.filter(iss => iss.data.labels.includes(params.tag));
 
   return (
-    <Layout pageTitle={`Category: ${params.tag} }>
+    <Layout pageTitle={`Category: ${params.tag}`}>
       <h2>Category: {params.tag}</h2>
       <div className="grid small text-sm">
-        {tagged.map(iss => (<IssueCard key={iss.slug} issue={iss} />)}
+        {tagged.map(iss => (<IssueCard key={iss.slug} issue={iss} />))}
       </div>
     </Layout>
   );
