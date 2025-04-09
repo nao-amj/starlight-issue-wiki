@@ -1,0 +1,45 @@
+---
+/**
+ * ActivityAnalytics Component
+ * 
+ * アクティビティタブの分析セクションを表示する
+ */
+import DayOfWeekCard from '../cards/DayOfWeekCard.astro';
+import HourlyActivityCard from '../cards/HourlyActivityCard.astro';
+import MonthlyTrendCard from '../cards/MonthlyTrendCard.astro';
+import AgeDistributionCard from '../cards/AgeDistributionCard.astro';
+
+interface Props {
+  issueData: {
+    dayOfWeek: any[];
+    hourly: any[];
+    activity: any[];
+    ageDist: any[];
+  };
+}
+
+const { issueData } = Astro.props;
+---
+
+<div class="analysis-grid">
+  <!-- Day of Week Activity -->
+  <DayOfWeekCard dayOfWeekData={issueData.dayOfWeek} />
+  
+  <!-- Hour of Day Activity -->
+  <HourlyActivityCard hourlyData={issueData.hourly} />
+  
+  <!-- Monthly Trend -->
+  <MonthlyTrendCard activityData={issueData.activity} />
+  
+  <!-- Content Age Distribution -->
+  <AgeDistributionCard ageDistData={issueData.ageDist} />
+</div>
+
+<style>
+  .analysis-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+</style>
