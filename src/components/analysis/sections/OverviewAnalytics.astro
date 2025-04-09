@@ -1,0 +1,73 @@
+---
+/**
+ * OverviewAnalytics Component
+ * 
+ * 概要タブの分析セクションを表示する
+ */
+import OverviewSummaryCard from '../cards/OverviewSummaryCard.astro';
+import CategoryDistributionCard from '../cards/CategoryDistributionCard.astro';
+import MonthlyActivityCard from '../cards/MonthlyActivityCard.astro';
+import ContentLengthCard from '../cards/ContentLengthCard.astro';
+import ContentFreshnessCard from '../cards/ContentFreshnessCard.astro';
+import LinkAnalysisCard from '../cards/LinkAnalysisCard.astro';
+import CommentsAnalysisCard from '../cards/CommentsAnalysisCard.astro';
+
+interface Props {
+  issueData: {
+    labels: any[];
+    activity: any[];
+    length: any;
+    recency: any;
+    links: any;
+    topLinkedPages: any[];
+    comments: any;
+  };
+  basePath: string;
+}
+
+const { issueData, basePath } = Astro.props;
+---
+
+<div class="analysis-grid">
+  <!-- Summary Card -->
+  <OverviewSummaryCard 
+    totalPages={issueData.labels.reduce((sum, l) => sum + l.count, 0)}
+    totalLinks={issueData.links.internal + issueData.links.external}
+    totalCategories={issueData.labels.length}
+    activeMonths={issueData.activity.length}
+  />
+  
+  <!-- Category Distribution Card -->
+  <CategoryDistributionCard labels={issueData.labels} />
+  
+  <!-- Monthly Activity Card -->
+  <MonthlyActivityCard activity={issueData.activity} />
+  
+  <!-- Content Length Card -->
+  <ContentLengthCard lengthData={issueData.length} />
+  
+  <!-- Recency Card -->
+  <ContentFreshnessCard recencyData={issueData.recency} />
+  
+  <!-- Link Analysis Card -->
+  <LinkAnalysisCard 
+    linkData={issueData.links} 
+    topLinkedPages={issueData.topLinkedPages}
+    basePath={basePath}
+  />
+  
+  <!-- Comments Analysis Card -->
+  <CommentsAnalysisCard 
+    commentsData={issueData.comments}
+    basePath={basePath}
+  />
+</div>
+
+<style>
+  .analysis-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+</style>
