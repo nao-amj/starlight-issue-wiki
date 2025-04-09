@@ -1,0 +1,149 @@
+---
+/**
+ * DayOfWeekCard Component
+ * 
+ * 曜日別のアクティビティを表示するグラフカード
+ */
+
+interface Props {
+  dayOfWeekData: {
+    day: string;
+    count: number;
+  }[];
+}
+
+const { dayOfWeekData } = Astro.props;
+
+// 曜日の並び順を確保するための配列
+const daysOrder = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+// データを曜日順にソート
+const sortedData = [...dayOfWeekData].sort((a, b) => 
+  daysOrder.indexOf(a.day) - daysOrder.indexOf(b.day)
+);
+
+// 最大値を取得（グラフのスケーリング用）
+const maxCount = Math.max(...sortedData.map(item => item.count), 1);
+---
+
+<div class="analysis-card" id="day-of-week-card">
+  <h2 class="card-title">Activity by Day of Week</h2>
+  <div id="day-of-week-chart" class="chart-container">
+    {sortedData.map(item => (
+      <div class="chart-bar-container">
+        <div class="chart-label">{item.day.substring(0, 3)}</div>
+        <div class="chart-bar-wrapper">
+          <div 
+            class="chart-bar" 
+            style={`width: ${(item.count / maxCount) * 100}%;`}
+            title={`${item.day}: ${item.count} issues`}
+          ></div>
+          <span class="chart-value">{item.count}</span>
+        </div>
+      </div>
+    ))}
+  </div>
+</div>
+
+<style>
+  .analysis-card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+  }
+  
+  .analysis-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  }
+  
+  .dark .analysis-card {
+    background: #222;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  }
+  
+  .dark .analysis-card:hover {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  }
+  
+  .card-title {
+    font-size: 1.25rem;
+    margin-top: 0;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #eee;
+    color: #333;
+  }
+  
+  .dark .card-title {
+    border-bottom-color: #444;
+    color: #eee;
+  }
+  
+  .chart-container {
+    height: 250px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  
+  .chart-bar-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  
+  .chart-label {
+    width: 40px;
+    font-size: 0.875rem;
+    color: #666;
+  }
+  
+  .dark .chart-label {
+    color: #aaa;
+  }
+  
+  .chart-bar-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    height: 24px;
+  }
+  
+  .chart-bar {
+    height: 24px;
+    background: linear-gradient(to right, #4a86e8, #6aa5f6);
+    border-radius: 4px;
+    transition: width 0.5s ease;
+  }
+  
+  .chart-value {
+    margin-left: 8px;
+    font-size: 0.875rem;
+    color: #666;
+  }
+  
+  .dark .chart-value {
+    color: #aaa;
+  }
+</style>
+
+<script>
+// 必要に応じて追加のインタラクティブ機能をここに実装
+document.addEventListener('DOMContentLoaded', () => {
+  // 例: バーにホバー効果を追加するなど
+  const bars = document.querySelectorAll('.chart-bar');
+  bars.forEach(bar => {
+    bar.addEventListener('mouseenter', () => {
+      bar.style.opacity = '0.8';
+    });
+    bar.addEventListener('mouseleave', () => {
+      bar.style.opacity = '1';
+    });
+  });
+});
+</script>
