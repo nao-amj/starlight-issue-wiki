@@ -1,0 +1,259 @@
+---
+/**
+ * AnalyticsDashboard Component
+ * 
+ * 分析ダッシュボードのメインコンポーネント
+ * 各種タブとセクションを管理する
+ */
+import ActivityAnalytics from './sections/ActivityAnalytics.astro';
+import ContentAnalytics from './sections/ContentAnalytics.astro';
+import ContributorsAnalytics from './sections/ContributorsAnalytics.astro';
+import NetworkAnalytics from './sections/NetworkAnalytics.astro';
+import OverviewAnalytics from './sections/OverviewAnalytics.astro';
+
+interface Props {
+  issueData: {
+    labels: any[];
+    activity: any[];
+    dayOfWeek: any[];
+    hourly: any[];
+    length: any;
+    lengthDist: any[];
+    recency: any;
+    ageDist: any[];
+    links: any;
+    network: any;
+    assignees: any[];
+    comments: any;
+    topLinkedPages: any[];
+  };
+  basePath: string;
+}
+
+const { issueData, basePath } = Astro.props;
+---
+
+<div class="analytics-dashboard">
+  <div class="dashboard-controls">
+    <select id="theme-selector" class="dashboard-control">
+      <option value="default">Default Theme</option>
+      <option value="dark">Dark Theme</option>
+      <option value="light">Light Theme</option>
+      <option value="pastel">Pastel Theme</option>
+    </select>
+    
+    <div class="tabs">
+      <button class="tab active" data-tab="overview">Overview</button>
+      <button class="tab" data-tab="activity">Activity</button>
+      <button class="tab" data-tab="content">Content</button>
+      <button class="tab" data-tab="contributors">Contributors</button>
+      <button class="tab" data-tab="network">Network</button>
+    </div>
+  </div>
+  
+  <div class="dashboard-container">
+    <!-- Overview Tab (Default View) -->
+    <section class="dashboard-section active" id="overview-section">
+      <OverviewAnalytics issueData={issueData} basePath={basePath} />
+    </section>
+    
+    <!-- Activity Tab -->
+    <section class="dashboard-section" id="activity-section">
+      <ActivityAnalytics issueData={issueData} />
+    </section>
+    
+    <!-- Content Tab -->
+    <section class="dashboard-section" id="content-section">
+      <ContentAnalytics issueData={issueData} />
+    </section>
+
+    <!-- Contributors Tab -->
+    <section class="dashboard-section" id="contributors-section">
+      <ContributorsAnalytics issueData={issueData} />
+    </section>
+    
+    <!-- Network Tab -->
+    <section class="dashboard-section" id="network-section">
+      <NetworkAnalytics issueData={issueData} />
+    </section>
+  </div>
+  
+  <div class="action-buttons">
+    <a href={`${basePath}/`} class="action-button">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+      </svg>
+      Back to Home
+    </a>
+    <a href={`${basePath}/knowledge-graph`} class="action-button">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+        <line x1="12" y1="22.08" x2="12" y2="12"></line>
+      </svg>
+      View Knowledge Graph
+    </a>
+  </div>
+</div>
+
+<style>
+  .dashboard-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+  }
+  
+  .dashboard-control {
+    padding: 0.5rem 1rem;
+    border: 1px solid #ddd;
+    border-radius: 0.5rem;
+    background-color: white;
+  }
+  
+  .dark .dashboard-control {
+    background-color: #222;
+    border-color: #444;
+    color: #ddd;
+  }
+  
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid #ddd;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .tab {
+    padding: 0.75rem 1.5rem;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+    color: #666;
+    white-space: nowrap;
+  }
+  
+  .tab:hover {
+    color: #4f6df5;
+  }
+  
+  .tab.active {
+    color: #4f6df5;
+    border-bottom-color: #4f6df5;
+  }
+  
+  .dark .tab {
+    color: #aaa;
+  }
+  
+  .dark .tab:hover,
+  .dark .tab.active {
+    color: #7b96ff;
+    border-bottom-color: #7b96ff;
+  }
+  
+  .dashboard-section {
+    display: none;
+  }
+  
+  .dashboard-section.active {
+    display: block;
+  }
+  
+  /* Action Buttons */
+  .action-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+  
+  .action-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    background-color: var(--color-primary);
+    color: white;
+    text-decoration: none;
+    border-radius: 50px;
+    font-weight: 500;
+    transition: all 0.3s;
+  }
+  
+  .action-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(79, 109, 245, 0.3);
+  }
+  
+  .dark .action-button:hover {
+    box-shadow: 0 5px 15px rgba(79, 109, 245, 0.5);
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .dashboard-controls {
+      flex-direction: column;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+    
+    .action-buttons {
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .action-button {
+      width: 100%;
+      max-width: 300px;
+      justify-content: center;
+    }
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Tab switching functionality
+    const tabs = document.querySelectorAll('.tab');
+    const sections = document.querySelectorAll('.dashboard-section');
+    
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        // Remove active class from all tabs and sections
+        tabs.forEach(t => t.classList.remove('active'));
+        sections.forEach(s => s.classList.remove('active'));
+        
+        // Add active class to clicked tab
+        tab.classList.add('active');
+        
+        // Show corresponding section
+        const tabId = tab.getAttribute('data-tab');
+        document.getElementById(`${tabId}-section`).classList.add('active');
+      });
+    });
+    
+    // Theme selector functionality
+    const themeSelector = document.getElementById('theme-selector');
+    
+    themeSelector.addEventListener('change', () => {
+      const theme = themeSelector.value;
+      setTheme(theme);
+    });
+    
+    function setTheme(theme) {
+      // Apply theme colors to charts
+      const body = document.body;
+      
+      // Remove all theme classes
+      body.classList.remove('theme-default', 'theme-dark', 'theme-light', 'theme-pastel');
+      
+      // Add selected theme class
+      body.classList.add(`theme-${theme}`);
+    }
+  });
+</script>
