@@ -1,0 +1,40 @@
+---
+/**
+ * ContentAnalytics Component
+ * 
+ * コンテンツタブの分析セクションを表示する
+ */
+import DetailedLengthCard from '../cards/DetailedLengthCard.astro';
+import ContentTypeCard from '../cards/ContentTypeCard.astro';
+import ContentGrowthCard from '../cards/ContentGrowthCard.astro';
+
+interface Props {
+  issueData: {
+    lengthDist: any[];
+    labels: any[];
+    activity: any[];
+  };
+}
+
+const { issueData } = Astro.props;
+---
+
+<div class="analysis-grid">
+  <!-- Detailed Length Distribution -->
+  <DetailedLengthCard lengthDistData={issueData.lengthDist} />
+  
+  <!-- Content Type Distribution -->
+  <ContentTypeCard labelData={issueData.labels} />
+  
+  <!-- Growth Over Time -->
+  <ContentGrowthCard activityData={issueData.activity} />
+</div>
+
+<style>
+  .analysis-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+</style>
