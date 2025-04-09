@@ -1,0 +1,193 @@
+---
+/**
+ * AssigneeDistributionCard Component
+ * 
+ * 担当者（Assignee）の分布を表示するグラフカード
+ */
+
+interface Props {
+  assigneeData: {
+    login: string;
+    assignedCount: number;
+    avatarUrl: string;
+  }[];
+}
+
+const { assigneeData } = Astro.props;
+
+// データを割り当て数順にソート
+const sortedData = [...assigneeData]
+  .sort((a, b) => b.assignedCount - a.assignedCount);
+
+// 上位5人を取得
+const topAssignees = sortedData.slice(0, 5);
+
+// 合計割り当て数を計算
+const totalAssigned = assigneeData.reduce((sum, assignee) => sum + assignee.assignedCount, 0);
+
+// その他のカテゴリ（上位5人以外）を計算
+const othersCount = totalAssigned - topAssignees.reduce((sum, assignee) => sum + assignee.assignedCount, 0);
+
+// 円グラフ用のデータを準備
+const pieData = [
+  ...topAssignees.map(assignee => ({
+    name: assignee.login,
+    value: assignee.assignedCount,
+    percentage: ((assignee.assignedCount / totalAssigned) * 100).toFixed(1)
+  }))
+];
+
+// 「その他」カテゴリを追加（存在する場合）
+if (othersCount > 0) {
+  pieData.push({
+    name: 'Others',
+    value: othersCount,
+    percentage: ((othersCount / totalAssigned) * 100).toFixed(1)
+  });
+}
+
+// 円グラフの色のリスト
+const colors = ['#4285F4', '#34A853', '#FBBC05', '#EA4335', '#8F44AD', '#7F8C8D'];
+---
+
+<div class="analysis-card" id="assignee-distribution-card">
+  <h2 class="card-title">Assignee Distribution</h2>
+
+  <div class="chart-container">
+    <div class="pie-chart-container">
+      <div class="pie-chart-placeholder">
+        {totalAssigned === 0 ? (
+          <div class="no-data-message">No assignee data available</div>
+        ) : (
+          <div class="pie-legend">
+            {pieData.map((segment, index) => (
+              <div class="legend-item">
+                <span class="color-dot" style={`background-color: ${colors[index % colors.length]}`}></span>
+                <span class="legend-label">{segment.name}</span>
+                <span class="legend-value">{segment.value} ({segment.percentage}%)</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .analysis-card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+  }
+  
+  .analysis-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  }
+  
+  .dark .analysis-card {
+    background: #222;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  }
+  
+  .dark .analysis-card:hover {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  }
+  
+  .card-title {
+    font-size: 1.25rem;
+    margin-top: 0;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #eee;
+    color: #333;
+  }
+  
+  .dark .card-title {
+    border-bottom-color: #444;
+    color: #eee;
+  }
+  
+  .chart-container {
+    height: 250px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .pie-chart-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  
+  .pie-chart-placeholder {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+  }
+  
+  .no-data-message {
+    color: #888;
+    font-style: italic;
+    text-align: center;
+  }
+  
+  .pie-legend {
+    width: 100%;
+  }
+  
+  .legend-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  
+  .color-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 8px;
+  }
+  
+  .legend-label {
+    flex: 1;
+    font-size: 0.875rem;
+    color: #555;
+    margin-right: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .legend-value {
+    font-size: 0.875rem;
+    color: #777;
+    font-weight: 500;
+  }
+  
+  .dark .legend-label {
+    color: #ccc;
+  }
+  
+  .dark .legend-value {
+    color: #aaa;
+  }
+</style>
+
+<script>
+// 実際の円グラフを描画するためのコードはここに追加します
+// 下記のコメントはプレースホルダーとして残しておきます
+document.addEventListener('DOMContentLoaded', () => {
+  // この部分に円グラフの描画コードを実装します
+  // 例: D3.jsやChartJSなどのライブラリを使用
+});
+</script>
