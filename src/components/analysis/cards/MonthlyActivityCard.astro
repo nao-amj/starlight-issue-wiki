@@ -1,0 +1,79 @@
+---
+/**
+ * MonthlyActivityCard Component
+ * 
+ * 月次アクティビティを表示するグラフカード
+ */
+
+interface Props {
+  activity: {
+    month: string;
+    created: number;
+    updated: number;
+  }[];
+}
+
+const { activity } = Astro.props;
+---
+
+<div class="analysis-card" id="activity-card">
+  <h2 class="card-title">Monthly Activity</h2>
+  <div id="activity-chart"></div>
+</div>
+
+<style>
+  .analysis-card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+  }
+  
+  .analysis-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  }
+  
+  .dark .analysis-card {
+    background: #222;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  }
+  
+  .dark .analysis-card:hover {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  }
+  
+  .card-title {
+    font-size: 1.25rem;
+    margin-top: 0;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #eee;
+    color: #333;
+  }
+  
+  .dark .card-title {
+    border-bottom-color: #444;
+    color: #eee;
+  }
+  
+  #activity-chart {
+    height: 250px;
+  }
+</style>
+
+<script define:vars={{ recentActivity: activity.slice(-6) }}>
+document.addEventListener('DOMContentLoaded', () => {
+  const container = document.getElementById('activity-chart');
+  if (!container) return;
+  
+  container.innerHTML = `<div style="height: 100%; display: flex; align-items: center; justify-content: center; color: #666;">
+    月次アクティビティチャートはプレースホルダーです。実装時にはD3.jsなどのチャートライブラリを使用します。
+  </div>`;
+  
+  // ここに実際のチャート描画コードを追加予定
+});
+</script>
