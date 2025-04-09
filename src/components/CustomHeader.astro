@@ -22,19 +22,19 @@ import ThemeToggle from './ThemeToggle.astro';
 
 <style>
   .custom-header {
-    background-color: var(--sl-color-bg-nav);
+    /* 明確なライトモードとダークモードの色設定 */
+    background-color: #fff;
     border-bottom: 1px solid var(--sl-color-border);
     padding: 0.75rem 1rem;
     position: sticky;
     top: 0;
     z-index: 100;
-    /* 完全不透明な背景色の設定 */
-    background: var(--sl-color-bg-nav);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 
   /* ダークモード対応 */
   :global(.dark) .custom-header {
+    background-color: #1e293b;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
 
