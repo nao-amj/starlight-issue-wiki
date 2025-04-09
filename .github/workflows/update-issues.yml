@@ -27,6 +27,10 @@ jobs:
       - name: Install Octokit
         run: npm install @octokit/rest
 
+      # データディレクトリの存在確認と作成
+      - name: Ensure data directory exists
+        run: mkdir -p src/data
+
       - name: Fetch Issues and Update JSON
         run: |
           node -e '
@@ -46,7 +50,7 @@ jobs:
             const { data: issues } = await octokit.issues.listForRepo({
               owner,
               repo,
-              state: "open",
+              state: "all",  // 全てのissueを取得（closed含む）
               per_page: 100,
             });
 
@@ -63,6 +67,7 @@ jobs:
               html_url: issue.html_url,
               created_at: issue.created_at,
               updated_at: issue.updated_at,
+              state: issue.state,
               labels: issue.labels.map(label => ({
                 name: label.name,
                 color: label.color,
@@ -86,22 +91,26 @@ jobs:
 
       - name: Commit and push if changed
         run: |
-          # リポジトリの最新状態を取得
-          git pull origin main --rebase
-
           # Git設定
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           
-          # 変更があれば保存
+          # ワーキングディレクトリをクリーンアップ（unstaged changesを削除）
+          git add -A
+          git reset --hard HEAD
+          
+          # リポジトリの最新状態を取得
+          git pull --rebase
+
+          # 改めて変更を追加
           git add src/data/issues.json
           
-          # 変更があればコミット＆プッシュ、エラーが発生しても継続
+          # 変更があればコミット＆プッシュ
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "Update issues.json [skip ci]" || echo "Commit failed but continuing..."
-            git push origin main || echo "Push failed but continuing..."
+            git commit -m "Update issues.json [skip ci]"
+            git push
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
