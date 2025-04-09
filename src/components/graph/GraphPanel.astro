@@ -6,6 +6,9 @@ interface Props {
 }
 
 const { graphData } = Astro.props;
+
+// 双方向リンク数の計算方法を修正
+const bidirectionalCount = Math.round(graphData.links.filter(link => link.bidirectional).length / 2);
 ---
 
 <div class="graph-panel">
@@ -32,7 +35,7 @@ const { graphData } = Astro.props;
         </div>
         <div class="graph-stat">
           <span class="stat-label">双方向リンク:</span>
-          <span class="stat-value">{graphData.links.filter(link => link.bidirectional).length}</span>
+          <span class="stat-value">{bidirectionalCount}</span>
         </div>
       </div>
       <div id="node-details" class="node-details">
@@ -124,7 +127,7 @@ const { graphData } = Astro.props;
 
   .panel-content.collapsed {
     max-height: 0;
-    padding: 0 20px;
+    padding: A 20px;
     overflow: hidden;
   }
 
