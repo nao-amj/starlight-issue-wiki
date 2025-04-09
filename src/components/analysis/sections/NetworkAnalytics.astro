@@ -1,0 +1,29 @@
+---
+/**
+ * NetworkAnalytics Component
+ * 
+ * ネットワークタブの分析セクションを表示する
+ */
+import NetworkCard from '../cards/NetworkCard.astro';
+
+interface Props {
+  issueData: {
+    network: {
+      nodes: any[];
+      links: any[];
+    };
+  };
+}
+
+const { issueData } = Astro.props;
+---
+
+<div class="network-container">
+  <NetworkCard networkData={issueData.network} />
+</div>
+
+<style>
+  .network-container {
+    margin-bottom: 2rem;
+  }
+</style>
