@@ -1,0 +1,142 @@
+---
+/**
+ * ContentFreshnessCard Component
+ * 
+ * コンテンツの鮮度（最終更新日からの経過時間）を表示するカード
+ */
+
+interface Props {
+  recencyData: {
+    recent: number;
+    medium: number;
+    old: number;
+  };
+}
+
+const { recencyData } = Astro.props;
+---
+
+<div class="analysis-card" id="recency-card">
+  <h2 class="card-title">Content Freshness</h2>
+  <div class="donut-container">
+    <div id="recency-chart"></div>
+    <div class="donut-legend">
+      <div class="legend-item">
+        <span class="legend-color" style="background-color: #86EFAC"></span>
+        <span class="legend-text">Recent (last 30 days) ({recencyData.recent})</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-color" style="background-color: #4ADE80"></span>
+        <span class="legend-text">Medium (30-90 days) ({recencyData.medium})</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-color" style="background-color: #16A34A"></span>
+        <span class="legend-text">Older (90+ days) ({recencyData.old})</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .analysis-card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+  }
+  
+  .analysis-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  }
+  
+  .dark .analysis-card {
+    background: #222;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  }
+  
+  .dark .analysis-card:hover {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  }
+  
+  .card-title {
+    font-size: 1.25rem;
+    margin-top: 0;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #eee;
+    color: #333;
+  }
+  
+  .dark .card-title {
+    border-bottom-color: #444;
+    color: #eee;
+  }
+  
+  .donut-container {
+    display: flex;
+    align-items: center;
+    height: 250px;
+  }
+  
+  #recency-chart {
+    width: 50%;
+    height: 200px;
+  }
+  
+  .donut-legend {
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding-left: 1rem;
+  }
+  
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+  }
+  
+  .legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+  }
+  
+  /* レスポンシブデザイン */
+  @media (max-width: 768px) {
+    .donut-container {
+      flex-direction: column;
+      height: auto;
+    }
+    
+    #recency-chart {
+      width: 100%;
+      height: 200px;
+      margin-bottom: 1rem;
+    }
+    
+    .donut-legend {
+      width: 100%;
+      padding-left: 0;
+    }
+  }
+</style>
+
+<script define:vars={{ recencyData }}>
+document.addEventListener('DOMContentLoaded', () => {
+  const container = document.getElementById('recency-chart');
+  if (!container) return;
+  
+  container.innerHTML = `<div style="height: 100%; display: flex; align-items: center; justify-content: center; color: #666;">
+    コンテンツ鮮度チャートはプレースホルダーです。実装時にはD3.jsなどのチャートライブラリを使用します。
+  </div>`;
+  
+  // ここに実際のチャート描画コードを追加予定
+});
+</script>
