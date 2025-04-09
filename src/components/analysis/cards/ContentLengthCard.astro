@@ -1,0 +1,142 @@
+---
+/**
+ * ContentLengthCard Component
+ * 
+ * コンテンツの長さ分布を表示するカード
+ */
+
+interface Props {
+  lengthData: {
+    short: number;
+    medium: number;
+    long: number;
+  };
+}
+
+const { lengthData } = Astro.props;
+---
+
+<div class="analysis-card" id="length-card">
+  <h2 class="card-title">Content Length Distribution</h2>
+  <div class="donut-container">
+    <div id="length-chart"></div>
+    <div class="donut-legend">
+      <div class="legend-item">
+        <span class="legend-color" style="background-color: #E9D5FF"></span>
+        <span class="legend-text">Short Content (&lt;500 chars) ({lengthData.short})</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-color" style="background-color: #C084FC"></span>
+        <span class="legend-text">Medium Content (500-2000 chars) ({lengthData.medium})</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-color" style="background-color: #6B21A8"></span>
+        <span class="legend-text">Long Content (>2000 chars) ({lengthData.long})</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .analysis-card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+  }
+  
+  .analysis-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  }
+  
+  .dark .analysis-card {
+    background: #222;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  }
+  
+  .dark .analysis-card:hover {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  }
+  
+  .card-title {
+    font-size: 1.25rem;
+    margin-top: 0;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #eee;
+    color: #333;
+  }
+  
+  .dark .card-title {
+    border-bottom-color: #444;
+    color: #eee;
+  }
+  
+  .donut-container {
+    display: flex;
+    align-items: center;
+    height: 250px;
+  }
+  
+  #length-chart {
+    width: 50%;
+    height: 200px;
+  }
+  
+  .donut-legend {
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding-left: 1rem;
+  }
+  
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+  }
+  
+  .legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+  }
+  
+  /* レスポンシブデザイン */
+  @media (max-width: 768px) {
+    .donut-container {
+      flex-direction: column;
+      height: auto;
+    }
+    
+    #length-chart {
+      width: 100%;
+      height: 200px;
+      margin-bottom: 1rem;
+    }
+    
+    .donut-legend {
+      width: 100%;
+      padding-left: 0;
+    }
+  }
+</style>
+
+<script define:vars={{ lengthData }}>
+document.addEventListener('DOMContentLoaded', () => {
+  const container = document.getElementById('length-chart');
+  if (!container) return;
+  
+  container.innerHTML = `<div style="height: 100%; display: flex; align-items: center; justify-content: center; color: #666;">
+    コンテンツ長さ分布チャートはプレースホルダーです。実装時にはD3.jsなどのチャートライブラリを使用します。
+  </div>`;
+  
+  // ここに実際のチャート描画コードを追加予定
+});
+</script>
