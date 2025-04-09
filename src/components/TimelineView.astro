@@ -18,6 +18,20 @@ const { issues, limit = 10, titleOnly = false } = Astro.props;
 const sortedIssues = [...issues]
   .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
   .slice(0, limit);
+
+// 色の明るさをチェックする関数
+function isLightColor(hexColor) {
+  // 16進数の色をRGBに変換
+  const r = parseInt(hexColor.substr(0, 2), 16);
+  const g = parseInt(hexColor.substr(2, 2), 16);
+  const b = parseInt(hexColor.substr(4, 2), 16);
+  
+  // 明るさを計算（一般的な知覚の重み付け）
+  const brightness = (r * 0.299 + g * 0.587 + b * 0.114) / 255;
+  
+  // 明るさが0.5より大きければ明るい色
+  return brightness > 0.5;
+}
 ---
 
 <div class="timeline">
@@ -36,15 +50,18 @@ const sortedIssues = [...issues]
             <span class="timeline-number">#{issue.number}</span>
             {issue.labels && issue.labels.length > 0 && (
               <div class="timeline-labels">
-                {issue.labels.map((label) => (
-                  <a 
-                    href={`${BASE_PATH}/category/${label.name.toLowerCase()}`}
-                    class="tag"
-                    style={`background-color: #${label.color}30; color: #${label.color}; border: 1px solid #${label.color}60;`}
-                  >
-                    {label.name}
-                  </a>
-                ))}
+                {issue.labels.map((label) => {
+                  const isLight = isLightColor(label.color);
+                  return (
+                    <a 
+                      href={`${BASE_PATH}/category/${label.name.toLowerCase()}`}
+                      class="tag"
+                      style={`background-color: #${label.color}40; color: ${isLight ? '#333333' : '#ffffff'}; border: 1px solid #${label.color}80;`}
+                    >
+                      {label.name}
+                    </a>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -97,5 +114,21 @@ const sortedIssues = [...issues]
     font-size: 0.9rem;
     color: var(--color-text-light);
     white-space: pre-line;
+  }
+
+  .tag {
+    display: inline-block;
+    padding: 0.25em 0.65em;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-decoration: none;
+    line-height: 1.2;
+    transition: all 0.2s;
+  }
+  
+  .tag:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
   }
 </style>
