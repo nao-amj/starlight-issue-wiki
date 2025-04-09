@@ -1,0 +1,219 @@
+---
+/**
+ * AssigneesOverviewCard Component
+ * 
+ * 担当者の概要情報を表示するカード
+ */
+
+interface Props {
+  assigneeData: {
+    login: string;
+    assignedCount: number;
+    avatarUrl: string;
+  }[];
+  totalContributors: number;
+  totalAssigned: number;
+}
+
+const { assigneeData, totalContributors, totalAssigned } = Astro.props;
+
+// トップの貢献者を取得（割り当て数順）
+const topAssignees = [...assigneeData]
+  .sort((a, b) => b.assignedCount - a.assignedCount)
+  .slice(0, 5);
+
+// 平均割り当て数
+const averageAssigned = totalAssigned > 0 && totalContributors > 0 
+  ? (totalAssigned / totalContributors).toFixed(1) 
+  : 0;
+---
+
+<div class="analysis-card">
+  <h2 class="card-title">Assignees Overview</h2>
+  
+  <div class="stats-container">
+    <div class="stat-box">
+      <div class="stat-value">{totalContributors}</div>
+      <div class="stat-label">Total Contributors</div>
+    </div>
+    
+    <div class="stat-box">
+      <div class="stat-value">{totalAssigned}</div>
+      <div class="stat-label">Total Assignments</div>
+    </div>
+    
+    <div class="stat-box">
+      <div class="stat-value">{averageAssigned}</div>
+      <div class="stat-label">Avg. per Contributor</div>
+    </div>
+  </div>
+  
+  {topAssignees.length > 0 && (
+    <div class="top-contributors">
+      <h3 class="section-title">Top Contributors</h3>
+      <ul class="contributor-list">
+        {topAssignees.map(assignee => (
+          <li class="contributor-item">
+            <div class="contributor-avatar">
+              <img src={assignee.avatarUrl} alt={assignee.login} />
+            </div>
+            <div class="contributor-info">
+              <div class="contributor-name">{assignee.login}</div>
+              <div class="contributor-count">{assignee.assignedCount} issues</div>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )}
+</div>
+
+<style>
+  .analysis-card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+  }
+  
+  .analysis-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  }
+  
+  .dark .analysis-card {
+    background: #222;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  }
+  
+  .dark .analysis-card:hover {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  }
+  
+  .card-title {
+    font-size: 1.25rem;
+    margin-top: 0;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #eee;
+    color: #333;
+  }
+  
+  .dark .card-title {
+    border-bottom-color: #444;
+    color: #eee;
+  }
+  
+  .stats-container {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+  }
+  
+  .stat-box {
+    flex: 1;
+    text-align: center;
+    padding: 0.75rem;
+    border-radius: 8px;
+    background: #f8f9fa;
+    margin: 0 0.5rem;
+  }
+  
+  .dark .stat-box {
+    background: #333;
+  }
+  
+  .stat-box:first-child {
+    margin-left: 0;
+  }
+  
+  .stat-box:last-child {
+    margin-right: 0;
+  }
+  
+  .stat-value {
+    font-size: 1.75rem;
+    font-weight: bold;
+    color: #4a86e8;
+    margin-bottom: 0.25rem;
+  }
+  
+  .stat-label {
+    font-size: 0.875rem;
+    color: #666;
+  }
+  
+  .dark .stat-label {
+    color: #aaa;
+  }
+  
+  .section-title {
+    font-size: 1rem;
+    margin: 1rem 0 0.75rem;
+    color: #555;
+  }
+  
+  .dark .section-title {
+    color: #ccc;
+  }
+  
+  .contributor-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .contributor-item {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .dark .contributor-item {
+    border-bottom-color: #333;
+  }
+  
+  .contributor-item:last-child {
+    border-bottom: none;
+  }
+  
+  .contributor-avatar {
+    width: 32px;
+    height: 32px;
+    margin-right: 0.75rem;
+    border-radius: 50%;
+    overflow: hidden;
+  }
+  
+  .contributor-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .contributor-info {
+    flex: 1;
+  }
+  
+  .contributor-name {
+    font-weight: 500;
+    color: #333;
+  }
+  
+  .dark .contributor-name {
+    color: #eee;
+  }
+  
+  .contributor-count {
+    font-size: 0.875rem;
+    color: #666;
+  }
+  
+  .dark .contributor-count {
+    color: #aaa;
+  }
+</style>
