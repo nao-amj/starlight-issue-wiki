@@ -1,0 +1,197 @@
+---
+/**
+ * LinkAnalysisCard Component
+ * 
+ * リンク分析情報を表示するカード
+ */
+
+interface Props {
+  linkData: {
+    internal: number;
+    external: number;
+    wikiLinks: number;
+    issueRefs: number;
+  };
+  topLinkedPages: {
+    id: string;
+    title: string;
+    count: number;
+  }[];
+  basePath: string;
+}
+
+const { linkData, topLinkedPages, basePath } = Astro.props;
+---
+
+<div class="analysis-card" id="links-card">
+  <h2 class="card-title">Link Analysis</h2>
+  <div class="links-container">
+    <div id="links-chart"></div>
+    <div class="links-stats">
+      <h3>Most Referenced Pages</h3>
+      <ul class="links-list">
+        {topLinkedPages.map(page => (
+          <li>
+            <a href={`${basePath}/wiki/${page.id}`} class="page-link">
+              {page.title}
+            </a>
+            <span class="link-count">{page.count} {page.count === 1 ? 'reference' : 'references'}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+</div>
+
+<style>
+  .analysis-card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+    grid-column: span 2;
+  }
+  
+  .analysis-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  }
+  
+  .dark .analysis-card {
+    background: #222;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  }
+  
+  .dark .analysis-card:hover {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  }
+  
+  .card-title {
+    font-size: 1.25rem;
+    margin-top: 0;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #eee;
+    color: #333;
+  }
+  
+  .dark .card-title {
+    border-bottom-color: #444;
+    color: #eee;
+  }
+  
+  .links-container {
+    display: flex;
+    height: 300px;
+  }
+  
+  #links-chart {
+    width: 50%;
+    height: 100%;
+  }
+  
+  .links-stats {
+    width: 50%;
+    padding-left: 2rem;
+  }
+  
+  .links-stats h3 {
+    font-size: 1rem;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: #4b5563;
+  }
+  
+  .dark .links-stats h3 {
+    color: #e5e7eb;
+  }
+  
+  .links-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .links-list li {
+    margin-bottom: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background-color: #f9fafb;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+  }
+  
+  .links-list li:hover {
+    transform: translateX(5px);
+    background-color: #f0f4f8;
+  }
+  
+  .dark .links-list li {
+    background-color: #374151;
+  }
+  
+  .dark .links-list li:hover {
+    background-color: #4b5563;
+  }
+  
+  .page-link {
+    color: #4f6df5;
+    text-decoration: none;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    max-width: 70%;
+  }
+  
+  .dark .page-link {
+    color: #93c5fd;
+  }
+  
+  .link-count {
+    font-size: 0.875rem;
+    color: #6b7280;
+    white-space: nowrap;
+  }
+  
+  .dark .link-count {
+    color: #9ca3af;
+  }
+  
+  /* レスポンシブデザイン */
+  @media (max-width: 768px) {
+    .links-container {
+      flex-direction: column;
+      height: auto;
+    }
+    
+    #links-chart {
+      width: 100%;
+      height: 220px;
+      margin-bottom: 1.5rem;
+    }
+    
+    .links-stats {
+      width: 100%;
+      padding-left: 0;
+    }
+  }
+</style>
+
+<script define:vars={{ linkData }}>
+document.addEventListener('DOMContentLoaded', () => {
+  const container = document.getElementById('links-chart');
+  if (!container) return;
+  
+  container.innerHTML = `<div style="height: 100%; display: flex; align-items: center; justify-content: center; color: #666;">
+    リンク分析チャートはプレースホルダーです。実装時にはD3.jsなどのチャートライブラリを使用します。
+  </div>`;
+  
+  // ここに実際のチャート描画コードを追加予定
+});
+</script>
