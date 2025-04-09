@@ -1,0 +1,116 @@
+---
+/**
+ * CategoryDistributionCard Component
+ * 
+ * カテゴリー分布を表示するカード
+ */
+
+interface Props {
+  labels: {
+    name: string;
+    count: number;
+    color: string;
+  }[];
+}
+
+const { labels } = Astro.props;
+---
+
+<div class="analysis-card" id="category-card">
+  <h2 class="card-title">Category Distribution</h2>
+  <div class="category-chart-container">
+    <div id="category-chart"></div>
+    <div class="category-legend">
+      {labels.slice(0, 6).map(label => (
+        <div class="legend-item">
+          <span class="legend-color" style={`background-color: #${label.color}`}></span>
+          <span class="legend-text">{label.name} ({label.count})</span>
+        </div>
+      ))}
+    </div>
+  </div>
+</div>
+
+<style>
+  .analysis-card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+  }
+  
+  .analysis-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  }
+  
+  .dark .analysis-card {
+    background: #222;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  }
+  
+  .dark .analysis-card:hover {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  }
+  
+  .card-title {
+    font-size: 1.25rem;
+    margin-top: 0;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #eee;
+    color: #333;
+  }
+  
+  .dark .card-title {
+    border-bottom-color: #444;
+    color: #eee;
+  }
+  
+  .category-chart-container {
+    height: 300px;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  #category-chart {
+    flex: 1;
+    min-height: 220px;
+  }
+  
+  .category-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1rem;
+  }
+  
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+  }
+  
+  .legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+  }
+</style>
+
+<script define:vars={{ labels: labels.slice(0, 6) }}>
+document.addEventListener('DOMContentLoaded', () => {
+  const container = document.getElementById('category-chart');
+  if (!container) return;
+  
+  container.innerHTML = `<div style="height: 100%; display: flex; align-items: center; justify-content: center; color: #666;">
+    カテゴリー分布チャートはプレースホルダーです。実装時にはD3.jsなどのチャートライブラリを使用します。
+  </div>`;
+  
+  // ここに実際のチャート描画コードを追加予定
+});
+</script>
