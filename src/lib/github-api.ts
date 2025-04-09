@@ -129,7 +129,7 @@ export async function fetchAllIssues() {
 
 /**
  * 特定のタグに関連するIssueを検索
- * キャッシュ機能付き
+ * 注：APIのレート制限に引っかからないよう、既に取得したissuesからフィルタする
  */
 export async function fetchIssuesByTag(tag: string) {
   const cacheKey = `issues-by-tag-${tag}`;
@@ -141,26 +141,34 @@ export async function fetchIssuesByTag(tag: string) {
   }
   
   try {
-    console.log(`Fetching issues for tag #${tag} from GitHub API...`);
+    console.log(`Fetching issues for tag #${tag}...`);
     
-    const response = await fetch(
-      `https://api.github.com/search/issues?q=repo:nao-amj/starlight-issue-wiki%20%23${tag}%20in:body&per_page=50`
-    );
+    // 全てのissueを取得
+    const allIssues = await fetchAllIssues();
     
-    if (!response.ok) {
-      throw new Error(`GitHub API error: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    
-    // プルリクエストを除外
-    const filteredItems = data.items.filter((item: any) => !item.pull_request);
+    // 指定されたタグを含むissueをフィルタリング
+    const tagLower = tag.toLowerCase();
+    const filteredIssues = allIssues.filter((issue: any) => {
+      // 本文内のハッシュタグをチェック
+      if (issue.body && issue.body.includes(`#${tagLower}`)) {
+        return true;
+      }
+      
+      // ラベルをチェック
+      if (issue.labels && Array.isArray(issue.labels)) {
+        return issue.labels.some((label: any) => 
+          label.name && label.name.toLowerCase() === tagLower
+        );
+      }
+      
+      return false;
+    });
     
     // レスポンスをキャッシュに保存
-    saveToCache(cacheKey, filteredItems);
+    saveToCache(cacheKey, filteredIssues);
     
-    console.log(`Fetched ${filteredItems.length} issues for tag #${tag}`);
-    return filteredItems;
+    console.log(`Found ${filteredIssues.length} issues for tag #${tag}`);
+    return filteredIssues;
   } catch (error) {
     console.error(`Error fetching issues for tag ${tag}:`, error);
     return [];
