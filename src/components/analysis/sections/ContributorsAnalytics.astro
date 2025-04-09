@@ -1,0 +1,46 @@
+---
+/**
+ * ContributorsAnalytics Component
+ * 
+ * 貢献者タブの分析セクションを表示する
+ */
+import AssigneesOverviewCard from '../cards/AssigneesOverviewCard.astro';
+import AssigneeDistributionCard from '../cards/AssigneeDistributionCard.astro';
+import ContributorTimelineCard from '../cards/ContributorTimelineCard.astro';
+
+interface Props {
+  issueData: {
+    assignees: any[];
+  };
+}
+
+const { issueData } = Astro.props;
+
+// 担当者データから統計を計算
+const totalAssigned = issueData.assignees.reduce((sum, assignee) => sum + assignee.assignedCount, 0);
+const totalContributors = issueData.assignees.length;
+---
+
+<div class="analysis-grid">
+  <!-- Assignees Overview -->
+  <AssigneesOverviewCard 
+    assigneeData={issueData.assignees} 
+    totalContributors={totalContributors}
+    totalAssigned={totalAssigned}
+  />
+  
+  <!-- Assignee Distribution -->
+  <AssigneeDistributionCard assigneeData={issueData.assignees} />
+  
+  <!-- Contributor Activity Timeline -->
+  <ContributorTimelineCard assigneeData={issueData.assignees} />
+</div>
+
+<style>
+  .analysis-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+</style>
