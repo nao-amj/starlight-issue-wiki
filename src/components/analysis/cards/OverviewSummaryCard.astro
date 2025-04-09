@@ -1,0 +1,125 @@
+---
+/**
+ * OverviewSummaryCard Component
+ * 
+ * サイト概要の統計情報を表示するカード
+ */
+
+interface Props {
+  totalPages: number;
+  totalLinks: number;
+  totalCategories: number;
+  activeMonths: number;
+}
+
+const { totalPages, totalLinks, totalCategories, activeMonths } = Astro.props;
+---
+
+<div class="analysis-card" id="summary-card">
+  <h2 class="card-title">Content Summary</h2>
+  <div class="stats-grid">
+    <div class="stat-item">
+      <div class="stat-value">{totalPages}</div>
+      <div class="stat-label">Total Pages</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value">{totalLinks}</div>
+      <div class="stat-label">Total Links</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value">{totalCategories}</div>
+      <div class="stat-label">Categories</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value">{activeMonths}</div>
+      <div class="stat-label">Active Months</div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .analysis-card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+  }
+  
+  .analysis-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  }
+  
+  .dark .analysis-card {
+    background: #222;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  }
+  
+  .dark .analysis-card:hover {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  }
+  
+  .card-title {
+    font-size: 1.25rem;
+    margin-top: 0;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #eee;
+    color: #333;
+  }
+  
+  .dark .card-title {
+    border-bottom-color: #444;
+    color: #eee;
+  }
+  
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  
+  .stat-item {
+    text-align: center;
+    padding: 1rem;
+    background-color: #f8fafc;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+  }
+  
+  .stat-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  }
+  
+  .dark .stat-item {
+    background-color: #333;
+  }
+  
+  .dark .stat-item:hover {
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+  }
+  
+  .stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #4f6df5;
+    margin-bottom: 0.25rem;
+  }
+  
+  .dark .stat-value {
+    color: #7b96ff;
+  }
+  
+  .stat-label {
+    font-size: 0.875rem;
+    color: #64748b;
+  }
+  
+  .dark .stat-label {
+    color: #94a3b8;
+  }
+</style>
