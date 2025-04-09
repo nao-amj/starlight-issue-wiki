@@ -17,7 +17,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0  # 履歴を全て取得して競合を避ける
+
+      # Git設定を先に行う
+      - name: Setup Git
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          # 既存の変更をリセット
+          git reset --hard HEAD
+          git clean -fd
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -47,17 +57,40 @@ jobs:
             const repo = "starlight-issue-wiki";
 
             console.log("Fetching issues...");
-            const { data: issues } = await octokit.issues.listForRepo({
-              owner,
-              repo,
-              state: "all",  // 全てのissueを取得（closed含む）
-              per_page: 100,
-            });
+            
+            // 複数ページにわたるIssueを全て取得する関数
+            async function fetchAllIssues() {
+              let page = 1;
+              let allIssues = [];
+              let hasNextPage = true;
+              
+              while (hasNextPage) {
+                console.log(`Fetching page ${page}...`);
+                const { data: issues } = await octokit.issues.listForRepo({
+                  owner,
+                  repo,
+                  state: "all",  // 全てのissueを取得（closed含む）
+                  per_page: 100,
+                  page: page
+                });
+                
+                if (issues.length === 0) {
+                  hasNextPage = false;
+                } else {
+                  allIssues = [...allIssues, ...issues];
+                  page++;
+                }
+              }
+              
+              return allIssues;
+            }
+            
+            const issues = await fetchAllIssues();
 
             // プルリクエストを除外
             const filteredIssues = issues.filter(issue => !issue.pull_request);
 
-            console.log(`Found ${filteredIssues.length} issues`);
+            console.log(`Found ${filteredIssues.length} issues (excluding PRs)`);
 
             // 必要なプロパティだけを抽出
             const formattedIssues = filteredIssues.map(issue => ({
@@ -89,28 +122,19 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Commit and push if changed
+      - name: Commit and push changes
         run: |
-          # Git設定
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          
-          # ワーキングディレクトリをクリーンアップ（unstaged changesを削除）
-          git add -A
-          git reset --hard HEAD
-          
-          # リポジトリの最新状態を取得
-          git pull --rebase
-
-          # 改めて変更を追加
+          # 変更をステージング
           git add src/data/issues.json
           
-          # 変更があればコミット＆プッシュ
+          # 変更があるか確認
           if git diff --staged --quiet; then
             echo "No changes to commit"
-          else
-            git commit -m "Update issues.json [skip ci]"
-            git push
+            exit 0
           fi
+          
+          # コミットして直接プッシュ (rebaseなし)
+          git commit -m "Update issues.json [skip ci]" || true
+          git push || true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
