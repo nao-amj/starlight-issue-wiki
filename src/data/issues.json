@@ -67,16 +67,6 @@
     ]
   },
   {
-    "number": 64,
-    "title": "テスト",
-    "body": "テストサブ",
-    "html_url": "https://github.com/nao-amj/starlight-issue-wiki/issues/64",
-    "created_at": "2025-04-08T16:09:53Z",
-    "updated_at": "2025-04-08T16:09:53Z",
-    "state": "open",
-    "labels": []
-  },
-  {
     "number": 63,
     "title": "七海のPC環境におけるAgent Mode初期設定ログ",
     "body": "親Issue: #60\n\n## 概要\nAgent Modeを七海直の個人環境（千代田地下区画端末）に導入し、初期設定と相性の確認を行う。\n\n## ログ対象内容\n- [x] Copilot拡張機能のバージョン確認\n- [x] `settings.json` における設定フラグの確認と変更点\n- [x] ターミナルからのAgent Mode起動状況ログ取得\n\n## 使用環境\n- OS: QuantumOS v7.2（独自構成）\n- VS Code: Insiders版 2025.3-nightly\n- 拡張構成: CLAUDE連携・NeXusプラグイン・境界視認モジュール\n\n---\n設定ファイル断片や実行ログも追記予定。記録は `configs/agent-setup-log.md` に反映。",
