@@ -1,0 +1,212 @@
+---
+/*
+ * DetailedLengthCard Component
+ *
+ * Issueの長さ（文字数）の詳細分布を表示するカードコンポーネント
+ */
+
+interface Props {
+  title?: string;
+  lengthData?: any[];
+  className?: string;
+}
+
+const { 
+  title = "文字数分布", 
+  lengthData = [],
+  className = ""
+} = Astro.props;
+
+// 文字数の区分を定義
+const lengthCategories = [
+  { label: '〜100文字', min: 0, max: 100, count: 0 },
+  { label: '101〜300文字', min: 101, max: 300, count: 0 },
+  { label: '301〜500文字', min: 301, max: 500, count: 0 },
+  { label: '501〜1000文字', min: 501, max: 1000, count: 0 },
+  { label: '1001〜3000文字', min: 1001, max: 3000, count: 0 },
+  { label: '3001〜文字', min: 3001, max: Infinity, count: 0 }
+];
+
+// lengthDataから文字数データを集計
+if (lengthData && lengthData.length > 0) {
+  lengthData.forEach((item) => {
+    const length = item.length || 0;
+    
+    // 該当する区分にカウントを加算
+    for (const category of lengthCategories) {
+      if (length >= category.min && length <= category.max) {
+        category.count++;
+        break;
+      }
+    }
+  });
+}
+
+// 最大値の計算（グラフのスケール用）
+const maxCount = Math.max(...lengthCategories.map(category => category.count));
+
+// データが一つでもあるか確認
+const hasData = lengthData && lengthData.length > 0;
+
+// 合計数、平均、中央値の計算
+let totalIssues = 0;
+let totalLength = 0;
+let median = 0;
+
+if (hasData) {
+  totalIssues = lengthData.length;
+  totalLength = lengthData.reduce((sum, item) => sum + (item.length || 0), 0);
+  
+  // 中央値の計算
+  const sortedLengths = [...lengthData].sort((a, b) => (a.length || 0) - (b.length || 0));
+  const midIndex = Math.floor(sortedLengths.length / 2);
+  
+  if (sortedLengths.length % 2 === 0) {
+    median = ((sortedLengths[midIndex - 1]?.length || 0) + (sortedLengths[midIndex]?.length || 0)) / 2;
+  } else {
+    median = sortedLengths[midIndex]?.length || 0;
+  }
+}
+
+const avgLength = totalIssues > 0 ? Math.round(totalLength / totalIssues) : 0;
+---
+
+<div class={`detailed-length-card ${className}`}>
+  <div class="card-header">
+    <h3>{title}</h3>
+  </div>
+  <div class="card-content">
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-label">平均文字数</div>
+        <div class="stat-value">{avgLength.toLocaleString()}</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">中央値</div>
+        <div class="stat-value">{median.toLocaleString()}</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Issue総数</div>
+        <div class="stat-value">{totalIssues.toLocaleString()}</div>
+      </div>
+    </div>
+    
+    <div class="categories-grid">
+      {lengthCategories.map((category) => (
+        <div class="category-block">
+          <div class="category-label">
+            {category.label}
+          </div>
+          <div class="bar-container">
+            <div 
+              class="category-bar" 
+              style={`width: ${maxCount > 0 ? (category.count / maxCount) * 100 : 0}%`}
+              title={`${category.label}: ${category.count}件`}
+            ></div>
+            <span class="category-count">{category.count}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</div>
+
+<style>
+  .detailed-length-card {
+    border: 1px solid var(--sl-color-gray-5, #e2e8f0);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background-color: var(--sl-color-white, #ffffff);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .card-header {
+    background-color: var(--sl-color-gray-1, #f8fafc);
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--sl-color-gray-5, #e2e8f0);
+  }
+
+  .card-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--sl-color-gray-9, #334155);
+  }
+
+  .card-content {
+    padding: 1rem;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .stat-box {
+    padding: 0.75rem;
+    border: 1px solid var(--sl-color-gray-3, #f1f5f9);
+    border-radius: 0.25rem;
+    text-align: center;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+    color: var(--sl-color-gray-7, #64748b);
+    margin-bottom: 0.25rem;
+  }
+
+  .stat-value {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--sl-color-gray-9, #334155);
+  }
+
+  .categories-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .category-block {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .category-label {
+    font-size: 0.875rem;
+    color: var(--sl-color-gray-7, #64748b);
+    margin-bottom: 0.25rem;
+  }
+
+  .bar-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 1.25rem;
+  }
+
+  .category-bar {
+    height: 100%;
+    background-color: var(--sl-color-purple-5, #8b5cf6);
+    border-radius: 0.25rem;
+    min-width: 4px;
+    transition: width 0.3s ease;
+  }
+
+  .category-count {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--sl-color-gray-9, #334155);
+    min-width: 1.5rem;
+    text-align: right;
+  }
+
+  @media (max-width: 640px) {
+    .stats-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+</style>
