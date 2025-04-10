@@ -1,79 +1,268 @@
 ---
-/**
+/*
  * MonthlyActivityCard Component
- * 
- * 月次アクティビティを表示するグラフカード
+ *
+ * 月別アクティビティを表示するカードコンポーネント
  */
 
 interface Props {
-  activity: {
-    month: string;
-    created: number;
-    updated: number;
-  }[];
+  title?: string;
+  activityData?: any[];
+  className?: string;
 }
 
-const { activity } = Astro.props;
+const { 
+  title = "月別アクティビティ", 
+  activityData = [],
+  className = ""
+} = Astro.props;
+
+// 月別データの集計
+const monthNames = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
+const monthlyData = Array(12).fill(0);
+
+// 過去12ヶ月のラベルを取得
+function getRecentMonthLabels() {
+  const labels = [];
+  const today = new Date();
+  
+  for (let i = 11; i >= 0; i--) {
+    const date = new Date(today);
+    date.setMonth(today.getMonth() - i);
+    const monthIndex = date.getMonth();
+    const year = date.getFullYear();
+    labels.push({
+      monthIndex,
+      label: `${year}/${monthIndex + 1}`
+    });
+  }
+  
+  return labels;
+}
+
+const recentMonths = getRecentMonthLabels();
+const activityByMonth = new Array(12).fill(0);
+
+// activityDataから月別データを集計
+if (activityData && activityData.length > 0) {
+  activityData.forEach((item) => {
+    const date = item.date ? new Date(item.date) : null;
+    if (date) {
+      // 過去12ヶ月に含まれる日付かどうかを確認
+      const today = new Date();
+      const oneYearAgo = new Date(today);
+      oneYearAgo.setFullYear(today.getFullYear() - 1);
+      
+      if (date >= oneYearAgo && date <= today) {
+        const monthsAgo = (today.getFullYear() - date.getFullYear()) * 12 + today.getMonth() - date.getMonth();
+        if (monthsAgo >= 0 && monthsAgo < 12) {
+          const index = 11 - monthsAgo; // 配列内のインデックスを逆順に（最新が右端）
+          activityByMonth[index]++;
+        }
+      }
+    }
+  });
+}
+
+// 最大値の計算（グラフのスケール用）
+const maxValue = Math.max(...activityByMonth);
+
+// 総数と平均の計算
+const totalActivity = activityByMonth.reduce((sum, count) => sum + count, 0);
+const avgMonthlyActivity = totalActivity / 12;
+
+// トレンド計算（前半6ヶ月と後半6ヶ月の比較）
+const firstHalf = activityByMonth.slice(0, 6).reduce((sum, count) => sum + count, 0);
+const secondHalf = activityByMonth.slice(6).reduce((sum, count) => sum + count, 0);
+const trend = firstHalf > 0 ? ((secondHalf / firstHalf) - 1) * 100 : 0;
+const trendLabel = trend > 0 ? '上昇' : trend < 0 ? '下降' : '安定';
 ---
 
-<div class="analysis-card" id="activity-card">
-  <h2 class="card-title">Monthly Activity</h2>
-  <div id="activity-chart"></div>
+<div class={`monthly-activity-card ${className}`}>
+  <div class="card-header">
+    <h3>{title}</h3>
+  </div>
+  <div class="card-content">
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-label">総アクティビティ</div>
+        <div class="stat-value">{totalActivity.toLocaleString()}</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">月平均</div>
+        <div class="stat-value">{avgMonthlyActivity.toFixed(1)}</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">トレンド</div>
+        <div class={`stat-value ${trend > 5 ? 'trend-up' : trend < -5 ? 'trend-down' : 'trend-stable'}`}>
+          {trend.toFixed(1)}% {trendLabel}
+        </div>
+      </div>
+    </div>
+    
+    <div class="chart-container">
+      {activityByMonth.map((count, index) => (
+        <div class="month-column">
+          <div class="bar-container">
+            <div 
+              class="bar" 
+              style={`height: ${maxValue > 0 ? (count / maxValue) * 100 : 0}%`}
+              title={`${recentMonths[index].label}: ${count}件`}
+            >
+              {count > 0 && <span class="bar-value">{count}</span>}
+            </div>
+          </div>
+          <div class="month-label">
+            {index % 2 === 0 ? recentMonths[index].label : ''}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
 </div>
 
 <style>
-  .analysis-card {
-    background: white;
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-    padding: 1.5rem;
+  .monthly-activity-card {
+    border: 1px solid var(--sl-color-gray-5, #e2e8f0);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background-color: var(--sl-color-white, #ffffff);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .card-header {
+    background-color: var(--sl-color-gray-1, #f8fafc);
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--sl-color-gray-5, #e2e8f0);
+  }
+
+  .card-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--sl-color-gray-9, #334155);
+  }
+
+  .card-content {
+    padding: 1rem;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .stat-box {
+    padding: 0.75rem;
+    border: 1px solid var(--sl-color-gray-3, #f1f5f9);
+    border-radius: 0.25rem;
+    text-align: center;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+    color: var(--sl-color-gray-7, #64748b);
+    margin-bottom: 0.25rem;
+  }
+
+  .stat-value {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--sl-color-gray-9, #334155);
+  }
+
+  .trend-up {
+    color: var(--sl-color-green-6, #059669);
+  }
+
+  .trend-down {
+    color: var(--sl-color-red-6, #dc2626);
+  }
+
+  .trend-stable {
+    color: var(--sl-color-gray-6, #64748b);
+  }
+
+  .chart-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    height: 12rem;
+    padding-top: 1rem;
+  }
+
+  .month-column {
     display: flex;
     flex-direction: column;
-    transition: all 0.3s ease;
+    align-items: center;
+    flex: 1;
   }
-  
-  .analysis-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+
+  .bar-container {
+    width: 100%;
+    height: 10rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
   }
-  
-  .dark .analysis-card {
-    background: #222;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+
+  .bar {
+    width: 80%;
+    max-width: 2rem;
+    background-color: var(--sl-color-blue-5, #3b82f6);
+    border-radius: 0.25rem 0.25rem 0 0;
+    min-height: 4px;
+    position: relative;
+    transition: height 0.3s ease;
   }
-  
-  .dark .analysis-card:hover {
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+
+  .bar-value {
+    position: absolute;
+    top: -1.25rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--sl-color-gray-7, #64748b);
   }
-  
-  .card-title {
-    font-size: 1.25rem;
-    margin-top: 0;
-    margin-bottom: 1.25rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid #eee;
-    color: #333;
+
+  .month-label {
+    font-size: 0.75rem;
+    margin-top: 0.5rem;
+    color: var(--sl-color-gray-6, #64748b);
+    white-space: nowrap;
+    transform: rotate(-45deg);
+    transform-origin: top right;
+    position: relative;
+    top: 0.25rem;
   }
-  
-  .dark .card-title {
-    border-bottom-color: #444;
-    color: #eee;
+
+  @media (max-width: 768px) {
+    .stats-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .chart-container {
+      height: 10rem;
+    }
+    
+    .month-column:nth-child(odd) {
+      display: none;
+    }
   }
-  
-  #activity-chart {
-    height: 250px;
+
+  @media (max-width: 480px) {
+    .stats-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .chart-container {
+      height: 8rem;
+    }
+    
+    .month-column:not(:nth-child(3n)) {
+      display: none;
+    }
   }
 </style>
-
-<script define:vars={{ recentActivity: activity.slice(-6) }}>
-document.addEventListener('DOMContentLoaded', () => {
-  const container = document.getElementById('activity-chart');
-  if (!container) return;
-  
-  container.innerHTML = `<div style="height: 100%; display: flex; align-items: center; justify-content: center; color: #666;">
-    月次アクティビティチャートはプレースホルダーです。実装時にはD3.jsなどのチャートライブラリを使用します。
-  </div>`;
-  
-  // ここに実際のチャート描画コードを追加予定
-});
-</script>
