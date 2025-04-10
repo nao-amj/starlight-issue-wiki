@@ -1,0 +1,206 @@
+---
+/*
+ * ContentTypeCard Component
+ *
+ * Issueのコンテントタイプ（ラベル）の分布を表示するカードコンポーネント
+ */
+
+interface Props {
+  title?: string;
+  labelsData?: any[];
+  className?: string;
+}
+
+const { 
+  title = "コンテントタイプ", 
+  labelsData = [],
+  className = ""
+} = Astro.props;
+
+// ラベルの出現回数を集計
+const labelCounts = new Map();
+
+if (labelsData && labelsData.length > 0) {
+  labelsData.forEach((item) => {
+    const label = item.name || 'その他';
+    labelCounts.set(label, (labelCounts.get(label) || 0) + 1);
+  });
+}
+
+// 集計結果を配列に変換してソート
+const sortedLabels = Array.from(labelCounts.entries())
+  .map(([name, count]) => ({ name, count }))
+  .sort((a, b) => b.count - a.count);
+
+// 表示用に上位10件に制限（必要に応じて調整可能）
+const topLabels = sortedLabels.slice(0, 10);
+
+// 最大値の計算（グラフのスケール用）
+const maxCount = topLabels.length > 0 ? topLabels[0].count : 0;
+
+// 合計数とその他の計算
+const totalLabels = sortedLabels.reduce((sum, item) => sum + item.count, 0);
+const othersCount = sortedLabels.length > 10 
+  ? sortedLabels.slice(10).reduce((sum, item) => sum + item.count, 0)
+  : 0;
+---
+
+<div class={`content-type-card ${className}`}>
+  <div class="card-header">
+    <h3>{title}</h3>
+  </div>
+  <div class="card-content">
+    {topLabels.length > 0 ? (
+      <div class="labels-list">
+        {topLabels.map((label) => (
+          <div class="label-item">
+            <div class="label-info">
+              <div class="label-name">{label.name}</div>
+              <div class="label-count">{label.count}</div>
+            </div>
+            <div class="bar-container">
+              <div 
+                class="label-bar" 
+                style={`width: ${maxCount > 0 ? (label.count / maxCount) * 100 : 0}%`}
+                title={`${label.name}: ${label.count}件`}
+              ></div>
+            </div>
+          </div>
+        ))}
+        
+        {othersCount > 0 && (
+          <div class="label-item others">
+            <div class="label-info">
+              <div class="label-name">その他</div>
+              <div class="label-count">{othersCount}</div>
+            </div>
+            <div class="bar-container">
+              <div 
+                class="label-bar others-bar" 
+                style={`width: ${maxCount > 0 ? (othersCount / maxCount) * 100 : 0}%`}
+                title={`その他: ${othersCount}件`}
+              ></div>
+            </div>
+          </div>
+        )}
+      </div>
+    ) : (
+      <div class="no-data">
+        <p>ラベルデータがありません</p>
+      </div>
+    )}
+    
+    <div class="summary">
+      <div class="total-labels">
+        <span class="summary-label">合計ラベル数:</span>
+        <span class="summary-value">{totalLabels}</span>
+      </div>
+      <div class="unique-labels">
+        <span class="summary-label">ユニークラベル:</span>
+        <span class="summary-value">{sortedLabels.length}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .content-type-card {
+    border: 1px solid var(--sl-color-gray-5, #e2e8f0);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background-color: var(--sl-color-white, #ffffff);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .card-header {
+    background-color: var(--sl-color-gray-1, #f8fafc);
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--sl-color-gray-5, #e2e8f0);
+  }
+
+  .card-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--sl-color-gray-9, #334155);
+  }
+
+  .card-content {
+    padding: 1rem;
+  }
+
+  .labels-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .label-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .label-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .label-name {
+    font-size: 0.875rem;
+    color: var(--sl-color-gray-9, #334155);
+    font-weight: 500;
+  }
+
+  .label-count {
+    font-size: 0.75rem;
+    color: var(--sl-color-gray-7, #64748b);
+  }
+
+  .bar-container {
+    width: 100%;
+    height: 0.5rem;
+    background-color: var(--sl-color-gray-2, #f1f5f9);
+    border-radius: 0.25rem;
+    overflow: hidden;
+  }
+
+  .label-bar {
+    height: 100%;
+    background-color: var(--sl-color-blue-5, #3b82f6);
+    border-radius: 0.25rem;
+    transition: width 0.3s ease;
+  }
+
+  .others-bar {
+    background-color: var(--sl-color-gray-5, #94a3b8);
+  }
+
+  .summary {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--sl-color-gray-3, #f1f5f9);
+  }
+
+  .summary-label {
+    font-size: 0.75rem;
+    color: var(--sl-color-gray-7, #64748b);
+    margin-right: 0.5rem;
+  }
+
+  .summary-value {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--sl-color-gray-9, #334155);
+  }
+
+  .no-data {
+    padding: 2rem 0;
+    text-align: center;
+    color: var(--sl-color-gray-6, #64748b);
+  }
+</style>
