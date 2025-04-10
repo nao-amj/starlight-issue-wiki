@@ -1,0 +1,253 @@
+---
+/*
+ * ContributorTimelineCard Component
+ *
+ * コントリビューターの活動タイムラインを表示するカードコンポーネント
+ */
+
+interface Props {
+  title?: string;
+  assigneesData?: any[];
+  className?: string;
+}
+
+const { 
+  title = "コントリビューターのタイムライン", 
+  assigneesData = [],
+  className = ""
+} = Astro.props;
+
+// 日付データを初期化する関数
+function initializeTimelineData(months = 6) {
+  const timeline = [];
+  const today = new Date();
+  
+  // 過去n月分のデータを初期化
+  for (let i = months - 1; i >= 0; i--) {
+    const date = new Date(today);
+    date.setMonth(today.getMonth() - i);
+    
+    // 年月のフォーマット（例: 2024-01）
+    const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    
+    timeline.push({
+      yearMonth,
+      label: `${date.getFullYear()}/${date.getMonth() + 1}`,
+      contributors: new Map()
+    });
+  }
+  
+  return timeline;
+}
+
+// タイムラインデータの集計
+const timelineData = initializeTimelineData();
+const yearMonthMap = new Map(timelineData.map(item => [item.yearMonth, item]));
+
+// コントリビューターごとの貢献数を集計
+const contributorCounts = new Map();
+
+if (assigneesData && assigneesData.length > 0) {
+  assigneesData.forEach((assignment) => {
+    if (assignment.assignee && assignment.date) {
+      const contributorName = assignment.assignee;
+      const date = new Date(assignment.date);
+      const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      
+      // 月別のコントリビューター集計
+      if (yearMonthMap.has(yearMonth)) {
+        const monthData = yearMonthMap.get(yearMonth);
+        const currentCount = monthData.contributors.get(contributorName) || 0;
+        monthData.contributors.set(contributorName, currentCount + 1);
+      }
+      
+      // 全体のコントリビューター集計
+      const currentTotal = contributorCounts.get(contributorName) || 0;
+      contributorCounts.set(contributorName, currentTotal + 1);
+    }
+  });
+}
+
+// コントリビューターを貢献数でソート
+const sortedContributors = Array.from(contributorCounts.entries())
+  .map(([name, count]) => ({ name, count }))
+  .sort((a, b) => b.count - a.count)
+  .slice(0, 10); // 上位10人に制限
+
+// 色のマッピング
+const colors = [
+  '#3b82f6', '#ef4444', '#10b981', '#f97316', '#8b5cf6', 
+  '#ec4899', '#14b8a6', '#f59e0b', '#6366f1', '#84cc16'
+];
+
+// データの集計と整形
+const chartData = timelineData.map(month => {
+  const monthContributions = {};
+  
+  sortedContributors.forEach((contributor, index) => {
+    const count = month.contributors.get(contributor.name) || 0;
+    monthContributions[contributor.name] = {
+      count,
+      color: colors[index % colors.length]
+    };
+  });
+  
+  return {
+    month: month.label,
+    ...monthContributions
+  };
+});
+---
+
+<div class={`contributor-timeline-card ${className}`}>
+  <div class="card-header">
+    <h3>{title}</h3>
+  </div>
+  <div class="card-content">
+    {sortedContributors.length > 0 ? (
+      <div>
+        <div class="legend">
+          {sortedContributors.map((contributor, index) => (
+            <div class="legend-item">
+              <span class="color-box" style={`background-color: ${colors[index % colors.length]}`}></span>
+              <span class="contributor-name">{contributor.name}</span>
+              <span class="contributor-count">({contributor.count})</span>
+            </div>
+          ))}
+        </div>
+        
+        <div class="timeline-chart">
+          {chartData.map((monthData) => (
+            <div class="month-column">
+              <div class="month-stacks">
+                {sortedContributors.map((contributor, index) => {
+                  const contribution = monthData[contributor.name];
+                  return contribution && contribution.count > 0 ? (
+                    <div 
+                      class="contribution-block"
+                      style={`height: ${contribution.count * 10}px; background-color: ${contribution.color}`}
+                      title={`${contributor.name}: ${contribution.count}件`}
+                    ></div>
+                  ) : null;
+                })}
+              </div>
+              <div class="month-label">{monthData.month}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    ) : (
+      <div class="no-data">
+        <p>コントリビューターデータがありません</p>
+      </div>
+    )}
+  </div>
+</div>
+
+<style>
+  .contributor-timeline-card {
+    border: 1px solid var(--sl-color-gray-5, #e2e8f0);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background-color: var(--sl-color-white, #ffffff);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .card-header {
+    background-color: var(--sl-color-gray-1, #f8fafc);
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--sl-color-gray-5, #e2e8f0);
+  }
+
+  .card-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--sl-color-gray-9, #334155);
+  }
+
+  .card-content {
+    padding: 1rem;
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+  }
+
+  .color-box {
+    width: 1rem;
+    height: 0.5rem;
+    border-radius: 2px;
+  }
+
+  .contributor-name {
+    color: var(--sl-color-gray-9, #334155);
+  }
+
+  .contributor-count {
+    color: var(--sl-color-gray-6, #64748b);
+  }
+
+  .timeline-chart {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1.5rem;
+    height: 15rem;
+  }
+
+  .month-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .month-stacks {
+    flex: 1;
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .contribution-block {
+    width: 80%;
+    max-width: 2rem;
+    border-radius: 2px;
+    margin-bottom: 1px;
+  }
+
+  .month-label {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--sl-color-gray-6, #64748b);
+  }
+
+  .no-data {
+    padding: 2rem 0;
+    text-align: center;
+    color: var(--sl-color-gray-6, #64748b);
+  }
+
+  @media (max-width: 768px) {
+    .month-column:nth-child(odd) {
+      display: none;
+    }
+    
+    .legend {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+</style>
