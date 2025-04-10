@@ -8,19 +8,23 @@
 interface Props {
   title?: string;
   networkData?: {
-    nodes?: number;
-    edges?: number;
-    density?: number;
-    avgDegree?: number;
+    nodes?: any[];
+    links?: any[];
   };
   className?: string;
 }
 
 const { 
   title = "ネットワーク指標", 
-  networkData = { nodes: 0, edges: 0, density: 0, avgDegree: 0 },
+  networkData = { nodes: [], links: [] },
   className = ""
 } = Astro.props;
+
+// 計算されたプロパティ
+const nodeCount = networkData.nodes?.length || 0;
+const linkCount = networkData.links?.length || 0;
+const density = nodeCount > 1 ? (2 * linkCount) / (nodeCount * (nodeCount - 1)) : 0;
+const avgDegree = nodeCount > 0 ? 2 * linkCount / nodeCount : 0;
 ---
 
 <div class={`network-card ${className}`}>
@@ -31,19 +35,19 @@ const {
     <div class="metrics-grid">
       <div class="metric">
         <span class="metric-label">ノード数:</span>
-        <span class="metric-value">{networkData.nodes}</span>
+        <span class="metric-value">{nodeCount}</span>
       </div>
       <div class="metric">
-        <span class="metric-label">エッジ数:</span>
-        <span class="metric-value">{networkData.edges}</span>
+        <span class="metric-label">リンク数:</span>
+        <span class="metric-value">{linkCount}</span>
       </div>
       <div class="metric">
         <span class="metric-label">密度:</span>
-        <span class="metric-value">{networkData.density?.toFixed(4) || '0.0000'}</span>
+        <span class="metric-value">{density.toFixed(4)}</span>
       </div>
       <div class="metric">
         <span class="metric-label">平均次数:</span>
-        <span class="metric-value">{networkData.avgDegree?.toFixed(2) || '0.00'}</span>
+        <span class="metric-value">{avgDegree.toFixed(2)}</span>
       </div>
     </div>
   </div>
