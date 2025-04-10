@@ -1,197 +1,274 @@
 ---
-/**
+/*
  * LinkAnalysisCard Component
- * 
- * リンク分析情報を表示するカード
+ *
+ * リンク分析情報を表示するカードコンポーネント
  */
 
 interface Props {
-  linkData: {
-    internal: number;
-    external: number;
-    wikiLinks: number;
-    issueRefs: number;
-  };
-  topLinkedPages: {
-    id: string;
-    title: string;
-    count: number;
-  }[];
-  basePath: string;
+  title?: string;
+  linksData?: any;
+  topLinkedPages?: any[];
+  className?: string;
 }
 
-const { linkData, topLinkedPages, basePath } = Astro.props;
+const { 
+  title = "リンク分析", 
+  linksData = { count: 0, average: 0, external: 0, internal: 0 },
+  topLinkedPages = [],
+  className = ""
+} = Astro.props;
+
+// リンクデータの整形と計算
+const totalLinks = linksData.count || 0;
+const avgLinksPerIssue = linksData.average?.toFixed(1) || 0;
+const externalLinks = linksData.external || 0;
+const internalLinks = linksData.internal || 0;
+
+// 最も参照されているページの表示件数
+const MAX_TOP_PAGES = 5;
+const limitedTopPages = topLinkedPages?.slice(0, MAX_TOP_PAGES) || [];
+
+// 外部・内部リンク比率の計算
+const externalRatio = totalLinks > 0 ? (externalLinks / totalLinks) * 100 : 0;
+const internalRatio = totalLinks > 0 ? (internalLinks / totalLinks) * 100 : 0;
 ---
 
-<div class="analysis-card" id="links-card">
-  <h2 class="card-title">Link Analysis</h2>
-  <div class="links-container">
-    <div id="links-chart"></div>
-    <div class="links-stats">
-      <h3>Most Referenced Pages</h3>
-      <ul class="links-list">
-        {topLinkedPages.map(page => (
-          <li>
-            <a href={`${basePath}/wiki/${page.id}`} class="page-link">
-              {page.title}
-            </a>
-            <span class="link-count">{page.count} {page.count === 1 ? 'reference' : 'references'}</span>
-          </li>
-        ))}
-      </ul>
+<div class={`link-analysis-card ${className}`}>
+  <div class="card-header">
+    <h3>{title}</h3>
+  </div>
+  <div class="card-content">
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-label">総リンク数</div>
+        <div class="stat-value">{totalLinks.toLocaleString()}</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">平均リンク/Issue</div>
+        <div class="stat-value">{avgLinksPerIssue}</div>
+      </div>
     </div>
+    
+    <div class="link-distribution">
+      <h4 class="section-title">リンクタイプの分布</h4>
+      <div class="link-ratio-container">
+        <div class="ratio-bar">
+          <div class="internal-bar" style={`width: ${internalRatio}%`} title={`内部リンク: ${internalLinks}件 (${internalRatio.toFixed(1)}%)`}></div>
+          <div class="external-bar" style={`width: ${externalRatio}%`} title={`外部リンク: ${externalLinks}件 (${externalRatio.toFixed(1)}%)`}></div>
+        </div>
+        <div class="ratio-legend">
+          <div class="legend-item">
+            <span class="color-box internal"></span>
+            <span class="legend-label">内部: {internalLinks}件 ({internalRatio.toFixed(1)}%)</span>
+          </div>
+          <div class="legend-item">
+            <span class="color-box external"></span>
+            <span class="legend-label">外部: {externalLinks}件 ({externalRatio.toFixed(1)}%)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    {limitedTopPages.length > 0 && (
+      <div class="top-pages-section">
+        <h4 class="section-title">よく参照されるページ</h4>
+        <ul class="top-pages-list">
+          {limitedTopPages.map((page) => (
+            <li class="page-item">
+              <div class="page-info">
+                <div class="page-title">{page.title || page.url || '不明なページ'}</div>
+                <div class="page-count">{page.count || 0}回参照</div>
+              </div>
+              <div class="page-bar-container">
+                <div 
+                  class="page-bar"
+                  style={`width: ${limitedTopPages[0].count > 0 ? (page.count / limitedTopPages[0].count) * 100 : 0}%`}
+                ></div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
   </div>
 </div>
 
 <style>
-  .analysis-card {
-    background: white;
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-    padding: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    transition: all 0.3s ease;
-    grid-column: span 2;
+  .link-analysis-card {
+    border: 1px solid var(--sl-color-gray-5, #e2e8f0);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background-color: var(--sl-color-white, #ffffff);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
-  
-  .analysis-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+
+  .card-header {
+    background-color: var(--sl-color-gray-1, #f8fafc);
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--sl-color-gray-5, #e2e8f0);
   }
-  
-  .dark .analysis-card {
-    background: #222;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-  }
-  
-  .dark .analysis-card:hover {
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-  }
-  
-  .card-title {
-    font-size: 1.25rem;
-    margin-top: 0;
-    margin-bottom: 1.25rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid #eee;
-    color: #333;
-  }
-  
-  .dark .card-title {
-    border-bottom-color: #444;
-    color: #eee;
-  }
-  
-  .links-container {
-    display: flex;
-    height: 300px;
-  }
-  
-  #links-chart {
-    width: 50%;
-    height: 100%;
-  }
-  
-  .links-stats {
-    width: 50%;
-    padding-left: 2rem;
-  }
-  
-  .links-stats h3 {
+
+  .card-header h3 {
+    margin: 0;
     font-size: 1rem;
-    margin-top: 0;
-    margin-bottom: 1rem;
-    color: #4b5563;
+    font-weight: 600;
+    color: var(--sl-color-gray-9, #334155);
   }
-  
-  .dark .links-stats h3 {
-    color: #e5e7eb;
+
+  .card-content {
+    padding: 1rem;
   }
-  
-  .links-list {
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .stat-box {
+    padding: 0.75rem;
+    border: 1px solid var(--sl-color-gray-3, #f1f5f9);
+    border-radius: 0.25rem;
+    text-align: center;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+    color: var(--sl-color-gray-7, #64748b);
+    margin-bottom: 0.25rem;
+  }
+
+  .stat-value {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--sl-color-gray-9, #334155);
+  }
+
+  .link-distribution, .top-pages-section {
+    margin-top: 1.5rem;
+  }
+
+  .section-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--sl-color-gray-8, #4b5563);
+    margin: 0 0 1rem 0;
+  }
+
+  .link-ratio-container {
+    margin-bottom: 1.5rem;
+  }
+
+  .ratio-bar {
+    height: 1.5rem;
+    background-color: var(--sl-color-gray-2, #f1f5f9);
+    border-radius: 0.25rem;
+    overflow: hidden;
+    display: flex;
+    width: 100%;
+  }
+
+  .internal-bar {
+    height: 100%;
+    background-color: var(--sl-color-blue-5, #3b82f6);
+  }
+
+  .external-bar {
+    height: 100%;
+    background-color: var(--sl-color-orange-5, #f97316);
+  }
+
+  .ratio-legend {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.5rem;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .color-box {
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 0.125rem;
+  }
+
+  .color-box.internal {
+    background-color: var(--sl-color-blue-5, #3b82f6);
+  }
+
+  .color-box.external {
+    background-color: var(--sl-color-orange-5, #f97316);
+  }
+
+  .legend-label {
+    font-size: 0.75rem;
+    color: var(--sl-color-gray-7, #64748b);
+  }
+
+  .top-pages-list {
     list-style: none;
     padding: 0;
     margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
   }
-  
-  .links-list li {
-    margin-bottom: 0.75rem;
+
+  .page-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .page-info {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.5rem;
-    background-color: #f9fafb;
-    border-radius: 4px;
-    transition: all 0.3s ease;
   }
-  
-  .links-list li:hover {
-    transform: translateX(5px);
-    background-color: #f0f4f8;
-  }
-  
-  .dark .links-list li {
-    background-color: #374151;
-  }
-  
-  .dark .links-list li:hover {
-    background-color: #4b5563;
-  }
-  
-  .page-link {
-    color: #4f6df5;
-    text-decoration: none;
-    font-weight: 500;
-    text-overflow: ellipsis;
-    overflow: hidden;
-    white-space: nowrap;
-    max-width: 70%;
-  }
-  
-  .dark .page-link {
-    color: #93c5fd;
-  }
-  
-  .link-count {
+
+  .page-title {
     font-size: 0.875rem;
-    color: #6b7280;
+    color: var(--sl-color-gray-9, #334155);
+    font-weight: 500;
+    max-width: 70%;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  
-  .dark .link-count {
-    color: #9ca3af;
+
+  .page-count {
+    font-size: 0.75rem;
+    color: var(--sl-color-gray-6, #64748b);
   }
-  
-  /* レスポンシブデザイン */
-  @media (max-width: 768px) {
-    .links-container {
+
+  .page-bar-container {
+    height: 0.5rem;
+    background-color: var(--sl-color-gray-2, #f1f5f9);
+    border-radius: 0.125rem;
+    overflow: hidden;
+  }
+
+  .page-bar {
+    height: 100%;
+    background-color: var(--sl-color-green-5, #10b981);
+    border-radius: 0.125rem;
+  }
+
+  @media (max-width: 480px) {
+    .stats-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .ratio-legend {
       flex-direction: column;
-      height: auto;
-    }
-    
-    #links-chart {
-      width: 100%;
-      height: 220px;
-      margin-bottom: 1.5rem;
-    }
-    
-    .links-stats {
-      width: 100%;
-      padding-left: 0;
+      align-items: flex-start;
+      gap: 0.25rem;
     }
   }
 </style>
-
-<script define:vars={{ linkData }}>
-document.addEventListener('DOMContentLoaded', () => {
-  const container = document.getElementById('links-chart');
-  if (!container) return;
-  
-  container.innerHTML = `<div style="height: 100%; display: flex; align-items: center; justify-content: center; color: #666;">
-    リンク分析チャートはプレースホルダーです。実装時にはD3.jsなどのチャートライブラリを使用します。
-  </div>`;
-  
-  // ここに実際のチャート描画コードを追加予定
-});
-</script>
