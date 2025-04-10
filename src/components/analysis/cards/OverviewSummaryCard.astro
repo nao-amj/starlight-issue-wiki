@@ -1,125 +1,362 @@
 ---
-/**
+/*
  * OverviewSummaryCard Component
- * 
- * サイト概要の統計情報を表示するカード
+ *
+ * 概要サマリー情報を表示するカードコンポーネント
  */
 
 interface Props {
-  totalPages: number;
-  totalLinks: number;
-  totalCategories: number;
-  activeMonths: number;
+  title?: string;
+  issueData?: {
+    labels?: any[];
+    activity?: any[];
+    length?: any;
+    recency?: any;
+  };
+  className?: string;
 }
 
-const { totalPages, totalLinks, totalCategories, activeMonths } = Astro.props;
+const { 
+  title = "概要", 
+  issueData = { labels: [], activity: [], length: null, recency: null },
+  className = ""
+} = Astro.props;
+
+// データの整形と計算
+const totalIssues = issueData.activity?.length || 0;
+const totalLabels = issueData.labels?.length || 0;
+const uniqueLabels = new Set(issueData.labels?.map(label => label.name) || []).size;
+const avgLength = issueData.length?.average || 0;
+const recencyDays = issueData.recency?.days || 0;
+
+// 日付の整形
+function formatDate(days) {
+  const today = new Date();
+  const date = new Date(today);
+  date.setDate(today.getDate() - days);
+  
+  return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+const lastActivityDate = formatDate(recencyDays);
+
+// アクティブ度の計算（最近のアクティビティに基づく）
+let activityStatus = 'inactive';
+let activityStatusLabel = '低調';
+let activityStatusColor = 'gray';
+
+if (recencyDays < 7) {
+  activityStatus = 'very-active';
+  activityStatusLabel = '非常に活発';
+  activityStatusColor = 'green';
+} else if (recencyDays < 30) {
+  activityStatus = 'active';
+  activityStatusLabel = '活発';
+  activityStatusColor = 'blue';
+} else if (recencyDays < 90) {
+  activityStatus = 'moderately-active';
+  activityStatusLabel = 'やや活発';
+  activityStatusColor = 'yellow';
+} else if (recencyDays < 180) {
+  activityStatus = 'low-active';
+  activityStatusLabel = '低調';
+  activityStatusColor = 'orange';
+} else {
+  activityStatus = 'inactive';
+  activityStatusLabel = '非アクティブ';
+  activityStatusColor = 'red';
+}
 ---
 
-<div class="analysis-card" id="summary-card">
-  <h2 class="card-title">Content Summary</h2>
-  <div class="stats-grid">
-    <div class="stat-item">
-      <div class="stat-value">{totalPages}</div>
-      <div class="stat-label">Total Pages</div>
+<div class={`overview-summary-card ${className}`}>
+  <div class="card-header">
+    <h3>{title}</h3>
+  </div>
+  <div class="card-content">
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-label">総Issue数</div>
+        <div class="stat-value">{totalIssues.toLocaleString()}</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">使用ラベル</div>
+        <div class="stat-value">{uniqueLabels}/{totalLabels}</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">平均文字数</div>
+        <div class="stat-value">{avgLength.toFixed(0)}</div>
+      </div>
     </div>
-    <div class="stat-item">
-      <div class="stat-value">{totalLinks}</div>
-      <div class="stat-label">Total Links</div>
+    
+    <div class="activity-status-section">
+      <div class="activity-header">
+        <h4 class="section-title">アクティビティステータス</h4>
+        <div class={`activity-badge ${activityStatus}`}>{activityStatusLabel}</div>
+      </div>
+      
+      <div class="activity-details">
+        <div class="last-activity">
+          <span class="detail-label">最終アクティビティ:</span>
+          <span class="detail-value">{lastActivityDate} ({recencyDays}日前)</span>
+        </div>
+      </div>
+      
+      <div class="activity-indicator">
+        <div class="indicator-track">
+          <div 
+            class={`indicator-marker ${activityStatus}`} 
+            style={`left: ${Math.min(recencyDays / 365 * 100, 100)}%`}
+            title={`最終アクティビティ: ${recencyDays}日前`}
+          ></div>
+          <div class="indicator-scale">
+            <span>今日</span>
+            <span>1ヶ月</span>
+            <span>6ヶ月</span>
+            <span>1年</span>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="stat-item">
-      <div class="stat-value">{totalCategories}</div>
-      <div class="stat-label">Categories</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-value">{activeMonths}</div>
-      <div class="stat-label">Active Months</div>
+    
+    <div class="quick-links">
+      <h4 class="section-title">クイックリンク</h4>
+      <div class="links-grid">
+        <a class="quick-link-item content">
+          <span class="link-icon">📝</span>
+          <span class="link-label">コンテンツ分析</span>
+        </a>
+        <a class="quick-link-item activity">
+          <span class="link-icon">📊</span>
+          <span class="link-label">アクティビティ分析</span>
+        </a>
+        <a class="quick-link-item network">
+          <span class="link-icon">🔗</span>
+          <span class="link-label">ネットワーク分析</span>
+        </a>
+        <a class="quick-link-item contributors">
+          <span class="link-icon">👥</span>
+          <span class="link-label">コントリビューター分析</span>
+        </a>
+      </div>
     </div>
   </div>
 </div>
 
 <style>
-  .analysis-card {
-    background: white;
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-    padding: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    transition: all 0.3s ease;
+  .overview-summary-card {
+    border: 1px solid var(--sl-color-gray-5, #e2e8f0);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background-color: var(--sl-color-white, #ffffff);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
-  
-  .analysis-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+
+  .card-header {
+    background-color: var(--sl-color-gray-1, #f8fafc);
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--sl-color-gray-5, #e2e8f0);
   }
-  
-  .dark .analysis-card {
-    background: #222;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+
+  .card-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--sl-color-gray-9, #334155);
   }
-  
-  .dark .analysis-card:hover {
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+
+  .card-content {
+    padding: 1rem;
   }
-  
-  .card-title {
-    font-size: 1.25rem;
-    margin-top: 0;
-    margin-bottom: 1.25rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid #eee;
-    color: #333;
-  }
-  
-  .dark .card-title {
-    border-bottom-color: #444;
-    color: #eee;
-  }
-  
+
   .stats-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 1rem;
+    margin-bottom: 1.5rem;
   }
-  
-  .stat-item {
+
+  .stat-box {
+    padding: 0.75rem;
+    border: 1px solid var(--sl-color-gray-3, #f1f5f9);
+    border-radius: 0.25rem;
     text-align: center;
-    padding: 1rem;
-    background-color: #f8fafc;
-    border-radius: 8px;
-    transition: all 0.3s ease;
   }
-  
-  .stat-item:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
-  }
-  
-  .dark .stat-item {
-    background-color: #333;
-  }
-  
-  .dark .stat-item:hover {
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
-  }
-  
-  .stat-value {
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: #4f6df5;
+
+  .stat-label {
+    font-size: 0.75rem;
+    color: var(--sl-color-gray-7, #64748b);
     margin-bottom: 0.25rem;
   }
-  
-  .dark .stat-value {
-    color: #7b96ff;
+
+  .stat-value {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--sl-color-gray-9, #334155);
   }
-  
-  .stat-label {
+
+  .activity-status-section {
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .activity-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  .section-title {
     font-size: 0.875rem;
-    color: #64748b;
+    font-weight: 600;
+    color: var(--sl-color-gray-8, #4b5563);
+    margin: 0;
   }
-  
-  .dark .stat-label {
-    color: #94a3b8;
+
+  .activity-badge {
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.25rem 0.5rem;
+    border-radius: 1rem;
+  }
+
+  .activity-badge.very-active {
+    background-color: var(--sl-color-green-1, #ecfdf5);
+    color: var(--sl-color-green-7, #047857);
+  }
+
+  .activity-badge.active {
+    background-color: var(--sl-color-blue-1, #eff6ff);
+    color: var(--sl-color-blue-7, #1d4ed8);
+  }
+
+  .activity-badge.moderately-active {
+    background-color: var(--sl-color-yellow-1, #fef9c3);
+    color: var(--sl-color-yellow-7, #a16207);
+  }
+
+  .activity-badge.low-active {
+    background-color: var(--sl-color-orange-1, #ffedd5);
+    color: var(--sl-color-orange-7, #c2410c);
+  }
+
+  .activity-badge.inactive {
+    background-color: var(--sl-color-red-1, #fee2e2);
+    color: var(--sl-color-red-7, #b91c1c);
+  }
+
+  .activity-details {
+    margin-bottom: 1rem;
+  }
+
+  .last-activity {
+    font-size: 0.875rem;
+    color: var(--sl-color-gray-7, #64748b);
+  }
+
+  .detail-label {
+    font-weight: 500;
+    margin-right: 0.5rem;
+  }
+
+  .activity-indicator {
+    margin-top: 1rem;
+  }
+
+  .indicator-track {
+    position: relative;
+    height: 0.5rem;
+    background-color: var(--sl-color-gray-2, #f1f5f9);
+    border-radius: 0.25rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .indicator-marker {
+    position: absolute;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .indicator-marker.very-active {
+    background-color: var(--sl-color-green-5, #10b981);
+  }
+
+  .indicator-marker.active {
+    background-color: var(--sl-color-blue-5, #3b82f6);
+  }
+
+  .indicator-marker.moderately-active {
+    background-color: var(--sl-color-yellow-5, #eab308);
+  }
+
+  .indicator-marker.low-active {
+    background-color: var(--sl-color-orange-5, #f97316);
+  }
+
+  .indicator-marker.inactive {
+    background-color: var(--sl-color-red-5, #ef4444);
+  }
+
+  .indicator-scale {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--sl-color-gray-6, #64748b);
+  }
+
+  .quick-links {
+    margin-top: 1.5rem;
+  }
+
+  .links-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    margin-top: 1rem;
+  }
+
+  .quick-link-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border-radius: 0.25rem;
+    border: 1px solid var(--sl-color-gray-3, #f1f5f9);
+    font-size: 0.875rem;
+    color: var(--sl-color-gray-9, #334155);
+    text-decoration: none;
+    transition: background-color 0.2s, border-color 0.2s;
+  }
+
+  .quick-link-item:hover {
+    background-color: var(--sl-color-gray-1, #f8fafc);
+    border-color: var(--sl-color-gray-4, #cbd5e1);
+  }
+
+  .link-icon {
+    font-size: 1.25rem;
+  }
+
+  .link-label {
+    font-weight: 500;
+  }
+
+  @media (max-width: 768px) {
+    .stats-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .links-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .stats-grid {
+      grid-template-columns: 1fr;
+    }
   }
 </style>
