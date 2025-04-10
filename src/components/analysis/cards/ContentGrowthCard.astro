@@ -1,0 +1,318 @@
+---
+/*
+ * ContentGrowthCard Component
+ *
+ * Issueコンテンツの増加傾向を時系列で表示するカードコンポーネント
+ */
+
+interface Props {
+  title?: string;
+  activityData?: any[];
+  className?: string;
+}
+
+const { 
+  title = "コンテンツ増加傾向", 
+  activityData = [],
+  className = ""
+} = Astro.props;
+
+// 日付データを初期化する関数
+function initializeTimelineData() {
+  const timeline = [];
+  const today = new Date();
+  
+  // 過去12ヶ月分のデータを初期化
+  for (let i = 11; i >= 0; i--) {
+    const date = new Date(today);
+    date.setMonth(today.getMonth() - i);
+    
+    // 年月のフォーマット（例: 2024-01）
+    const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    
+    timeline.push({
+      yearMonth,
+      count: 0,
+      label: `${date.getFullYear()}年${date.getMonth() + 1}月`
+    });
+  }
+  
+  return timeline;
+}
+
+// 時系列データの集計
+const timelineData = initializeTimelineData();
+const yearMonthMap = new Map(timelineData.map(item => [item.yearMonth, item]));
+
+// activityDataから時系列データを集計
+if (activityData && activityData.length > 0) {
+  activityData.forEach((item) => {
+    if (item.date) {
+      const date = new Date(item.date);
+      const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      
+      if (yearMonthMap.has(yearMonth)) {
+        yearMonthMap.get(yearMonth).count++;
+      }
+    }
+  });
+}
+
+// 累積データの計算
+let cumulative = 0;
+const cumulativeData = timelineData.map(item => {
+  cumulative += item.count;
+  return {
+    ...item,
+    cumulative
+  };
+});
+
+// 最大値の計算（グラフのスケール用）
+const maxMonthlyCount = Math.max(...timelineData.map(item => item.count));
+const maxCumulativeCount = cumulative;
+
+// 増加率の計算
+const earliestCount = timelineData[0].count;
+const latestCount = timelineData[timelineData.length - 1].count;
+const growthRate = earliestCount > 0 ? ((latestCount / earliestCount) - 1) * 100 : 0;
+
+// 総数の計算
+const totalIssues = activityData?.length || 0;
+---
+
+<div class={`content-growth-card ${className}`}>
+  <div class="card-header">
+    <h3>{title}</h3>
+  </div>
+  <div class="card-content">
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-label">総Issue数</div>
+        <div class="stat-value">{totalIssues.toLocaleString()}</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">直近の増加率</div>
+        <div class="stat-value">{growthRate.toFixed(1)}%</div>
+      </div>
+    </div>
+    
+    <div class="chart-container">
+      <div class="y-axis">
+        <div class="axis-label">月次</div>
+        <div class="axis-max">{maxMonthlyCount}</div>
+        <div class="axis-mid">{Math.floor(maxMonthlyCount / 2)}</div>
+        <div class="axis-min">0</div>
+      </div>
+      
+      <div class="timeline-chart">
+        {timelineData.map((item, index) => (
+          <div class="month-column">
+            <div 
+              class="month-bar" 
+              style={`height: ${maxMonthlyCount > 0 ? (item.count / maxMonthlyCount) * 100 : 0}%`}
+              title={`${item.label}: ${item.count}件`}
+            ></div>
+            <div class="month-label">{index % 3 === 0 ? item.label.replace('年', '/').replace('月', '') : ''}</div>
+          </div>
+        ))}
+      </div>
+      
+      <div class="cumulative-line">
+        {cumulativeData.map((item, index) => {
+          const nextItem = index < cumulativeData.length - 1 ? cumulativeData[index + 1] : null;
+          const x1 = `${(index / (cumulativeData.length - 1)) * 100}%`;
+          const y1 = `${100 - (item.cumulative / maxCumulativeCount) * 100}%`;
+          const x2 = nextItem ? `${((index + 1) / (cumulativeData.length - 1)) * 100}%` : x1;
+          const y2 = nextItem ? `${100 - (nextItem.cumulative / maxCumulativeCount) * 100}%` : y1;
+          
+          return index < cumulativeData.length - 1 ? (
+            <svg class="line-segment" width="100%" height="100%" style={`left: ${x1}; top: ${y1};`}>
+              <line 
+                x1="0%" 
+                y1="0%" 
+                x2="100%" 
+                y2={`${((nextItem.cumulative - item.cumulative) / maxCumulativeCount) * 100}%`}
+                stroke="var(--sl-color-red-5, #ef4444)" 
+                stroke-width="2"
+              />
+            </svg>
+          ) : null;
+        })}
+        
+        {cumulativeData.map((item) => (
+          <div 
+            class="cumulative-point" 
+            style={`left: ${((cumulativeData.indexOf(item)) / (cumulativeData.length - 1)) * 100}%; top: ${100 - (item.cumulative / maxCumulativeCount) * 100}%`}
+            title={`累積: ${item.cumulative}件`}
+          ></div>
+        ))}
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .content-growth-card {
+    border: 1px solid var(--sl-color-gray-5, #e2e8f0);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background-color: var(--sl-color-white, #ffffff);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .card-header {
+    background-color: var(--sl-color-gray-1, #f8fafc);
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--sl-color-gray-5, #e2e8f0);
+  }
+
+  .card-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--sl-color-gray-9, #334155);
+  }
+
+  .card-content {
+    padding: 1rem;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .stat-box {
+    padding: 0.75rem;
+    border: 1px solid var(--sl-color-gray-3, #f1f5f9);
+    border-radius: 0.25rem;
+    text-align: center;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+    color: var(--sl-color-gray-7, #64748b);
+    margin-bottom: 0.25rem;
+  }
+
+  .stat-value {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--sl-color-gray-9, #334155);
+  }
+
+  .chart-container {
+    height: 12rem;
+    position: relative;
+    display: flex;
+    margin-top: 1rem;
+  }
+
+  .y-axis {
+    width: 3rem;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding-right: 0.5rem;
+  }
+
+  .axis-label {
+    font-size: 0.75rem;
+    color: var(--sl-color-gray-7, #64748b);
+    text-align: center;
+    position: absolute;
+    left: 0;
+    top: -1.25rem;
+  }
+
+  .axis-max, .axis-mid, .axis-min {
+    font-size: 0.7rem;
+    color: var(--sl-color-gray-7, #64748b);
+    text-align: right;
+  }
+
+  .axis-max {
+    padding-top: 0.25rem;
+  }
+
+  .axis-min {
+    padding-bottom: 0.25rem;
+  }
+
+  .timeline-chart {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    height: 100%;
+    border-bottom: 1px solid var(--sl-color-gray-3, #f1f5f9);
+    position: relative;
+  }
+
+  .month-column {
+    flex: 1;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+  }
+
+  .month-bar {
+    width: 60%;
+    max-width: 1rem;
+    background-color: var(--sl-color-blue-5, #3b82f6);
+    border-radius: 0.125rem 0.125rem 0 0;
+    min-height: 1px;
+    transition: height 0.3s ease;
+  }
+
+  .month-label {
+    font-size: 0.7rem;
+    margin-top: 0.25rem;
+    color: var(--sl-color-gray-6, #64748b);
+    white-space: nowrap;
+    position: absolute;
+    bottom: -1.25rem;
+    transform: rotate(-45deg);
+    transform-origin: top left;
+  }
+
+  .cumulative-line {
+    position: absolute;
+    top: 0;
+    left: 3rem;
+    right: 0;
+    bottom: 0;
+  }
+
+  .line-segment {
+    position: absolute;
+    width: 8.33%;  /* 100% / 12 months */
+    height: 100%;
+    overflow: visible;
+  }
+
+  .cumulative-point {
+    position: absolute;
+    width: 0.5rem;
+    height: 0.5rem;
+    background-color: var(--sl-color-red-5, #ef4444);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  @media (max-width: 640px) {
+    .timeline-chart {
+      margin-left: 0.5rem;
+    }
+    
+    .month-column:nth-child(odd) {
+      display: none;
+    }
+  }
+</style>
