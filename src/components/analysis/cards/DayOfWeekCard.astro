@@ -1,149 +1,167 @@
 ---
-/**
+/*
  * DayOfWeekCard Component
- * 
- * 曜日別のアクティビティを表示するグラフカード
+ *
+ * 曜日別のアクティビティを表示するカードコンポーネント
  */
 
 interface Props {
-  dayOfWeekData: {
-    day: string;
-    count: number;
-  }[];
+  title?: string;
+  dayOfWeekData?: any[];
+  className?: string;
 }
 
-const { dayOfWeekData } = Astro.props;
+const { 
+  title = "曜日別アクティビティ", 
+  dayOfWeekData = [],
+  className = ""
+} = Astro.props;
 
-// 曜日の並び順を確保するための配列
-const daysOrder = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+// 曜日ごとのデータを初期化
+const days = [
+  { name: '日曜日', shortName: '日', count: 0 },
+  { name: '月曜日', shortName: '月', count: 0 },
+  { name: '火曜日', shortName: '火', count: 0 },
+  { name: '水曜日', shortName: '水', count: 0 },
+  { name: '木曜日', shortName: '木', count: 0 },
+  { name: '金曜日', shortName: '金', count: 0 },
+  { name: '土曜日', shortName: '土', count: 0 }
+];
 
-// データを曜日順にソート
-const sortedData = [...dayOfWeekData].sort((a, b) => 
-  daysOrder.indexOf(a.day) - daysOrder.indexOf(b.day)
-);
+// dayOfWeekDataから曜日データを集計
+if (dayOfWeekData && dayOfWeekData.length > 0) {
+  dayOfWeekData.forEach((item) => {
+    const dayIndex = item.dayOfWeek !== undefined ? item.dayOfWeek % 7 : -1;
+    if (dayIndex >= 0 && dayIndex < 7) {
+      days[dayIndex].count++;
+    }
+  });
+}
 
-// 最大値を取得（グラフのスケーリング用）
-const maxCount = Math.max(...sortedData.map(item => item.count), 1);
+// 最大値の計算（グラフのスケール用）
+const maxCount = Math.max(...days.map(day => day.count));
 ---
 
-<div class="analysis-card" id="day-of-week-card">
-  <h2 class="card-title">Activity by Day of Week</h2>
-  <div id="day-of-week-chart" class="chart-container">
-    {sortedData.map(item => (
-      <div class="chart-bar-container">
-        <div class="chart-label">{item.day.substring(0, 3)}</div>
-        <div class="chart-bar-wrapper">
-          <div 
-            class="chart-bar" 
-            style={`width: ${(item.count / maxCount) * 100}%;`}
-            title={`${item.day}: ${item.count} issues`}
-          ></div>
-          <span class="chart-value">{item.count}</span>
+<div class={`day-of-week-card ${className}`}>
+  <div class="card-header">
+    <h3>{title}</h3>
+  </div>
+  <div class="card-content">
+    <div class="days-grid">
+      {days.map((day) => (
+        <div class="day-block">
+          <div class="day-name">
+            <span class="day-short">{day.shortName}</span>
+            <span class="day-full">{day.name}</span>
+          </div>
+          <div class="bar-container">
+            <div 
+              class="day-bar" 
+              style={`width: ${maxCount > 0 ? (day.count / maxCount) * 100 : 0}%`}
+              title={`${day.name}: ${day.count}件`}
+            ></div>
+            <span class="day-count">{day.count}</span>
+          </div>
         </div>
-      </div>
-    ))}
+      ))}
+    </div>
   </div>
 </div>
 
 <style>
-  .analysis-card {
-    background: white;
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-    padding: 1.5rem;
+  .day-of-week-card {
+    border: 1px solid var(--sl-color-gray-5, #e2e8f0);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background-color: var(--sl-color-white, #ffffff);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .card-header {
+    background-color: var(--sl-color-gray-1, #f8fafc);
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--sl-color-gray-5, #e2e8f0);
+  }
+
+  .card-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--sl-color-gray-9, #334155);
+  }
+
+  .card-content {
+    padding: 1rem;
+  }
+
+  .days-grid {
     display: flex;
     flex-direction: column;
-    transition: all 0.3s ease;
+    gap: 0.75rem;
   }
-  
-  .analysis-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-  }
-  
-  .dark .analysis-card {
-    background: #222;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-  }
-  
-  .dark .analysis-card:hover {
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-  }
-  
-  .card-title {
-    font-size: 1.25rem;
-    margin-top: 0;
-    margin-bottom: 1.25rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid #eee;
-    color: #333;
-  }
-  
-  .dark .card-title {
-    border-bottom-color: #444;
-    color: #eee;
-  }
-  
-  .chart-container {
-    height: 250px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-  }
-  
-  .chart-bar-container {
+
+  .day-block {
     display: flex;
     align-items: center;
-    margin-bottom: 8px;
   }
-  
-  .chart-label {
-    width: 40px;
+
+  .day-name {
+    width: 4rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .day-short {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    background-color: var(--sl-color-gray-2, #f1f5f9);
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--sl-color-gray-9, #334155);
+  }
+
+  .day-full {
+    display: none;
     font-size: 0.875rem;
-    color: #666;
+    color: var(--sl-color-gray-7, #64748b);
   }
-  
-  .dark .chart-label {
-    color: #aaa;
-  }
-  
-  .chart-bar-wrapper {
+
+  .bar-container {
     flex: 1;
     display: flex;
     align-items: center;
-    height: 24px;
+    gap: 0.5rem;
+    height: 1.25rem;
   }
-  
-  .chart-bar {
-    height: 24px;
-    background: linear-gradient(to right, #4a86e8, #6aa5f6);
-    border-radius: 4px;
-    transition: width 0.5s ease;
+
+  .day-bar {
+    height: 100%;
+    background-color: var(--sl-color-indigo-5, #6366f1);
+    border-radius: 0.25rem;
+    min-width: 4px;
+    transition: width 0.3s ease;
   }
-  
-  .chart-value {
-    margin-left: 8px;
+
+  .day-count {
     font-size: 0.875rem;
-    color: #666;
+    font-weight: 500;
+    color: var(--sl-color-gray-9, #334155);
+    min-width: 1.5rem;
+    text-align: right;
   }
-  
-  .dark .chart-value {
-    color: #aaa;
+
+  @media (min-width: 640px) {
+    .day-full {
+      display: block;
+    }
+    
+    .day-name {
+      width: 6rem;
+    }
   }
 </style>
-
-<script>
-// 必要に応じて追加のインタラクティブ機能をここに実装
-document.addEventListener('DOMContentLoaded', () => {
-  // 例: バーにホバー効果を追加するなど
-  const bars = document.querySelectorAll('.chart-bar');
-  bars.forEach(bar => {
-    bar.addEventListener('mouseenter', () => {
-      bar.style.opacity = '0.8';
-    });
-    bar.addEventListener('mouseleave', () => {
-      bar.style.opacity = '1';
-    });
-  });
-});
-</script>
