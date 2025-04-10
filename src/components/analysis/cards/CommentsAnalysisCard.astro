@@ -1,0 +1,224 @@
+---
+/*
+ * CommentsAnalysisCard Component
+ *
+ * コメントの分析情報を表示するカードコンポーネント
+ */
+
+interface Props {
+  title?: string;
+  commentsData?: any;
+  className?: string;
+}
+
+const { 
+  title = "コメント分析", 
+  commentsData = { count: 0, average: 0, distribution: [], timeToFirstComment: 0 },
+  className = ""
+} = Astro.props;
+
+// コメントデータの整形と計算
+const commentCount = commentsData.count || 0;
+const avgCommentsPerIssue = commentsData.average?.toFixed(1) || 0;
+const commentDistribution = commentsData.distribution || [];
+const timeToFirstComment = commentsData.timeToFirstComment || 0;
+
+// コメント分布のための区分を定義
+const commentCategories = [
+  { label: 'コメントなし', min: 0, max: 0, count: 0 },
+  { label: '1-3コメント', min: 1, max: 3, count: 0 },
+  { label: '4-10コメント', min: 4, max: 10, count: 0 },
+  { label: '11-20コメント', min: 11, max: 20, count: 0 },
+  { label: '21以上', min: 21, max: Infinity, count: 0 }
+];
+
+// コメント分布の集計
+if (commentDistribution && commentDistribution.length > 0) {
+  commentDistribution.forEach(item => {
+    const count = item.count || 0;
+    
+    for (const category of commentCategories) {
+      if (count >= category.min && count <= category.max) {
+        category.count++;
+        break;
+      }
+    }
+  });
+}
+
+// 最大値の計算（グラフのスケール用）
+const maxCategoryCount = Math.max(...commentCategories.map(category => category.count));
+
+// 時間の整形関数
+function formatTime(hours) {
+  if (hours < 1) {
+    return `${Math.round(hours * 60)} 分`;
+  } else if (hours < 24) {
+    return `${Math.round(hours)} 時間`;
+  } else {
+    return `${Math.round(hours / 24)} 日`;
+  }
+}
+
+const formattedFirstCommentTime = formatTime(timeToFirstComment);
+---
+
+<div class={`comments-analysis-card ${className}`}>
+  <div class="card-header">
+    <h3>{title}</h3>
+  </div>
+  <div class="card-content">
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-label">総コメント数</div>
+        <div class="stat-value">{commentCount.toLocaleString()}</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">平均コメント/Issue</div>
+        <div class="stat-value">{avgCommentsPerIssue}</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">初回コメントまでの平均時間</div>
+        <div class="stat-value">{formattedFirstCommentTime}</div>
+      </div>
+    </div>
+    
+    <div class="distribution-section">
+      <h4 class="section-title">コメント数の分布</h4>
+      <div class="categories-grid">
+        {commentCategories.map((category) => (
+          <div class="category-block">
+            <div class="category-label">
+              {category.label}
+            </div>
+            <div class="bar-container">
+              <div 
+                class="category-bar" 
+                style={`width: ${maxCategoryCount > 0 ? (category.count / maxCategoryCount) * 100 : 0}%`}
+                title={`${category.label}: ${category.count}件`}
+              ></div>
+              <span class="category-count">{category.count}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .comments-analysis-card {
+    border: 1px solid var(--sl-color-gray-5, #e2e8f0);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background-color: var(--sl-color-white, #ffffff);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .card-header {
+    background-color: var(--sl-color-gray-1, #f8fafc);
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--sl-color-gray-5, #e2e8f0);
+  }
+
+  .card-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--sl-color-gray-9, #334155);
+  }
+
+  .card-content {
+    padding: 1rem;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .stat-box {
+    padding: 0.75rem;
+    border: 1px solid var(--sl-color-gray-3, #f1f5f9);
+    border-radius: 0.25rem;
+    text-align: center;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+    color: var(--sl-color-gray-7, #64748b);
+    margin-bottom: 0.25rem;
+  }
+
+  .stat-value {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--sl-color-gray-9, #334155);
+  }
+
+  .distribution-section {
+    margin-top: 1.5rem;
+  }
+
+  .section-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--sl-color-gray-8, #4b5563);
+    margin: 0 0 1rem 0;
+  }
+
+  .categories-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .category-block {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .category-label {
+    font-size: 0.875rem;
+    color: var(--sl-color-gray-7, #64748b);
+    margin-bottom: 0.25rem;
+  }
+
+  .bar-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 1.25rem;
+  }
+
+  .category-bar {
+    height: 100%;
+    background-color: var(--sl-color-teal-5, #14b8a6);
+    border-radius: 0.25rem;
+    min-width: 4px;
+    transition: width 0.3s ease;
+  }
+
+  .category-count {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--sl-color-gray-9, #334155);
+    min-width: 1.5rem;
+    text-align: right;
+  }
+
+  @media (max-width: 768px) {
+    .stats-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .stats-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
