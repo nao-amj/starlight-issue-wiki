@@ -1,0 +1,189 @@
+---
+/*
+ * HourlyActivityCard Component
+ *
+ * 時間帯別のアクティビティデータを表示するカードコンポーネント
+ */
+
+interface Props {
+  title?: string;
+  hourlyData?: any[];
+  className?: string;
+}
+
+const { 
+  title = "時間帯別アクティビティ", 
+  hourlyData = [],
+  className = ""
+} = Astro.props;
+
+// 時間帯データの集計と整形
+const hoursMap = new Map();
+for (let i = 0; i < 24; i++) {
+  hoursMap.set(i, 0);
+}
+
+// hourlyDataから時間データを集計
+if (hourlyData && hourlyData.length > 0) {
+  hourlyData.forEach((item) => {
+    const hour = item.hour || 0;
+    hoursMap.set(hour, (hoursMap.get(hour) || 0) + 1);
+  });
+}
+
+// 時間帯グループの作成
+const morningHours = Array.from({ length: 6 }, (_, i) => ({ hour: i, count: hoursMap.get(i) }));
+const daytimeHours = Array.from({ length: 6 }, (_, i) => ({ hour: i + 6, count: hoursMap.get(i + 6) }));
+const eveningHours = Array.from({ length: 6 }, (_, i) => ({ hour: i + 12, count: hoursMap.get(i + 12) }));
+const nightHours = Array.from({ length: 6 }, (_, i) => ({ hour: i + 18, count: hoursMap.get(i + 18) }));
+
+// 最大値の計算（グラフのスケール用）
+const maxCount = Math.max(...Array.from(hoursMap.values()));
+---
+
+<div class={`hourly-activity-card ${className}`}>
+  <div class="card-header">
+    <h3>{title}</h3>
+  </div>
+  <div class="card-content">
+    <div class="time-group">
+      <h4>深夜 (00:00-05:59)</h4>
+      <div class="hours-grid">
+        {morningHours.map(({ hour, count }) => (
+          <div class="hour-block">
+            <div class="hour-bar" style={`height: ${maxCount > 0 ? (count / maxCount) * 100 : 0}%`}></div>
+            <div class="hour-label">{hour}時</div>
+            <div class="hour-count">{count}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+    
+    <div class="time-group">
+      <h4>午前 (06:00-11:59)</h4>
+      <div class="hours-grid">
+        {daytimeHours.map(({ hour, count }) => (
+          <div class="hour-block">
+            <div class="hour-bar" style={`height: ${maxCount > 0 ? (count / maxCount) * 100 : 0}%`}></div>
+            <div class="hour-label">{hour}時</div>
+            <div class="hour-count">{count}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+    
+    <div class="time-group">
+      <h4>午後 (12:00-17:59)</h4>
+      <div class="hours-grid">
+        {eveningHours.map(({ hour, count }) => (
+          <div class="hour-block">
+            <div class="hour-bar" style={`height: ${maxCount > 0 ? (count / maxCount) * 100 : 0}%`}></div>
+            <div class="hour-label">{hour}時</div>
+            <div class="hour-count">{count}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+    
+    <div class="time-group">
+      <h4>夜間 (18:00-23:59)</h4>
+      <div class="hours-grid">
+        {nightHours.map(({ hour, count }) => (
+          <div class="hour-block">
+            <div class="hour-bar" style={`height: ${maxCount > 0 ? (count / maxCount) * 100 : 0}%`}></div>
+            <div class="hour-label">{hour}時</div>
+            <div class="hour-count">{count}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .hourly-activity-card {
+    border: 1px solid var(--sl-color-gray-5, #e2e8f0);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background-color: var(--sl-color-white, #ffffff);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .card-header {
+    background-color: var(--sl-color-gray-1, #f8fafc);
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--sl-color-gray-5, #e2e8f0);
+  }
+
+  .card-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--sl-color-gray-9, #334155);
+  }
+
+  .card-content {
+    padding: 1rem;
+  }
+
+  .time-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .time-group:last-child {
+    margin-bottom: 0;
+  }
+
+  .time-group h4 {
+    font-size: 0.875rem;
+    color: var(--sl-color-gray-7, #64748b);
+    margin: 0 0 0.5rem 0;
+    font-weight: 500;
+  }
+
+  .hours-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.5rem;
+  }
+
+  .hour-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 6rem;
+  }
+
+  .hour-bar {
+    width: 1.5rem;
+    background-color: var(--sl-color-blue-5, #3b82f6);
+    border-radius: 0.25rem;
+    margin-top: auto;
+    min-height: 4px;
+    transition: height 0.3s ease;
+  }
+
+  .hour-label {
+    font-size: 0.75rem;
+    color: var(--sl-color-gray-6, #64748b);
+    margin-top: 0.25rem;
+  }
+
+  .hour-count {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--sl-color-gray-9, #334155);
+  }
+
+  @media (max-width: 768px) {
+    .hours-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .hours-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+</style>
