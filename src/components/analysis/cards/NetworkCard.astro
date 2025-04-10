@@ -1,0 +1,109 @@
+---
+/*
+ * NetworkCard Component
+ *
+ * ネットワーク分析データを表示するカードコンポーネント
+ */
+
+interface Props {
+  title?: string;
+  networkData?: {
+    nodes?: number;
+    edges?: number;
+    density?: number;
+    avgDegree?: number;
+  };
+  className?: string;
+}
+
+const { 
+  title = "ネットワーク指標", 
+  networkData = { nodes: 0, edges: 0, density: 0, avgDegree: 0 },
+  className = ""
+} = Astro.props;
+---
+
+<div class={`network-card ${className}`}>
+  <div class="card-header">
+    <h3>{title}</h3>
+  </div>
+  <div class="card-content">
+    <div class="metrics-grid">
+      <div class="metric">
+        <span class="metric-label">ノード数:</span>
+        <span class="metric-value">{networkData.nodes}</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">エッジ数:</span>
+        <span class="metric-value">{networkData.edges}</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">密度:</span>
+        <span class="metric-value">{networkData.density?.toFixed(4) || '0.0000'}</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">平均次数:</span>
+        <span class="metric-value">{networkData.avgDegree?.toFixed(2) || '0.00'}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .network-card {
+    border: 1px solid var(--sl-color-gray-5, #e2e8f0);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background-color: var(--sl-color-white, #ffffff);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .card-header {
+    background-color: var(--sl-color-gray-1, #f8fafc);
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--sl-color-gray-5, #e2e8f0);
+  }
+
+  .card-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--sl-color-gray-9, #334155);
+  }
+
+  .card-content {
+    padding: 1rem;
+  }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+
+  .metric {
+    display: flex;
+    flex-direction: column;
+    padding: 0.5rem;
+    border: 1px solid var(--sl-color-gray-3, #f1f5f9);
+    border-radius: 0.25rem;
+  }
+
+  .metric-label {
+    color: var(--sl-color-gray-7, #64748b);
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .metric-value {
+    font-weight: 500;
+    color: var(--sl-color-gray-9, #334155);
+    font-size: 1.125rem;
+  }
+
+  @media (max-width: 640px) {
+    .metrics-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
