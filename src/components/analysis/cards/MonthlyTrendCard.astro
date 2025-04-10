@@ -1,0 +1,168 @@
+---
+/*
+ * MonthlyTrendCard Component
+ *
+ * 月別のアクティビティトレンドを表示するカードコンポーネント
+ */
+
+interface Props {
+  title?: string;
+  activityData?: any[];
+  className?: string;
+}
+
+const { 
+  title = "月間トレンド", 
+  activityData = [],
+  className = ""
+} = Astro.props;
+
+// 月別データの集計
+const monthNames = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
+const monthlyData = Array(12).fill(0);
+
+// activityDataから月別データを集計
+if (activityData && activityData.length > 0) {
+  activityData.forEach((item) => {
+    const date = item.date ? new Date(item.date) : null;
+    if (date) {
+      const month = date.getMonth();
+      monthlyData[month]++;
+    }
+  });
+}
+
+// 最大値の計算（グラフのスケール用）
+const maxValue = Math.max(...monthlyData);
+---
+
+<div class={`monthly-trend-card ${className}`}>
+  <div class="card-header">
+    <h3>{title}</h3>
+  </div>
+  <div class="card-content">
+    <div class="chart-container">
+      {monthlyData.map((count, index) => (
+        <div class="month-column">
+          <div class="bar-container">
+            <div 
+              class="bar" 
+              style={`height: ${maxValue > 0 ? (count / maxValue) * 100 : 0}%`}
+              title={`${monthNames[index]}: ${count}件`}
+            >
+              {count > 0 && <span class="bar-value">{count}</span>}
+            </div>
+          </div>
+          <div class="month-label">{monthNames[index]}</div>
+        </div>
+      ))}
+    </div>
+  </div>
+</div>
+
+<style>
+  .monthly-trend-card {
+    border: 1px solid var(--sl-color-gray-5, #e2e8f0);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background-color: var(--sl-color-white, #ffffff);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .card-header {
+    background-color: var(--sl-color-gray-1, #f8fafc);
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--sl-color-gray-5, #e2e8f0);
+  }
+
+  .card-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--sl-color-gray-9, #334155);
+  }
+
+  .card-content {
+    padding: 1rem;
+  }
+
+  .chart-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    height: 12rem;
+    padding-top: 1rem;
+  }
+
+  .month-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+  }
+
+  .bar-container {
+    width: 100%;
+    height: 10rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+  }
+
+  .bar {
+    width: 80%;
+    max-width: 2rem;
+    background-color: var(--sl-color-green-5, #10b981);
+    border-radius: 0.25rem 0.25rem 0 0;
+    min-height: 4px;
+    position: relative;
+    transition: height 0.3s ease;
+  }
+
+  .bar-value {
+    position: absolute;
+    top: -1.25rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--sl-color-gray-7, #64748b);
+  }
+
+  .month-label {
+    font-size: 0.75rem;
+    margin-top: 0.5rem;
+    color: var(--sl-color-gray-6, #64748b);
+  }
+
+  @media (max-width: 768px) {
+    .chart-container {
+      height: 10rem;
+    }
+    
+    .month-column:nth-child(odd) {
+      display: none;
+    }
+    
+    .month-column:nth-child(2n) {
+      flex: 1;
+    }
+    
+    .bar {
+      width: 90%;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .chart-container {
+      height: 8rem;
+    }
+    
+    .month-column:not(:nth-child(3n)) {
+      display: none;
+    }
+    
+    .month-column:nth-child(3n) {
+      flex: 1;
+    }
+  }
+</style>
