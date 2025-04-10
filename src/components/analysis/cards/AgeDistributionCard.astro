@@ -1,0 +1,155 @@
+---
+/*
+ * AgeDistributionCard Component
+ *
+ * IssueのOpen期間（年齢）の分布を表示するカードコンポーネント
+ */
+
+interface Props {
+  title?: string;
+  ageData?: any[];
+  className?: string;
+}
+
+const { 
+  title = "Issue年齢分布", 
+  ageData = [],
+  className = ""
+} = Astro.props;
+
+// 年齢（Open期間）の区分を定義
+const ageCategories = [
+  { label: '1日以内', days: 1, count: 0 },
+  { label: '1週間以内', days: 7, count: 0 },
+  { label: '2週間以内', days: 14, count: 0 },
+  { label: '1ヶ月以内', days: 30, count: 0 },
+  { label: '3ヶ月以内', days: 90, count: 0 },
+  { label: '6ヶ月以内', days: 180, count: 0 },
+  { label: '1年以内', days: 365, count: 0 },
+  { label: '1年以上', days: Infinity, count: 0 }
+];
+
+// ageDataから年齢データを集計
+if (ageData && ageData.length > 0) {
+  ageData.forEach((item) => {
+    const ageDays = item.ageDays || 0;
+    
+    // 該当する区分にカウントを加算
+    for (let i = 0; i < ageCategories.length; i++) {
+      if (ageDays <= ageCategories[i].days) {
+        ageCategories[i].count++;
+        break;
+      }
+      
+      // 最後の区分（1年以上）の場合
+      if (i === ageCategories.length - 1) {
+        ageCategories[i].count++;
+      }
+    }
+  });
+}
+
+// 最大値の計算（グラフのスケール用）
+const maxCount = Math.max(...ageCategories.map(category => category.count));
+---
+
+<div class={`age-distribution-card ${className}`}>
+  <div class="card-header">
+    <h3>{title}</h3>
+  </div>
+  <div class="card-content">
+    <div class="categories-grid">
+      {ageCategories.map((category) => (
+        <div class="category-block">
+          <div class="category-label">
+            {category.label}
+          </div>
+          <div class="bar-container">
+            <div 
+              class="category-bar" 
+              style={`width: ${maxCount > 0 ? (category.count / maxCount) * 100 : 0}%`}
+              title={`${category.label}: ${category.count}件`}
+            ></div>
+            <span class="category-count">{category.count}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</div>
+
+<style>
+  .age-distribution-card {
+    border: 1px solid var(--sl-color-gray-5, #e2e8f0);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background-color: var(--sl-color-white, #ffffff);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .card-header {
+    background-color: var(--sl-color-gray-1, #f8fafc);
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--sl-color-gray-5, #e2e8f0);
+  }
+
+  .card-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--sl-color-gray-9, #334155);
+  }
+
+  .card-content {
+    padding: 1rem;
+  }
+
+  .categories-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .category-block {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .category-label {
+    font-size: 0.875rem;
+    color: var(--sl-color-gray-7, #64748b);
+    margin-bottom: 0.25rem;
+  }
+
+  .bar-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 1.25rem;
+  }
+
+  .category-bar {
+    height: 100%;
+    background-color: var(--sl-color-orange-5, #f97316);
+    border-radius: 0.25rem;
+    min-width: 4px;
+    transition: width 0.3s ease;
+  }
+
+  .category-count {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--sl-color-gray-9, #334155);
+    min-width: 1.5rem;
+    text-align: right;
+  }
+
+  @media (min-width: 768px) {
+    .categories-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+    }
+  }
+</style>
